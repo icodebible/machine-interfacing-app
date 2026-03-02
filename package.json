@@ -1,12 +1,58 @@
 {
   "name": "machine-interfacing-app",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "dist-electron/main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "build:web": "ng build",
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "electron:dev": "concurrently \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing\"",
+    "electron:build": "npm run build:web && npm run build:electron && electron-builder",
+    "clean": "rimraf dist dist-electron release"
+  },
+  "build": {
+    "appId": "tz.ac.udsm.dhis.machineinterfacing",
+    "productName": "Machine Interfacing App",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "electron/resources",
+        "to": "resources"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icons/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icons/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "build/icons"
+    },
+    "icon": "build/icons/icon.png"
   },
   "prettier": {
     "printWidth": 100,
@@ -28,6 +74,8 @@
     "@angular/forms": "^20.1.0",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
@@ -37,12 +85,27 @@
     "@angular/cli": "^20.1.6",
     "@angular/compiler-cli": "^20.1.0",
     "@types/jasmine": "~5.1.0",
+    "@types/node": "^25.3.3",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.8.2"
-  }
+    "rimraf": "^6.1.3",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.2",
+    "wait-on": "^9.0.4"
+  },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "YOUR_ORG",
+      "repo": "YOUR_REPO"
+    }
+  ]
 }

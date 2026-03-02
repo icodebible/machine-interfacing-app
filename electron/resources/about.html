@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>About</title>
+    <style>
+        body {
+            font-family: system-ui, Arial;
+            padding: 18px;
+        }
+
+        .card {
+            border-radius: 12px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            margin: 0 0 8px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>Machine Interfacing App</h2>
+        <div>University of Dar es Salaam (UDSM)</div>
+        <div style="margin-top:10px;">A secure desktop middleware for machine connectivity.</div>
+        <div style="margin-top:12px;">Version: <span id="v"></span></div>
+        <div style="margin-top:12px;">
+            <a href="https://example.com">Documentation</a>
+        </div>
+    </div>
+
+    <script>
+        // simple way: Electron will substitute later via preload if desired; for now keep static
+        document.getElementById('v').textContent = 'See app menu About for version';
+    </script>
+</body>
+
+</html>
