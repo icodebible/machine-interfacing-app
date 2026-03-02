@@ -1,5 +1,7 @@
 "use strict";
 // import { Menu, app, dialog, shell, BrowserWindow } from 'electron';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildAppMenu = buildAppMenu;
 // export function buildAppMenu() {
 //   const isMac = process.platform === 'darwin';
 //   const template: Electron.MenuItemConstructorOptions[] = [
@@ -61,3 +63,44 @@
 //     buttons: ['OK'],
 //   });
 // }
+const electron_1 = require("electron");
+const about_window_1 = require("../../windows/about.window");
+function buildAppMenu() {
+    const isMac = process.platform === 'darwin';
+    const template = [
+        ...(isMac
+            ? [
+                {
+                    label: electron_1.app.name,
+                    submenu: [
+                        { label: 'About', click: () => (0, about_window_1.showAboutDialog)() },
+                        { type: 'separator' },
+                        { role: 'hide' },
+                        { role: 'hideOthers' },
+                        { role: 'unhide' },
+                        { type: 'separator' },
+                        { role: 'quit' },
+                    ],
+                },
+            ]
+            : []),
+        {
+            label: 'File',
+            submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
+        },
+        {
+            label: 'Help',
+            submenu: [
+                { label: 'About', click: () => (0, about_window_1.showAboutDialog)() },
+                { type: 'separator' },
+                {
+                    label: 'Documentation',
+                    click: async () => {
+                        await electron_1.shell.openExternal('https://example.com'); // replace later
+                    },
+                },
+            ],
+        },
+    ];
+    electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate(template));
+}

@@ -8,7 +8,7 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly title = signal('machine-interfacing-app');
+  protected readonly title = signal('machine-interfacing-app-1');
 
   version = signal<string>('loading...');
   pong = signal<string>('');

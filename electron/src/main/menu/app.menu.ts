@@ -66,3 +66,50 @@
 //     buttons: ['OK'],
 //   });
 // }
+
+import { Menu, app, shell } from 'electron';
+import { showAboutDialog } from '../../windows/about.window';
+
+export function buildAppMenu() {
+    const isMac = process.platform === 'darwin';
+
+    const template: Electron.MenuItemConstructorOptions[] = [
+        ...(isMac
+            ? [
+                {
+                    label: app.name,
+                    submenu: [
+                        { label: 'About', click: () => showAboutDialog() },
+                        { type: 'separator' },
+                        { role: 'hide' },
+                        { role: 'hideOthers' },
+                        { role: 'unhide' },
+                        { type: 'separator' },
+                        { role: 'quit' },
+                    ],
+                },
+            ]
+            : []),
+
+        {
+            label: 'File',
+            submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
+        },
+
+        {
+            label: 'Help',
+            submenu: [
+                { label: 'About', click: () => showAboutDialog() },
+                { type: 'separator' },
+                {
+                    label: 'Documentation',
+                    click: async () => {
+                        await shell.openExternal('https://example.com'); // replace later
+                    },
+                },
+            ],
+        },
+    ] as any;
+
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}

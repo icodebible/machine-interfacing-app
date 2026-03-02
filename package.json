@@ -52,7 +52,14 @@
       ],
       "icon": "build/icons"
     },
-    "icon": "build/icons/icon.png"
+    "icon": "build/icons/icon.png",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "UDSM DHIS2 Lab",
+        "repo": "YOUR_REPO"
+      }
+    ]
   },
   "prettier": {
     "printWidth": 100,
@@ -105,7 +112,7 @@
   "publish": [
     {
       "provider": "github",
-      "owner": "YOUR_ORG",
+      "owner": "UDSM DHIS2 Lab",
       "repo": "YOUR_REPO"
     }
   ]
