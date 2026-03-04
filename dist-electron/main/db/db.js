@@ -16,9 +16,10 @@ function getDb() {
     fs_1.default.mkdirSync(dir, { recursive: true });
     const dbPath = path_1.default.join(dir, 'machine-interfacing.sqlite');
     db = new better_sqlite3_1.default(dbPath);
-    console.log('DB PATH:', dbPath);
     // enterprise defaults
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000');
+    db.pragma('synchronous = NORMAL');
     return db;
 }

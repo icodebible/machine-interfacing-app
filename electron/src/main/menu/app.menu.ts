@@ -1,80 +1,12 @@
-// import { Menu, app, dialog, shell, BrowserWindow } from 'electron';
-
-// export function buildAppMenu() {
-//   const isMac = process.platform === 'darwin';
-
-//   const template: Electron.MenuItemConstructorOptions[] = [
-//     ...(isMac
-//       ? [
-//           {
-//             label: app.name,
-//             submenu: [
-//               { role: 'about' },
-//               { type: 'separator' },
-//               { role: 'services' },
-//               { type: 'separator' },
-//               { role: 'hide' },
-//               { role: 'hideOthers' },
-//               { role: 'unhide' },
-//               { type: 'separator' },
-//               { role: 'quit' },
-//             ],
-//           },
-//         ]
-//       : []),
-
-//     {
-//       label: 'File',
-//       submenu: [
-//         {
-//           label: 'Close',
-//           role: isMac ? 'close' : 'quit',
-//         },
-//       ],
-//     },
-
-//     {
-//       label: 'Help',
-//       submenu: [
-//         {
-//           label: 'About',
-//           click: () => showAboutDialog(),
-//         },
-//         { type: 'separator' },
-//         {
-//           label: 'Documentation',
-//           click: async () => {
-//             // replace with your docs page later
-//             await shell.openExternal('https://example.com');
-//           },
-//         },
-//       ],
-//     },
-//   ];
-
-//   const menu = Menu.buildFromTemplate(template);
-//   Menu.setApplicationMenu(menu);
-// }
-
-// export function showAboutDialog() {
-//   const win = BrowserWindow.getFocusedWindow();
-//   dialog.showMessageBox(win ?? undefined, {
-//     type: 'info',
-//     title: `About ${app.name}`,
-//     message: app.name,
-//     detail: `Version: ${app.getVersion()}\n\nMachine Interfacing Desktop App\nUniversity of Dar es Salaam (UDSM)`,
-//     buttons: ['OK'],
-//   });
-// }
-
 import { Menu, app, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { showAboutDialog } from '../../windows/about.window';
 
 export function buildAppMenu() {
     const isMac = process.platform === 'darwin';
 
     const template: Electron.MenuItemConstructorOptions[] = [
-        ...(isMac
+        ...((isMac
             ? [
                 {
                     label: app.name,
@@ -89,7 +21,34 @@ export function buildAppMenu() {
                     ],
                 },
             ]
-            : []),
+            : []) as any),
+
+        // ✅ Standard desktop editing (big UX win)
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' },
+            ],
+        },
+
+        // ✅ View controls (devtools only in dev)
+        {
+            label: 'View',
+            submenu: app.isPackaged
+                ? [{ role: 'reload' }, { role: 'togglefullscreen' }]
+                : [
+                    { role: 'reload' },
+                    { role: 'forcereload' },
+                    { role: 'toggledevtools' },
+                    { role: 'togglefullscreen' },
+                ],
+        },
 
         {
             label: 'File',
@@ -99,17 +58,29 @@ export function buildAppMenu() {
         {
             label: 'Help',
             submenu: [
-                { label: 'About', click: () => showAboutDialog() },
-                { type: 'separator' },
+                // On macOS, About is usually in the app menu only
+                ...(isMac ? [] : [{ label: 'About', click: () => showAboutDialog() }]),
+                ...(isMac ? [] : [{ type: 'separator' }]),
+
                 {
                     label: 'Documentation',
                     click: async () => {
-                        await shell.openExternal('https://example.com'); // replace later
+                        await shell.openExternal('https://github.com/<your-org>/<your-repo>');
+                    },
+                },
+
+                { type: 'separator' },
+
+                {
+                    label: 'Check for updates…',
+                    enabled: app.isPackaged,
+                    click: async () => {
+                        await autoUpdater.checkForUpdatesAndNotify();
                     },
                 },
             ],
         },
-    ] as any;
+    ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

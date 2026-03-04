@@ -23,6 +23,7 @@ import { Shell } from './layout/shell/shell';
 import { authGuard } from './core/auth/auth.guard';
 import { permissionGuard } from './core/auth/permission.guard';
 import { Login } from './features/login/login';
+import { passwordChangeGuard } from './core/auth/password-change.guard';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'app/dashboard', pathMatch: 'full' },
@@ -33,29 +34,29 @@ export const routes: Routes = [
         component: Shell,
         canActivate: [authGuard],
         children: [
-            { path: 'dashboard', component: Dashboard },
-            { path: 'labs', component: Labs },
-            { path: 'machines', component: Machines },
-            { path: 'live-monitor', component: LiveMonitor },
-            { path: 'mappings', component: Mappings },
-            { path: 'routes', component: RoutesTargets },
-            { path: 'outbox', component: Outbox },
+            { path: 'dashboard', component: Dashboard, canActivate: [passwordChangeGuard] },
+            { path: 'labs', component: Labs, canActivate: [passwordChangeGuard] },
+            { path: 'machines', component: Machines, canActivate: [passwordChangeGuard] },
+            { path: 'live-monitor', component: LiveMonitor, canActivate: [passwordChangeGuard] },
+            { path: 'mappings', component: Mappings, canActivate: [passwordChangeGuard] },
+            { path: 'routes', component: RoutesTargets, canActivate: [passwordChangeGuard] },
+            { path: 'outbox', component: Outbox, canActivate: [passwordChangeGuard] },
 
             // Admin-only
             {
                 path: 'users',
                 component: Users,
-                canActivate: [permissionGuard('USERS_WRITE')],
+                canActivate: [passwordChangeGuard, permissionGuard('USERS_WRITE')],
             },
             {
                 path: 'roles',
                 component: Roles,
-                canActivate: [permissionGuard('ROLES_WRITE')],
+                canActivate: [passwordChangeGuard, permissionGuard('ROLES_WRITE')],
             },
             {
                 path: 'audit-logs',
                 component: AuditLogs,
-                canActivate: [permissionGuard('AUDIT_READ')],
+                canActivate: [passwordChangeGuard, permissionGuard('AUDIT_READ')],
             },
 
             { path: 'settings', component: Settings },

@@ -14,11 +14,11 @@ export function getDb() {
     const dbPath = path.join(dir, 'machine-interfacing.sqlite');
     db = new Database(dbPath);
 
-    console.log('DB PATH:', dbPath);
-
     // enterprise defaults
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000');
+    db.pragma('synchronous = NORMAL');
 
     return db;
 }

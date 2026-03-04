@@ -5,22 +5,34 @@ import { logger } from '../../logging/logger';
 
 const auth = new AuthService();
 
-export function registerAuthIpc() {
-  ipcMain.handle(IPC_CHANNELS.AUTH_LOGIN, async (_e, username: string, password: string) => {
-    // await auth.ensureBootstrapAdmin();
-    try {
-      await auth.ensureBootstrapAdmin();
-    } catch (e) {
-      logger.error('[BOOTSTRAP]: App Bootstrap Failed', e);
-      throw e;
-    }
-    return auth.login(username, password);
-  });
+let authQueue: Promise<any> = Promise.resolve();
 
-  ipcMain.handle(
-    IPC_CHANNELS.AUTH_CHANGE_PASSWORD,
-    async (_e, userId: string, newPassword: string) => {
-      return auth.changePassword(userId, newPassword);
-    },
+function enqueue<T>(fn: () => Promise<T>) {
+  authQueue = authQueue.then(fn, fn);
+  return authQueue;
+}
+
+export function registerAuthIpc() {
+  ipcMain.handle(IPC_CHANNELS.AUTH_LOGIN, (_e, username: string, password: string) =>
+    enqueue(async () => {
+      try {
+        await auth.ensureBootstrapAdmin();
+        return await auth.login(username, password);
+      } catch (e) {
+        logger.error('[AUTH_LOGIN] failed', e);
+        throw e;
+      }
+    }),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, (_e, userId: string, newPassword: string) =>
+    enqueue(async () => {
+      try {
+        return await auth.changePassword(userId, newPassword);
+      } catch (e) {
+        logger.error('[AUTH_CHANGE_PASSWORD] failed', e);
+        throw e;
+      }
+    }),
   );
 }

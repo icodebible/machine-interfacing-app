@@ -13,7 +13,8 @@
     "build:native": "npm run rebuild:native",
     "build:web": "ng build",
     "build:electron": "tsc -p electron/tsconfig.json && node electron/build-preload.mjs",
-    "electron:dev": "concurrently \"npm run build:native\" \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_DEVTOOLS=0 && cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing\"",
+    "electron:dev-legacy": "concurrently \"npm run build:native\" \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_DEVTOOLS=0 && cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing\"",
+    "electron:dev": "concurrently \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_DEVTOOLS=0 cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing --disable-gpu-sandbox --disable-software-rasterizer\"",
     "electron:build": "npm run build:web && npm run build:electron && electron-builder",
     "clean": "rimraf dist dist-electron release"
   },
@@ -106,7 +107,7 @@
     "@types/node": "^25.3.3",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^40.6.1",
+    "electron": "^39.7.0",
     "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.27.3",
