@@ -9,7 +9,9 @@
 //   }
 // }
 
-import type { AppAPI } from '../../electron/src/preload/api/types';
+// import type { AppAPI } from '../../electron/src/preload/api/types';
+
+import type { AppAPI } from "../../electron/src/preload/api/types";
 
 export {};
 

@@ -13,6 +13,45 @@ export const IPC_CHANNELS = {
     MACHINE_SERIAL_SEND: 'machine:serial:send',
     MACHINE_SERIAL_DISCONNECT: 'machine:serial:disconnect',
 
+    // Auth
+    AUTH_LOGIN: 'auth:login',
+    AUTH_LOGOUT: 'auth:logout',
+    AUTH_CHANGE_PASSWORD: 'auth:changePassword',
+
+    // Users/Roles
+    USERS_LIST: 'users:list',
+    USERS_CREATE: 'users:create',
+    USERS_UPDATE: 'users:update',
+    USERS_RESET_PASSWORD: 'users:resetPassword',
+    ROLES_LIST: 'roles:list',
+    ROLES_CREATE: 'roles:create',
+    ROLES_UPDATE: 'roles:update',
+
+    // Labs
+    LABS_LIST: 'labs:list',
+    LABS_CREATE: 'labs:create',
+    LABS_UPDATE: 'labs:update',
+
+    // Machines
+    MACHINES_LIST: 'machines:list',
+    MACHINES_CREATE: 'machines:create',
+    MACHINES_UPDATE: 'machines:update',
+
+    // Targets (DHIS2/OpenMRS)
+    TARGETS_LIST: 'targets:list',
+    TARGETS_CREATE: 'targets:create',
+    TARGETS_UPDATE: 'targets:update',
+    TARGETS_TEST: 'targets:test',
+
+    // Logs + monitor
+    LOGS_QUERY: 'logs:query',
+
+    // Outbox
+    OUTBOX_LIST: 'outbox:list',
+    OUTBOX_RETRY: 'outbox:retry',
+    OUTBOX_DELETE: 'outbox:delete',
+
+    // Existing machine ones (keep yours)
     MACHINE_MESSAGE: 'machine:message',
 } as const;
 

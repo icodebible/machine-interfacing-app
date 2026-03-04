@@ -72,7 +72,8 @@ const logger_1 = require("./logging/logger");
 const main_window_1 = require("./windows/main.window");
 const machine_ipc_1 = require("./ipc/machine.ipc");
 const autoUpdater_1 = require("./main/updater/autoUpdater");
-const app_menu_1 = require("./main/menu/app.menu");
+const migrations_1 = require("./main/db/migrations");
+const auth_ipc_1 = require("./main/ipc/auth.ipc");
 // import { buildAppMenu } from './menu/app.menu';
 // ✅ Single instance lock (enterprise)
 const gotLock = electron_1.app.requestSingleInstanceLock();
@@ -105,15 +106,17 @@ electron_1.app.whenReady().then(async () => {
     (0, app_ipc_1.registerIpcHandlers)();
     // Window
     const win = (0, main_window_1.createMainWindow)();
+    (0, migrations_1.runMigrations)();
+    (0, auth_ipc_1.registerAuthIpc)();
     // Menu (File / Help / About)
-    (0, app_menu_1.buildAppMenu)();
+    // buildAppMenu();
     // Machine module IPC
     // registerMachineIpc(win);
     const cleanupMachineIpc = (0, machine_ipc_1.registerMachineIpc)(win);
     // macOS behavior
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0)
-            (0, main_window_1.createMainWindow)();
+            win;
     });
     electron_1.app.on('before-quit', () => {
         cleanupMachineIpc?.();

@@ -19,4 +19,6 @@ exports.api = {
         electron_1.ipcRenderer.on(channels_1.IPC_CHANNELS.MACHINE_MESSAGE, handler);
         return () => electron_1.ipcRenderer.removeListener(channels_1.IPC_CHANNELS.MACHINE_MESSAGE, handler);
     },
+    authLogin: (username, password) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.AUTH_LOGIN, username, password),
+    authChangePassword: (userId, newPassword) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.AUTH_CHANGE_PASSWORD, userId, newPassword),
 };

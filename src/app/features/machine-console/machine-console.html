@@ -1,0 +1,101 @@
+<div class="page">
+    <header class="top">
+        <div>
+            <h1>Machine Console</h1>
+            <p class="sub">Serial + TCP connectivity console (Electron)</p>
+        </div>
+
+        <div class="right">
+            <span class="badge" [class.badge--ok]="bridge.isElectron()" [class.badge--warn]="!bridge.isElectron()">
+                {{ bridge.isElectron() ? 'Electron mode' : 'Web mode' }}
+            </span>
+            <button class="btn btn--ghost" (click)="clearLog()">Clear log</button>
+        </div>
+    </header>
+
+    <div *ngIf="!bridge.isElectron()" class="notice notice--warn">
+        <b>Electron required:</b> This page needs the desktop app runtime to access serial/TCP.
+        Run <code>npm run electron:dev</code>.
+    </div>
+
+    <div *ngIf="error()" class="notice notice--err">
+        <b>Error:</b> {{ error() }}
+    </div>
+
+    <div class="status">Status: <b>{{ status() }}</b></div>
+
+    <section class="grid">
+        <!-- TCP -->
+        <div class="card">
+            <h2>TCP</h2>
+
+            <label class="label">Host</label>
+            <input class="input" [ngModel]="tcpHost()" (ngModelChange)="tcpHost.set($event)" placeholder="127.0.0.1" />
+
+            <label class="label">Port</label>
+            <input class="input" type="number" [ngModel]="tcpPort()" (ngModelChange)="tcpPort.set($event)" />
+
+            <div class="row">
+                <button class="btn" (click)="tcpConnect()" [disabled]="!bridge.isElectron()">Connect</button>
+                <button class="btn btn--ghost" (click)="tcpDisconnect()"
+                    [disabled]="!bridge.isElectron()">Disconnect</button>
+            </div>
+
+            <label class="label">Send</label>
+            <textarea class="textarea" [ngModel]="tcpPayload()" (ngModelChange)="tcpPayload.set($event)"
+                placeholder="Message..."></textarea>
+            <button class="btn" (click)="tcpSend()" [disabled]="!bridge.isElectron()">Send</button>
+        </div>
+
+        <!-- Serial -->
+        <div class="card">
+            <h2>Serial</h2>
+
+            <div class="row">
+                <button class="btn btn--ghost" (click)="refreshSerialPorts()" [disabled]="!bridge.isElectron()">Refresh
+                    ports</button>
+            </div>
+
+            <label class="label">Port</label>
+            <select class="input" [ngModel]="serialPath()" (ngModelChange)="serialPath.set($event)"
+                [disabled]="!bridge.isElectron()">
+                <option value="" disabled>Select port</option>
+                <option *ngFor="let p of serialPorts()" [value]="p.path">
+                    {{ p.path }} {{ p.manufacturer ? '(' + p.manufacturer + ')' : '' }}
+                </option>
+            </select>
+
+            <label class="label">Baud rate</label>
+            <input class="input" type="number" [ngModel]="serialBaudRate()"
+                (ngModelChange)="serialBaudRate.set($event)" />
+
+            <div class="row">
+                <button class="btn" (click)="serialConnect()" [disabled]="!bridge.isElectron()">Connect</button>
+                <button class="btn btn--ghost" (click)="serialDisconnect()"
+                    [disabled]="!bridge.isElectron()">Disconnect</button>
+            </div>
+
+            <label class="label">Send</label>
+            <textarea class="textarea" [ngModel]="serialPayload()" (ngModelChange)="serialPayload.set($event)"
+                placeholder="Message..."></textarea>
+            <button class="btn" (click)="serialSend()" [disabled]="!bridge.isElectron()">Send</button>
+        </div>
+    </section>
+
+    <!-- Log -->
+    <section class="card log">
+        <h2>Message Log</h2>
+
+        <div class="log__list">
+            <div class="log__item" *ngFor="let m of bridge.messages()">
+                <div class="meta">
+                    <span class="dir" [class.in]="m.direction === 'in'" [class.out]="m.direction === 'out'">
+                        {{ m.direction.toUpperCase() }}
+                    </span>
+                    <span class="time">{{ m.timestamp }}</span>
+                </div>
+                <pre class="payload">{{ m.payload }}</pre>
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,28 @@
+<div class="login">
+  <mat-card class="card">
+    <mat-card-title>Machine Interfacing</mat-card-title>
+    <mat-card-subtitle>Sign in to continue</mat-card-subtitle>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <form (ngSubmit)="onLogin()" class="form">
+      <mat-form-field appearance="outline">
+        <mat-label>Username</mat-label>
+        <input matInput [(ngModel)]="username" name="username" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput [(ngModel)]="password" name="password" type="password" required />
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="loading">
+        {{ loading ? 'Signing in...' : 'Login' }}
+      </button>
+    </form>
+
+    <div class="hint">
+      Default first-run login: <b>admin / admin</b> (you’ll be asked to change it)
+    </div>
+  </mat-card>
+</div>

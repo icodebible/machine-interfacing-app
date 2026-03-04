@@ -16,7 +16,9 @@ function createMainWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
-            preload: path_1.default.join(__dirname, '../../preload/preload.js'),
+            // preload: path.join(__dirname, '../../preload/preload.js'),
+            // preload: path.join(__dirname, '../preload/preload.ts'),
+            preload: path_1.default.join(electron_1.app.getAppPath(), 'dist-electron', 'preload', 'preload.js'),
         },
     });
     // Prevent navigation to arbitrary URLs

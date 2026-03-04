@@ -88,6 +88,8 @@ import { createMainWindow } from './windows/main.window';
 import { registerMachineIpc } from './ipc/machine.ipc';
 import { setupAutoUpdater } from './main/updater/autoUpdater';
 import { buildAppMenu } from './main/menu/app.menu';
+import { runMigrations } from './main/db/migrations';
+import { registerAuthIpc } from './main/ipc/auth.ipc';
 // import { buildAppMenu } from './menu/app.menu';
 
 // ✅ Single instance lock (enterprise)
@@ -126,16 +128,21 @@ app.whenReady().then(async () => {
   // Window
   const win = createMainWindow();
 
+  runMigrations();
+  registerAuthIpc();
+
   // Menu (File / Help / About)
-  buildAppMenu();
+  // buildAppMenu();
 
   // Machine module IPC
   // registerMachineIpc(win);
   const cleanupMachineIpc = registerMachineIpc(win);
 
+
+
   // macOS behavior
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) win;
   });
 
   app.on('before-quit', () => {

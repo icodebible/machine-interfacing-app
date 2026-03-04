@@ -1,0 +1,19 @@
+.container {
+    height: 100vh;
+}
+
+.sidenav {
+    width: 280px;
+}
+
+.content {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.router {
+    padding: 16px;
+    flex: 1;
+    overflow: auto;
+}

@@ -3,7 +3,7 @@ import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -14,6 +14,7 @@ export class App {
   pong = signal<string>('');
 
   async ngOnInit() {
+    console.log('appAPI exists?', (window as any)?.ng);
     // Works in Electron, but in web-only ng serve you might not have window.appAPI
     if (window?.appAPI) {
       this.version.set(await window.appAPI.getAppVersion());

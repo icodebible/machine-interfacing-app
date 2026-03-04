@@ -11,7 +11,9 @@ export function createMainWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
-            preload: path.join(__dirname, '../../preload/preload.js'),
+            // preload: path.join(__dirname, '../../preload/preload.js'),
+            // preload: path.join(__dirname, '../preload/preload.ts'),
+            preload: path.join(app.getAppPath(), 'dist-electron', 'preload', 'preload.js'),
         },
     });
 
@@ -44,6 +46,7 @@ export function createMainWindow() {
             'browser',
             'index.html',
         );
+
         logger.info(`Loading: ${indexHtml}`);
         win.loadFile(indexHtml);
     }

@@ -22,4 +22,9 @@ export const api: AppAPI = {
         ipcRenderer.on(IPC_CHANNELS.MACHINE_MESSAGE, handler);
         return () => ipcRenderer.removeListener(IPC_CHANNELS.MACHINE_MESSAGE, handler);
     },
+    authLogin: (username: string, password: string) =>
+        ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, username, password),
+
+    authChangePassword: (userId: string, newPassword: string) =>
+        ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, userId, newPassword),
 };
