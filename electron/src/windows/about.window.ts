@@ -1,43 +1,31 @@
-// import { BrowserWindow, app } from 'electron';
-import path from 'path';
+import { app, BrowserWindow, dialog, clipboard } from 'electron';
 
-// export function openAboutWindow() {
-//     const win = new BrowserWindow({
-//         width: 420,
-//         height: 360,
-//         resizable: false,
-//         minimizable: false,
-//         maximizable: false,
-//         title: `About ${app.name}`,
-//         webPreferences: {
-//             contextIsolation: true,
-//             nodeIntegration: false,
-//             sandbox: true,
-//         },
-//     });
-
-//     // simplest: load a local html shipped with app resources
-//     const aboutHtml = path.join(app.getAppPath(), 'electron', 'resources', 'about.html');
-//     win.loadFile(aboutHtml);
-
-//     return win;
-// }
-
-import { app, BrowserWindow, dialog } from 'electron';
-
-export function showAboutDialog() {
+export async function showAboutDialog() {
     const win = BrowserWindow.getFocusedWindow() ?? undefined;
 
-    dialog.showMessageBox(win as any, {
+    const detail = [
+        `Version: ${app.getVersion()}`,
+        `Platform: ${process.platform} (${process.arch})`,
+        `Electron: ${process.versions.electron}`,
+        `Chrome: ${process.versions.chrome}`,
+        `Node: ${process.versions.node}`,
+        '',
+        'Machine Interfacing Desktop App',
+        'University of Dar es Salaam (UDSM) | DHIS2 Lab',
+    ].join('\n');
+
+    const res = await dialog.showMessageBox(win as any, {
         type: 'info',
         title: `About ${app.name}`,
-        message: `${app.name}`,
-        detail: [
-            `Version: ${app.getVersion()}`,
-            '',
-            'Machine Interfacing Desktop App',
-            'University of Dar es Salaam (UDSM) | DHIS2 Lab',
-        ].join('\n'),
-        buttons: ['OK'],
+        message: app.name,
+        detail,
+        buttons: ['OK', 'Copy info'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
     });
+
+    if (res.response === 1) {
+        clipboard.writeText(`${app.name}\n${detail}`);
+    }
 }

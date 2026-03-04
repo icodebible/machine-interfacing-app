@@ -1,31 +1,114 @@
-<mat-card class="card" *ngIf="mode === 'change-password'">
-  <mat-card-title>Change password</mat-card-title>
-  <mat-card-subtitle>
-    For security, you must change your password before continuing.
-  </mat-card-subtitle>
+<div class="security-page">
+  <div class="security-header">
+    <div class="security-icon">
+      <mat-icon>lock</mat-icon>
+    </div>
 
-  <div *ngIf="error" class="error">{{ error }}</div>
+    <div class="security-title">
+      <div class="h1">
+        {{ isForced ? 'Security setup' : 'Security' }}
+      </div>
+      <div class="sub" *ngIf="isForced">
+        For security, you must update your password before continuing.
+      </div>
+      <div class="sub" *ngIf="!isForced">
+        Update your password and security preferences.
+      </div>
 
-  <form (ngSubmit)="onChangePassword()" class="form">
-    <mat-form-field appearance="outline">
-      <mat-label>New password</mat-label>
-      <input matInput type="password" [(ngModel)]="newPassword" name="newPassword" required minlength="8" />
-      <mat-hint>Minimum 8 characters</mat-hint>
-    </mat-form-field>
+      <div class="meta">
+        Logged in as <b>{{ currentUsername }}</b>
+      </div>
+    </div>
+  </div>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Confirm password</mat-label>
-      <input matInput type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required minlength="8" />
-    </mat-form-field>
+  <div class="security-grid">
+    <!-- Form -->
+    <mat-card class="card">
+      <mat-card-title>Change password</mat-card-title>
 
-    <button mat-flat-button color="primary" type="submit" [disabled]="loading">
-      {{ loading ? 'Saving...' : 'Update password' }}
-    </button>
-  </form>
-</mat-card>
+      <div *ngIf="error" class="alert error">
+        <mat-icon>error</mat-icon>
+        <div>{{ error }}</div>
+      </div>
 
-<!-- If not forced mode, Settings can later show Theme / About / etc -->
-<mat-card class="card" *ngIf="mode !== 'change-password'">
-  <mat-card-title>Settings</mat-card-title>
-  <mat-card-subtitle>More options will appear here (theme, about, etc.)</mat-card-subtitle>
-</mat-card>
+      <form (ngSubmit)="onChangePassword()" class="form">
+        <mat-form-field appearance="outline">
+          <mat-label>New password</mat-label>
+          <input
+            matInput
+            [type]="showNew ? 'text' : 'password'"
+            [(ngModel)]="newPassword"
+            name="newPassword"
+            required
+            minlength="8"
+            autocomplete="new-password"
+            (input)="recomputeStrength()"
+          />
+          <button mat-icon-button matSuffix type="button" (click)="showNew = !showNew">
+            <mat-icon>{{ showNew ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-hint>Minimum 8 characters</mat-hint>
+        </mat-form-field>
+
+        <div class="strength">
+          <div class="strength-label">Strength</div>
+          <div class="strength-bar">
+            <div class="strength-fill" [style.width.%]="strengthPct"></div>
+          </div>
+          <div class="strength-text">{{ strengthLabel }}</div>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Confirm password</mat-label>
+          <input
+            matInput
+            [type]="showConfirm ? 'text' : 'password'"
+            [(ngModel)]="confirmPassword"
+            name="confirmPassword"
+            required
+            minlength="8"
+            autocomplete="new-password"
+            (input)="recomputeStrength()"
+          />
+          <button mat-icon-button matSuffix type="button" (click)="showConfirm = !showConfirm">
+            <mat-icon>{{ showConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <div class="actions">
+          <button mat-button type="button" (click)="goBack()" [disabled]="loading">
+            {{ isForced ? 'Logout' : 'Cancel' }}
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            [disabled]="loading || !canSubmit"
+          >
+            {{ loading ? 'Saving…' : 'Update password' }}
+          </button>
+        </div>
+      </form>
+    </mat-card>
+
+    <!-- Tips -->
+    <mat-card class="card tips">
+      <mat-card-title>Password guidelines</mat-card-title>
+      <ul class="rules">
+        <li>At least 8 characters (12+ recommended)</li>
+        <li>Use a mix of uppercase, lowercase, numbers</li>
+        <li>Add a symbol for extra strength</li>
+        <li>Avoid common words and lab/facility names</li>
+      </ul>
+
+      <div class="note">
+        <mat-icon>info</mat-icon>
+        <div>
+          This workstation runs a lab integration service. Use a strong password
+          to protect results routing and device configurations.
+        </div>
+      </div>
+    </mat-card>
+  </div>
+</div>

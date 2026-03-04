@@ -1,38 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.showAboutDialog = showAboutDialog;
-// export function openAboutWindow() {
-//     const win = new BrowserWindow({
-//         width: 420,
-//         height: 360,
-//         resizable: false,
-//         minimizable: false,
-//         maximizable: false,
-//         title: `About ${app.name}`,
-//         webPreferences: {
-//             contextIsolation: true,
-//             nodeIntegration: false,
-//             sandbox: true,
-//         },
-//     });
-//     // simplest: load a local html shipped with app resources
-//     const aboutHtml = path.join(app.getAppPath(), 'electron', 'resources', 'about.html');
-//     win.loadFile(aboutHtml);
-//     return win;
-// }
 const electron_1 = require("electron");
-function showAboutDialog() {
+async function showAboutDialog() {
     const win = electron_1.BrowserWindow.getFocusedWindow() ?? undefined;
-    electron_1.dialog.showMessageBox(win, {
+    const detail = [
+        `Version: ${electron_1.app.getVersion()}`,
+        `Platform: ${process.platform} (${process.arch})`,
+        `Electron: ${process.versions.electron}`,
+        `Chrome: ${process.versions.chrome}`,
+        `Node: ${process.versions.node}`,
+        '',
+        'Machine Interfacing Desktop App',
+        'University of Dar es Salaam (UDSM) | DHIS2 Lab',
+    ].join('\n');
+    const res = await electron_1.dialog.showMessageBox(win, {
         type: 'info',
         title: `About ${electron_1.app.name}`,
-        message: `${electron_1.app.name}`,
-        detail: [
-            `Version: ${electron_1.app.getVersion()}`,
-            '',
-            'Machine Interfacing Desktop App',
-            'University of Dar es Salaam (UDSM) | DHIS2 Lab',
-        ].join('\n'),
-        buttons: ['OK'],
+        message: electron_1.app.name,
+        detail,
+        buttons: ['OK', 'Copy info'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
     });
+    if (res.response === 1) {
+        electron_1.clipboard.writeText(`${electron_1.app.name}\n${detail}`);
+    }
 }
