@@ -15,13 +15,15 @@
 // import { contextBridge } from 'electron';
 // import { appAPI } from './api';
 
-
 // contextBridge.exposeInMainWorld('appAPI', appAPI);
 
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import { api } from './api/index';
 
 contextBridge.exposeInMainWorld('appAPI', api);
+contextBridge.exposeInMainWorld('platform', {
+    copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:copy', text),
+});
 
 // import { contextBridge, ipcRenderer } from 'electron';
 // import { IPC_CHANNELS } from '../shared/channels'; // adjust path if needed

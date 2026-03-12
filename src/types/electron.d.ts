@@ -5,6 +5,9 @@ import type { AppAPI } from '../../electron/src/preload/api/types'; // adjust if
 declare global {
     interface Window {
         appAPI: AppAPI;
+        platform: {
+            copyToClipboard: (text: string) => Promise<void>;
+        };
     }
 }
 

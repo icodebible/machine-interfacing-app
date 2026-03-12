@@ -60,6 +60,8 @@ export const routes: Routes = [
             },
 
             { path: 'settings', component: Settings },
+            { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+            { path: '**', redirectTo: 'dashboard' },
         ],
     },
 ];

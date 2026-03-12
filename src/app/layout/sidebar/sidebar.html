@@ -1,1 +1,68 @@
-<p>sidebar works!</p>
+<div class="sidebar">
+    <div class="brand">
+        <div class="logo">
+            <mat-icon>biotech</mat-icon>
+        </div>
+
+        <div class="title">
+            <div class="app">Machine Interfacing</div>
+            <div class="org">UDSM · DHIS2 Lab</div>
+        </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="section">
+        <div class="section-title">Workspace</div>
+
+        <mat-nav-list class="nav">
+            @for (item of navMain; track item.route) {
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: true }">
+                <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                <span matListItemTitle>{{ item.label }}</span>
+            </a>
+            }
+        </mat-nav-list>
+    </div>
+
+    @if (showAdmin()) {
+    <div class="section">
+        <div class="section-title">Administration</div>
+
+        <mat-nav-list class="nav">
+            @for (item of navAdmin; track item.route) {
+            @if (can(item.requires)) {
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: true }">
+                <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                <span matListItemTitle>{{ item.label }}</span>
+            </a>
+            }
+            }
+        </mat-nav-list>
+    </div>
+    }
+
+    <div class="spacer"></div>
+
+    <mat-divider></mat-divider>
+
+    <div class="footer">
+        <a class="settings" mat-button [routerLink]="navBottom[0].route" routerLinkActive="active-btn">
+            <mat-icon>{{ navBottom[0].icon }}</mat-icon>
+            <span>{{ navBottom[0].label }}</span>
+        </a>
+
+        <button mat-stroked-button class="logout" (click)="logout()" matTooltip="Sign out">
+            <mat-icon>logout</mat-icon>
+            <span>Logout</span>
+        </button>
+
+        @if (user(); as u) {
+        <div class="user">
+            Signed in as <b>{{ u.username }}</b>
+        </div>
+        }
+    </div>
+</div>

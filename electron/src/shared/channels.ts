@@ -31,17 +31,24 @@ export const IPC_CHANNELS = {
     LABS_LIST: 'labs:list',
     LABS_CREATE: 'labs:create',
     LABS_UPDATE: 'labs:update',
-
+    LABS_DELETE: 'labs:delete',
+    
     // Machines
     MACHINES_LIST: 'machines:list',
     MACHINES_CREATE: 'machines:create',
     MACHINES_UPDATE: 'machines:update',
+    MACHINE_MESSAGE: 'machine:message',
+    MACHINES_DELETE: 'machines:delete',
+    MACHINES_CONNECT: 'machines:connect',
+    MACHINES_DISCONNECT: 'machines:disconnect',
+    MACHINES_TEST: 'machines:test',
 
     // Targets (DHIS2/OpenMRS)
     TARGETS_LIST: 'targets:list',
     TARGETS_CREATE: 'targets:create',
     TARGETS_UPDATE: 'targets:update',
     TARGETS_TEST: 'targets:test',
+    TARGETS_DELETE: 'targets:delete',
 
     // Logs + monitor
     LOGS_QUERY: 'logs:query',
@@ -51,8 +58,8 @@ export const IPC_CHANNELS = {
     OUTBOX_RETRY: 'outbox:retry',
     OUTBOX_DELETE: 'outbox:delete',
 
-    // Existing machine ones (keep yours)
-    MACHINE_MESSAGE: 'machine:message',
+    // Clipboard (native Electron)
+    CLIPBOARD_COPY: 'clipboard:copy',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

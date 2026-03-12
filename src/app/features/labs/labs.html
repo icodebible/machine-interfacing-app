@@ -1,1 +1,234 @@
-<p>labs works!</p>
+<mat-drawer-container class="labs-container" autosize>
+    <mat-drawer-content class="content">
+        <!-- Top toolbar: keep only primary actions so nothing is hidden on small screens -->
+        <div class="page-toolbar">
+            <div class="title">
+                <h2>Laboratories</h2>
+                <div class="sub">Register labs and link machines to physical locations</div>
+            </div>
+
+            <div class="toolbar-actions">
+                <button mat-stroked-button (click)="refresh()">
+                    <mat-icon>refresh</mat-icon>
+                    Refresh
+                </button>
+
+                <button mat-flat-button color="primary" (click)="openCreate()">
+                    <mat-icon>add</mat-icon>
+                    Add Lab
+                </button>
+            </div>
+        </div>
+
+        @if (loading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        }
+
+        <div class="card">
+            <!-- Controls ABOVE table, aligned LEFT -->
+            <div class="table-controls">
+                <mat-form-field appearance="outline" class="search">
+                    <mat-icon matPrefix>search</mat-icon>
+                    <input matInput placeholder="Search labs…" [value]="q()"
+                        (input)="q.set($any($event.target).value)" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter">
+                    <mat-label>Status</mat-label>
+                    <mat-select [value]="status()" (selectionChange)="status.set($event.value)">
+                        <mat-option value="all">All</mat-option>
+                        <mat-option value="active">Active</mat-option>
+                        <mat-option value="inactive">Inactive</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <table mat-table [dataSource]="filtered()" class="table">
+                <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef>Name</th>
+                    <td mat-cell *matCellDef="let r">
+                        <div class="cell-title">{{ r.name }}</div>
+                        <!-- <div class="cell-sub">
+              @if (r.code) { <span>Code: {{ r.code }}</span> }
+              @if (r.code) { <span class="dot">•</span> }
+              <span class="muted">{{ r.is_active === 1 ? 'Active' : 'Inactive' }}</span>
+            </div> -->
+                        <div class="cell-sub">
+                            @if (r.code) {
+                            <span>Code: {{ r.code }}</span>
+                            }
+
+                            @if (r.code) {
+                            <span class="dot">•</span>
+                            }
+
+                            <span class="status-pill" [class.ok]="r.is_active === 1" [class.bad]="r.is_active === 0">
+                                {{ r.is_active === 1 ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="location">
+                    <th mat-header-cell *matHeaderCellDef>Location</th>
+                    <td mat-cell *matCellDef="let r">{{ r.location || '—' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                    <td mat-cell *matCellDef="let r" class="actions-col">
+                        <!-- ✅ Quick access: details -->
+                        <button mat-icon-button matTooltip="View details"
+                            (click)="viewDetails(r); $event.stopPropagation()">
+                            <mat-icon>info</mat-icon>
+                        </button>
+
+                        <!-- ✅ Menu: edit / activate / delete / copy etc -->
+                        <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="Actions"
+                            (click)="$event.stopPropagation()">
+                            <mat-icon>more_vert</mat-icon>
+                        </button>
+
+                        <mat-menu #rowMenu="matMenu">
+                            <button mat-menu-item (click)="viewDetails(r)">
+                                <mat-icon>visibility</mat-icon>
+                                <span>View details</span>
+                            </button>
+
+                            <mat-divider></mat-divider>
+
+                            <button mat-menu-item (click)="openEdit(r)">
+                                <mat-icon>edit</mat-icon>
+                                <span>Edit</span>
+                            </button>
+
+                            <button mat-menu-item (click)="toggleActive(r)">
+                                <mat-icon>{{ r.is_active === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                                <span>{{ r.is_active === 1 ? 'Deactivate' : 'Activate' }}</span>
+                            </button>
+
+                            <mat-divider></mat-divider>
+
+                            <button mat-menu-item (click)="copy(r.id)">
+                                <mat-icon>content_copy</mat-icon>
+                                <span>Copy ID</span>
+                            </button>
+
+                            @if (r.code) {
+                            <button mat-menu-item (click)="copy(r.code!)">
+                                <mat-icon>content_copy</mat-icon>
+                                <span>Copy Code</span>
+                            </button>
+                            }
+
+                            <mat-divider></mat-divider>
+
+                            <button mat-menu-item (click)="remove(r)" class="danger">
+                                <mat-icon>delete</mat-icon>
+                                <span>Delete</span>
+                            </button>
+                        </mat-menu>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="cols"></tr>
+
+                <!-- <tr
+          mat-row
+          *matRowDef="let row; columns: cols; trackBy: trackById"
+          class="row"
+          [class.selected]="selected()?.id === row.id"
+        ></tr> -->
+
+                <tr mat-row *matRowDef="let row; columns: cols; trackBy: trackById" class="row"
+                    [class.inactive]="row.is_active === 0" [class.selected]="selected()?.id === row.id"></tr>
+            </table>
+
+            @if (filtered().length === 0 && !loading()) {
+            <div class="empty">No labs found. Click <b>Add Lab</b> to create your first lab.</div>
+            }
+        </div>
+    </mat-drawer-content>
+
+    @let s = selected();
+
+    <!-- Details drawer -->
+    <mat-drawer #drawer [mode]="drawerMode()" position="end" class="drawer">
+        @if (s) {
+        <div class="drawer-header">
+            <div class="drawer-title">
+                <div class="name">{{ s.name }}</div>
+                <div class="meta">
+                    @if (s.code) {
+                    <span class="pill">Code: {{ s.code }}</span>
+                    }
+                    <span class="pill" [class.ok]="s.is_active === 1" [class.bad]="s.is_active === 0">
+                        {{ s.is_active === 1 ? 'Active' : 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+
+            <button mat-icon-button (click)="closeDetails()" matTooltip="Close">
+                <mat-icon>close</mat-icon>
+            </button>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="drawer-body">
+            <div class="kv">
+                <div class="k">Location</div>
+                <div class="v">{{ s.location || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Description</div>
+                <div class="v">{{ s.description || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Lab ID</div>
+                <div class="v mono">
+                    {{ s.id }}
+                    <button mat-icon-button class="mini" (click)="copy(s.id)" matTooltip="Copy">
+                        <mat-icon>content_copy</mat-icon>
+                    </button>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Updated</div>
+                <div class="v">{{ s.updated_at || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Created</div>
+                <div class="v">{{ s.created_at || '—' }}</div>
+            </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="drawer-actions">
+            <button mat-stroked-button (click)="openEdit(s)">
+                <mat-icon>edit</mat-icon>
+                Edit
+            </button>
+
+            <button mat-stroked-button (click)="toggleActive(s)">
+                <mat-icon>{{ s.is_active === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                {{ s.is_active === 1 ? 'Deactivate' : 'Activate' }}
+            </button>
+
+            <button mat-flat-button color="warn" (click)="remove(s)">
+                <mat-icon>delete</mat-icon>
+                Delete
+            </button>
+        </div>
+        } @else {
+        <div class="drawer-empty">Select a lab and choose <b>View details</b>.</div>
+        }
+    </mat-drawer>
+</mat-drawer-container>

@@ -11,12 +11,15 @@
 
 // import type { AppAPI } from '../../electron/src/preload/api/types';
 
-import type { AppAPI } from "../../electron/src/preload/api/types";
+import type { AppAPI } from '../../electron/src/preload/api/types';
 
 export {};
 
 declare global {
   interface Window {
     appAPI: AppAPI;
+    platform: {
+      copyToClipboard: (text: string) => Promise<void>;
+    };
   }
 }

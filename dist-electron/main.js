@@ -10,6 +10,8 @@ const autoUpdater_1 = require("./main/updater/autoUpdater");
 const app_menu_1 = require("./main/menu/app.menu");
 const migrations_1 = require("./main/db/migrations");
 const auth_ipc_1 = require("./main/ipc/auth.ipc");
+const platform_ipc_1 = require("./main/ipc/platform.ipc");
+const machines_crud_ipc_1 = require("./main/ipc/machines.crud.ipc");
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger_1.logger.error('uncaughtException', err));
 process.on('unhandledRejection', (err) => logger_1.logger.error('unhandledRejection', err));
@@ -45,6 +47,8 @@ electron_1.app.whenReady().then(async () => {
     // ✅ IPC next
     (0, app_ipc_1.registerIpcHandlers)();
     (0, auth_ipc_1.registerAuthIpc)();
+    (0, platform_ipc_1.registerPlatformIpc)();
+    (0, machines_crud_ipc_1.registerMachinesCrudIpc)();
     // ✅ Window
     const win = (0, main_window_1.createMainWindow)();
     // ✅ Machine IPC (needs window)

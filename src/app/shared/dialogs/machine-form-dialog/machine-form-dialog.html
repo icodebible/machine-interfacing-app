@@ -1,0 +1,299 @@
+<h2 mat-dialog-title class="title">
+  <span>{{ title() }}</span>
+  <span class="hint">{{ subtitle() }}</span>
+</h2>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<form [formGroup]="form" (ngSubmit)="save()" class="wrap">
+  <div mat-dialog-content class="content">
+
+    <!-- Section: Machine info -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <mat-icon>memory</mat-icon>
+          <span>Machine Information</span>
+        </div>
+        <div class="section-sub">Identify the machine and where it is located</div>
+      </div>
+
+      <div class="grid">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Laboratory</mat-label>
+          <mat-select formControlName="lab_id">
+            <mat-option [value]="null">— Not assigned —</mat-option>
+            @for (l of labs(); track l.id) {
+              <mat-option [value]="l.id">{{ l.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Machine name</mat-label>
+          <input matInput formControlName="name" placeholder="e.g. Abbott Architect i2000SR" />
+          @if (hasError('name','required')) { <mat-error>Name is required</mat-error> }
+          @if (hasError('name','minlength')) { <mat-error>Name is too short</mat-error> }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Code</mat-label>
+          <input matInput formControlName="code" placeholder="Optional internal code" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Brand</mat-label>
+          <input matInput formControlName="brand" placeholder="Abbott, Roche..." />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Model</mat-label>
+          <input matInput formControlName="model" placeholder="Model name/number" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Version</mat-label>
+          <input matInput formControlName="version" placeholder="Firmware/software version" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Manufacturer</mat-label>
+          <input matInput formControlName="manufacturer" placeholder="Optional manufacturer name" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Section: Connection -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <mat-icon>lan</mat-icon>
+          <span>Connection</span>
+        </div>
+        <div class="section-sub">Choose how this machine sends results to the computer</div>
+      </div>
+
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Connection type</mat-label>
+          <mat-select formControlName="connection_type">
+            @for (ct of connectionTypes; track ct.value) {
+              <mat-option [value]="ct.value">{{ ct.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Protocol</mat-label>
+          <mat-select formControlName="protocol">
+            @for (p of protocols; track p.value) {
+              <mat-option [value]="p.value">{{ p.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- TCP/HL7 -->
+      @if (needsTcp()) {
+        <div class="subsection">
+          <div class="sub-head">
+            <mat-icon>dns</mat-icon>
+            <span>Network Settings</span>
+          </div>
+
+          <div class="grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Host</mat-label>
+              <input matInput formControlName="host" placeholder="e.g. 192.168.1.50" />
+              @if (hasError('host','required')) { <mat-error>Host is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Port</mat-label>
+              <input matInput type="number" formControlName="port" placeholder="e.g. 5000" />
+              @if (hasError('port','required')) { <mat-error>Port is required</mat-error> }
+              @if (hasError('port','min') || hasError('port','max')) {
+                <mat-error>Port must be between 1 and 65535</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+      }
+
+      <!-- SERIAL -->
+      @if (needsSerial()) {
+        <div class="subsection">
+          <div class="sub-head">
+            <mat-icon>cable</mat-icon>
+            <span>Serial Settings</span>
+          </div>
+
+          <div class="grid">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Serial port</mat-label>
+              <input matInput formControlName="serial_port" placeholder="Linux: /dev/ttyUSB0  |  Windows: COM3" />
+              @if (hasError('serial_port','required')) { <mat-error>Serial port is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Baud rate</mat-label>
+              <mat-select formControlName="baud_rate">
+                <mat-option [value]="9600">9600</mat-option>
+                <mat-option [value]="19200">19200</mat-option>
+                <mat-option [value]="38400">38400</mat-option>
+                <mat-option [value]="57600">57600</mat-option>
+                <mat-option [value]="115200">115200</mat-option>
+              </mat-select>
+              @if (hasError('baud_rate','required')) { <mat-error>Baud rate is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Data bits</mat-label>
+              <mat-select formControlName="data_bits">
+                <mat-option [value]="7">7</mat-option>
+                <mat-option [value]="8">8</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Stop bits</mat-label>
+              <mat-select formControlName="stop_bits">
+                <mat-option [value]="1">1</mat-option>
+                <mat-option [value]="2">2</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Parity</mat-label>
+              <mat-select formControlName="parity">
+                <mat-option value="none">None</mat-option>
+                <mat-option value="even">Even</mat-option>
+                <mat-option value="odd">Odd</mat-option>
+                <mat-option value="mark">Mark</mat-option>
+                <mat-option value="space">Space</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      }
+
+      <!-- FTP/SFTP -->
+      @if (needsFtp()) {
+        <div class="subsection">
+          <div class="sub-head">
+            <mat-icon>cloud_download</mat-icon>
+            <span>FTP / SFTP Settings</span>
+          </div>
+
+          <div class="grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Host</mat-label>
+              <input matInput formControlName="ftp_host" placeholder="ftp.example.org" />
+              @if (hasError('ftp_host','required')) { <mat-error>FTP host is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Port</mat-label>
+              <input matInput type="number" formControlName="ftp_port" />
+              @if (hasError('ftp_port','required')) { <mat-error>Port is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Username</mat-label>
+              <input matInput formControlName="ftp_user" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Password</mat-label>
+              <input matInput type="password" formControlName="ftp_password" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Remote directory</mat-label>
+              <input matInput formControlName="ftp_remote_dir" placeholder="/outgoing/results" />
+            </mat-form-field>
+          </div>
+        </div>
+      }
+
+      <!-- FILE WATCHER -->
+      @if (needsWatch()) {
+        <div class="subsection">
+          <div class="sub-head">
+            <mat-icon>folder</mat-icon>
+            <span>Folder Watcher</span>
+          </div>
+
+          <div class="grid">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Watch directory</mat-label>
+              <input matInput formControlName="watch_dir" placeholder="/var/lab/results" />
+              @if (hasError('watch_dir','required')) { <mat-error>Watch directory is required</mat-error> }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>File pattern</mat-label>
+              <input matInput formControlName="watch_pattern" placeholder="*.txt, *.hl7, *.astm" />
+            </mat-form-field>
+          </div>
+        </div>
+      }
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Section: Options -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <mat-icon>tune</mat-icon>
+          <span>Options</span>
+        </div>
+        <div class="section-sub">Operational settings for this machine</div>
+      </div>
+
+      <div class="toggles">
+        <mat-slide-toggle
+          [checked]="form.value.is_active === 1"
+          (change)="form.patchValue({ is_active: $event.checked ? 1 : 0 })"
+        >
+          Active
+        </mat-slide-toggle>
+
+        <mat-slide-toggle
+          [checked]="form.value.auto_connect === 1"
+          (change)="form.patchValue({ auto_connect: $event.checked ? 1 : 0 })"
+        >
+          Auto-connect on startup
+        </mat-slide-toggle>
+      </div>
+    </div>
+
+  </div>
+
+  <div mat-dialog-actions class="actions" align="end">
+    <button type="button" mat-button (click)="cancel()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="test"
+      (click)="testConnection()"
+      [disabled]="testing()"
+    >
+      <mat-icon>network_check</mat-icon>
+      @if (testing()) { <span>Testing…</span> } @else { <span>Test connection</span> }
+    </button>
+
+    <button type="submit" mat-flat-button color="primary">
+      <mat-icon>save</mat-icon>
+      {{ mode === 'create' ? 'Create' : 'Save changes' }}
+    </button>
+  </div>
+</form>

@@ -8,6 +8,8 @@ import { setupAutoUpdater } from './main/updater/autoUpdater';
 import { buildAppMenu } from './main/menu/app.menu';
 import { runMigrations } from './main/db/migrations';
 import { registerAuthIpc } from './main/ipc/auth.ipc';
+import { registerPlatformIpc } from './main/ipc/platform.ipc';
+import { registerMachinesCrudIpc } from './main/ipc/machines.crud.ipc';
 
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger.error('uncaughtException', err));
@@ -48,6 +50,8 @@ app.whenReady().then(async () => {
   // ✅ IPC next
   registerIpcHandlers();
   registerAuthIpc();
+  registerPlatformIpc()
+  registerMachinesCrudIpc();
 
   // ✅ Window
   const win = createMainWindow();
