@@ -110,18 +110,6 @@
     }
 }
 
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    display: inline-block;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-
-    &.idle {
-        background: rgba(160, 160, 160, 0.5);
-    }
-}
-
 .muted {
     opacity: 0.75;
 }
@@ -237,4 +225,237 @@
 
 :host ::ng-deep .mat-mdc-menu-panel .danger {
     color: #ff6b6b;
+}
+
+// .status-dot {
+//     width: 10px;
+//     height: 10px;
+//     border-radius: 999px;
+//     display: inline-block;
+//     border: 1px solid rgba(0, 0, 0, 0.15);
+
+//     &.idle {
+//         background: rgba(160, 160, 160, 0.5);
+//     }
+// }
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.status-dot.ok {
+    background: #1b8f3a;
+}
+
+.status-dot.warn {
+    background: #d97706;
+}
+
+.status-dot.bad {
+    background: #c62828;
+}
+
+.status-dot.idle {
+    background: #9aa0a6;
+}
+
+.traffic-section {
+    display: grid;
+    gap: 10px;
+}
+
+.traffic-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.traffic-title {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.traffic-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.traffic-list {
+    display: grid;
+    gap: 10px;
+    max-height: 260px;
+    overflow: auto;
+}
+
+.traffic-item {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.traffic-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.traffic-time {
+    opacity: 0.75;
+}
+
+.traffic-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 11px;
+}
+
+.traffic-preview {
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* =========================
+    Simulation block
+   ========================= */
+.sim-section {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.sim-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sim-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.sim-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    opacity: 0.72;
+    line-height: 1.35;
+}
+
+.sim-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.sim-status.running {
+    border-color: rgba(27, 143, 58, 0.25);
+    background: rgba(27, 143, 58, 0.1);
+}
+
+.sim-status.stopped {
+    border-color: rgba(154, 160, 166, 0.25);
+    background: rgba(154, 160, 166, 0.1);
+}
+
+.sim-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.8;
+}
+
+.sim-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px;
+    gap: 12px;
+    align-items: start;
+}
+
+.sim-field,
+.sim-field-sm {
+    width: 100%;
+    min-width: 0;
+}
+
+.sim-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sim-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.sim-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Make buttons balanced in drawer */
+.sim-actions button {
+    min-width: 160px;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+    .sim-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sim-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sim-actions {
+        flex-direction: column;
+    }
+
+    .sim-actions button {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+.state-value {
+    font-weight: 600;
+}
+
+.actions-col {
+    .mat-icon-button[disabled] {
+        opacity: 0.45;
+    }
 }

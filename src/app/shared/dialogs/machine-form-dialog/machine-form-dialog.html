@@ -1,6 +1,13 @@
-<h2 mat-dialog-title class="title">
-  <span>{{ title() }}</span>
-  <span class="hint">{{ subtitle() }}</span>
+<h2 mat-dialog-title class="dialog-title-row">
+  <div class="dialog-title-copy">
+    <div class="eyebrow">Machine</div>
+    <div class="title">{{ title() }}</div>
+    <div class="sub">{{ subtitle() }}</div>
+  </div>
+
+  <button mat-icon-button type="button" (click)="cancel()" aria-label="Close machine dialog">
+    <mat-icon>close</mat-icon>
+  </button>
 </h2>
 
 @if (loading()) {
@@ -8,7 +15,7 @@
 }
 
 <form [formGroup]="form" (ngSubmit)="save()" class="wrap">
-  <div mat-dialog-content class="content">
+  <div mat-dialog-content class="dialog-shell content">
 
     <!-- Section: Machine info -->
     <div class="section">
@@ -97,7 +104,6 @@
         </mat-form-field>
       </div>
 
-      <!-- TCP/HL7 -->
       @if (needsTcp()) {
         <div class="subsection">
           <div class="sub-head">
@@ -124,7 +130,6 @@
         </div>
       }
 
-      <!-- SERIAL -->
       @if (needsSerial()) {
         <div class="subsection">
           <div class="sub-head">
@@ -181,7 +186,6 @@
         </div>
       }
 
-      <!-- FTP/SFTP -->
       @if (needsFtp()) {
         <div class="subsection">
           <div class="sub-head">
@@ -220,7 +224,6 @@
         </div>
       }
 
-      <!-- FILE WATCHER -->
       @if (needsWatch()) {
         <div class="subsection">
           <div class="sub-head">
@@ -246,7 +249,6 @@
 
     <mat-divider></mat-divider>
 
-    <!-- Section: Options -->
     <div class="section">
       <div class="section-head">
         <div class="section-title">

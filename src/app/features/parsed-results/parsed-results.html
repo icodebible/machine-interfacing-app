@@ -1,0 +1,173 @@
+<div class="content">
+    <div class="page-toolbar">
+        <div class="title-block">
+            <h2>Parsed Results</h2>
+            <div class="sub">
+                Inspect parser output before normalization. This page is intended for protocol
+                troubleshooting, parser verification, and traceability from machine traffic to structured
+                parse output.
+            </div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button mat-stroked-button (click)="refresh()">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="filters-card">
+        <div class="filters-grid">
+            <mat-form-field appearance="outline">
+                <mat-label>Search</mat-label>
+                <input matInput [(ngModel)]="searchTerm" placeholder="Machine, patient, sample, order, or message" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+                <mat-label>Protocol</mat-label>
+                <mat-select [(ngModel)]="protocolFilter">
+                    <mat-option value="ALL">All</mat-option>
+                    <mat-option value="ASTM">ASTM</mat-option>
+                    <mat-option value="HL7">HL7</mat-option>
+                    <mat-option value="RAW">RAW</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+                <mat-label>Parse Status</mat-label>
+                <mat-select [(ngModel)]="statusFilter">
+                    <mat-option value="ALL">All</mat-option>
+                    <mat-option value="PARSED">Parsed</mat-option>
+                    <mat-option value="WARNING">Warning</mat-option>
+                    <mat-option value="FAILED">Failed</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+    </div>
+
+    <div class="summary-strip">
+        @for (card of summaryCards(); track card.label) {
+        <div class="summary-card" [class]="'summary-card ' + card.tone">
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value">{{ card.value }}</div>
+        </div>
+        }
+    </div>
+
+    @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    <div class="card">
+        <mat-divider></mat-divider>
+
+        <table mat-table [dataSource]="filteredRows()" class="table" multiTemplateDataRows>
+            <ng-container matColumnDef="message">
+                <th mat-header-cell *matHeaderCellDef>Message</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="cell-title">{{ row.id }}</div>
+                    <div class="cell-sub">{{ row.machineName }} · {{ row.labName }}</div>
+                    <div class="cell-sub muted">
+                        Patient: {{ row.patientId || '—' }} · Sample: {{ row.sampleId || '—' }}
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="protocol">
+                <th mat-header-cell *matHeaderCellDef>Protocol</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="cell-title">{{ row.protocol }}</div>
+                    <div class="cell-sub muted">{{ row.messageType }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let row">
+                    <span class="status-dot" [class]="statusClass(row.parseStatus)"></span>
+                    <span class="muted">{{ row.parseStatus }}</span>
+                    @if (row.warningCount > 0 || row.errorCount > 0) {
+                    <div class="cell-sub muted">
+                        Warnings: {{ row.warningCount }} · Errors: {{ row.errorCount }}
+                    </div>
+                    }
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="received">
+                <th mat-header-cell *matHeaderCellDef>Received</th>
+                <td mat-cell *matCellDef="let row">
+                    {{ formatDateTime(row.createdAt) }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                <td mat-cell *matCellDef="let row" class="actions-col">
+                    <div class="row-actions">
+                        <button mat-icon-button (click)="toggleRow(row, $event)">
+                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+                        <button mat-icon-button color="primary" (click)="openInspector(row, $event)">
+                            <mat-icon>open_in_new</mat-icon>
+                        </button>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+                    @if (isExpanded(row)) {
+                    <div class="row-detail">
+                        <div class="row-detail-grid">
+                            <div class="detail-card">
+                                <div class="section-title">Traceability</div>
+                                <div class="mini-grid">
+                                    <div><b>Patient:</b> {{ row.patientId || '—' }}</div>
+                                    <div><b>Sample:</b> {{ row.sampleId || '—' }}</div>
+                                    <div><b>Order:</b> {{ row.orderId || '—' }}</div>
+                                    <div><b>Observations:</b> {{ row.observationCount }}</div>
+                                    <div><b>Machine code:</b> {{ row.machineCode || '—' }}</div>
+                                    <div><b>Received:</b> {{ formatDateTime(row.createdAt) }}</div>
+                                </div>
+                            </div>
+
+                            <div class="detail-card">
+                                <div class="section-title">Parser assessment</div>
+                                <div class="inline-status-row">
+                                    <span class="status-pill" [class]="statusClass(row.parseStatus)">
+                                        {{ row.parseStatus }}
+                                    </span>
+                                    <span class="metric-chip warn">Warnings: {{ row.warningCount }}</span>
+                                    <span class="metric-chip bad">Errors: {{ row.errorCount }}</span>
+                                </div>
+                                <div class="inline-summary">
+                                    {{ row.summary || 'No parser summary available.' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inline-actions">
+                            <button mat-stroked-button color="primary" (click)="openInspector(row, $event)">
+                                <mat-icon>visibility</mat-icon>
+                                Open full inspection
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="cols"></tr>
+            <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable" [class.row-expanded]="isExpanded(row)"
+                (click)="toggleRow(row)"></tr>
+            <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"
+                [class.detail-row-visible]="isExpanded(row)"></tr>
+        </table>
+
+        @if (filteredRows().length === 0 && !loading()) {
+        <div class="empty">No parsed results found.</div>
+        }
+    </div>
+</div>

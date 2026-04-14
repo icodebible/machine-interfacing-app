@@ -1,11 +1,3 @@
-// import { Routes } from '@angular/router';
-// import { MachineConsole } from './features/machine-console/machine-console';
-
-// export const routes: Routes = [
-//     { path: '', redirectTo: 'machine-console', pathMatch: 'full' },
-//     { path: 'machine-console', component: MachineConsole },
-// ];
-
 import { Routes } from '@angular/router';
 
 import { Dashboard } from './features/dashboard/dashboard';
@@ -24,6 +16,14 @@ import { authGuard } from './core/auth/auth.guard';
 import { permissionGuard } from './core/auth/permission.guard';
 import { Login } from './features/login/login';
 import { passwordChangeGuard } from './core/auth/password-change.guard';
+import { ParsedResults } from './features/parsed-results/parsed-results';
+import { NormalizedResults } from './features/normalized-results/normalized-results';
+import { PendingApprovals } from './features/pending-approvals/pending-approvals';
+import { ApprovalHistory } from './features/approval-history/approval-history';
+import { OutboundQueue } from './features/outbound-queue/outbound-queue';
+import { DeliveryHistory } from './features/delivery-history/delivery-history';
+import { ApprovalPolicies } from './features/approval-policies/approval-policies';
+import { Targets } from './features/targets/targets';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'app/dashboard', pathMatch: 'full' },
@@ -39,10 +39,43 @@ export const routes: Routes = [
             { path: 'machines', component: Machines, canActivate: [passwordChangeGuard] },
             { path: 'live-monitor', component: LiveMonitor, canActivate: [passwordChangeGuard] },
             { path: 'mappings', component: Mappings, canActivate: [passwordChangeGuard] },
-            { path: 'routes', component: RoutesTargets, canActivate: [passwordChangeGuard] },
+            { path: 'routes', redirectTo: 'routing-rules', pathMatch: 'full' },
+            { path: 'routing-rules', component: RoutesTargets, canActivate: [passwordChangeGuard] },
+            { path: 'targets', component: Targets, canActivate: [passwordChangeGuard] },
+
             { path: 'outbox', component: Outbox, canActivate: [passwordChangeGuard] },
 
-            // Admin-only
+            { path: 'parsed-results', component: ParsedResults, canActivate: [passwordChangeGuard] },
+            {
+                path: 'normalized-results',
+                component: NormalizedResults,
+                canActivate: [passwordChangeGuard],
+            },
+            {
+                path: 'pending-approvals',
+                component: PendingApprovals,
+                canActivate: [passwordChangeGuard, permissionGuard('RESULT_APPROVE')],
+            },
+            {
+                path: 'approval-history',
+                component: ApprovalHistory,
+                canActivate: [passwordChangeGuard, permissionGuard('RESULT_APPROVE')],
+            },
+            {
+                path: 'outbound-queue',
+                component: OutboundQueue,
+                canActivate: [passwordChangeGuard, permissionGuard('RESULT_ROUTE')],
+            },
+            {
+                path: 'delivery-history',
+                component: DeliveryHistory,
+                canActivate: [passwordChangeGuard, permissionGuard('RESULT_ROUTE')],
+            },
+            {
+                path: 'approval-policies',
+                component: ApprovalPolicies,
+                canActivate: [passwordChangeGuard, permissionGuard('APPROVAL_POLICY_WRITE')],
+            },
             {
                 path: 'users',
                 component: Users,

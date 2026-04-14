@@ -1,0 +1,79 @@
+<h2 mat-dialog-title class="dialog-title-row">
+    <div class="dialog-title-copy">
+        <div class="eyebrow">Starter template</div>
+        <div class="title">{{ data.template.title }}</div>
+        <div class="sub">{{ data.template.description }}</div>
+    </div>
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close template info">
+        <mat-icon>close</mat-icon>
+    </button>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="hero-facts">
+        <span class="chip">{{ data.template.targetType }}</span>
+        <span class="chip">{{ data.template.rules.length }} starter rules</span>
+        <span class="chip">{{ constantRules.length }} values need review</span>
+    </div>
+
+    <div class="info-grid">
+        <section class="surface-block">
+            <div class="section-title">When to use</div>
+            <div class="section-copy">{{ data.template.useCase }}</div>
+
+            <mat-divider></mat-divider>
+            <div class="section-title minor">Source path conventions</div>
+            <div class="section-copy">
+                Starter templates use the canonical source document. Typical source paths include
+                <span class="mono">patient.id</span>, <span class="mono">result.value</span>,
+                <span class="mono">result.observedAt</span>, and
+                <span class="mono">raw.some.nested.path</span>.
+            </div>
+
+            @if (constantRules.length) {
+            <mat-divider></mat-divider>
+            <div class="section-title minor">Values you should review</div>
+            <div class="review-list">
+                @for (rule of constantRules; track rule.destination_field) {
+                <div class="review-item">
+                    <div class="review-item__head">
+                        <div class="mono">{{ rule.destination_field }}</div>
+                        <span class="kind-chip">{{ rule.transform_kind }}</span>
+                    </div>
+                    <div class="muted">{{ rule.constant_value || 'Review before use' }}</div>
+                    @if (rule.note) {
+                    <div class="note">{{ rule.note }}</div>
+                    }
+                </div>
+                }
+            </div>
+            }
+        </section>
+
+        <section class="surface-block">
+            <div class="section-title">Included rules</div>
+            <div class="rules-table">
+                @for (rule of data.template.rules; track rule.destination_field) {
+                <div class="rule-row">
+                    <div class="rule-main">
+                        <div class="mono">{{ rule.destination_field }}</div>
+                        <div class="rule-source muted">
+                            {{
+                            rule.transform_kind === 'constant'
+                            ? rule.constant_value || 'constant'
+                            : rule.source_field || '—'
+                            }}
+                        </div>
+                    </div>
+                    <div class="mapping-arrow" aria-hidden="true">←</div>
+                    <div class="rule-kind kind-chip">{{ rule.transform_kind }}</div>
+                </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="close()">Close</button>
+</div>

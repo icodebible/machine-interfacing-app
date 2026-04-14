@@ -10,6 +10,22 @@ import { runMigrations } from './main/db/migrations';
 import { registerAuthIpc } from './main/ipc/auth.ipc';
 import { registerPlatformIpc } from './main/ipc/platform.ipc';
 import { registerMachinesCrudIpc } from './main/ipc/machines.crud.ipc';
+import { registerMachinesRuntimeIpc } from './main/ipc/machines.runtime.ipc';
+import { registerMachinesLogsIpc } from './main/ipc/machines.logs.ipc';
+import { registerMachinesSimulationIpc } from './main/ipc/machines.sim.ipc';
+import { registerMachinesParsedIpc } from './main/ipc/machines.parsed.ipc';
+import { registerMachinesNormalizedIpc } from './main/ipc/machines.normalized.ipc';
+import { registerApprovalPoliciesIpc } from './main/ipc/approval-policies.ipc';
+import { registerResultApprovalsIpc } from './main/ipc/result-approvals.ipc';
+import { registerOutboundQueueIpc } from './main/ipc/outbound-queue.ipc';
+import { registerTargetTransformPreviewIpc } from './main/ipc/target-transform-preview.ipc';
+import { RetryWorkerService } from './main/services/retry-worker.service';
+import { registerTargetSecretsIpc } from './main/ipc/target-secrets.ipc';
+import { registerMappingsIpc } from './main/ipc/mappings.ipc';
+import { registerDeliveryAuditIpc } from './main/ipc/delivery-audit.ipc';
+import { registerMappingValueTranslationsIpc } from './main/ipc/mapping-value-translations.ipc';
+import { registerUsersIpc } from './main/ipc/users.ipc';
+import { registerRolesIpc } from './main/ipc/roles.ipc';
 
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger.error('uncaughtException', err));
@@ -47,14 +63,42 @@ app.whenReady().then(async () => {
   // ✅ DB first
   await runMigrations();
 
+  const retryWorker = new RetryWorkerService();
+  retryWorker.start(30_000);
+
   // ✅ IPC next
   registerIpcHandlers();
   registerAuthIpc();
-  registerPlatformIpc()
+  registerPlatformIpc();
+  registerUsersIpc();
+  registerRolesIpc();
+
   registerMachinesCrudIpc();
+  registerMachinesLogsIpc();
+
+  const runtime = registerMachinesRuntimeIpc();
+  registerMachinesSimulationIpc(runtime);
+
+  registerMachinesParsedIpc();
+  registerMachinesNormalizedIpc();
+
+  registerApprovalPoliciesIpc();
+  registerResultApprovalsIpc();
+  registerOutboundQueueIpc();
+  registerDeliveryAuditIpc();
+  registerTargetTransformPreviewIpc();
+  registerTargetSecretsIpc();
+  registerMappingsIpc();
+  registerMappingValueTranslationsIpc();
+
+  registerMachinesCrudIpc();
+  registerMachinesLogsIpc();
 
   // ✅ Window
   const win = createMainWindow();
+
+  // auto-start active machines marked auto_connect
+  runtime.startAutoConnectMachines().catch(() => {});
 
   // ✅ Machine IPC (needs window)
   const cleanupMachineIpc = registerMachineIpc(win);
@@ -70,6 +114,7 @@ app.whenReady().then(async () => {
 
   app.on('before-quit', () => {
     cleanupMachineIpc?.();
+    retryWorker.stop();
   });
 
   // ✅ macOS behavior

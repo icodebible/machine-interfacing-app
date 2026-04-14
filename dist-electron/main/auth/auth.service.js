@@ -1,21 +1,44 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthService = void 0;
+exports.AuthService = exports.ALL_AUTHORITIES = void 0;
+exports.hashPasswordValue = hashPasswordValue;
 const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
 // Use argon2 if installed, otherwise fallback to bcryptjs
 let argon2 = null;
 let bcrypt = null;
-try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    argon2 = require('argon2');
-}
-catch { }
+// try {
+//     // eslint-disable-next-line @typescript-eslint/no-var-requires
+//     argon2 = require('argon2');
+// } catch { }
 try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     bcrypt = require('bcryptjs');
 }
 catch { }
+exports.ALL_AUTHORITIES = [
+    'USERS_WRITE',
+    'ROLES_WRITE',
+    'LABS_WRITE',
+    'MACHINES_WRITE',
+    'MAPPINGS_WRITE',
+    'ROUTES_WRITE',
+    'VIEW_LOGS',
+    'OUTBOX_MANAGE',
+    'AUDIT_READ',
+    'SUPER_ADMIN',
+    'RESULT_VIEW',
+    'RESULT_APPROVE',
+    'RESULT_REJECT',
+    'RESULT_ROUTE',
+    'RESULT_REQUEUE',
+    'APPROVAL_POLICY_READ',
+    'APPROVAL_POLICY_WRITE',
+    'TARGET_CONFIG_WRITE',
+    'MAPPING_WRITE',
+    'AUDIT_VIEW',
+    'RESULT_VIEW_SENSITIVE',
+];
 function nowIso() {
     return new Date().toISOString();
 }
@@ -31,7 +54,7 @@ function nowIso() {
 //     throw new Error('No password verifier available (install argon2 or bcryptjs)');
 // }
 // TODO: END: DEPRECATED APPROACH
-async function hashPassword(pw) {
+async function hashPasswordValue(pw) {
     return bcrypt.hash(pw, 10);
 }
 async function verifyPassword(hash, pw) {
@@ -47,22 +70,11 @@ class AuthService {
         let roleId = getRole.get('SUPER_ADMIN')?.id;
         if (!roleId) {
             roleId = (0, crypto_1.randomUUID)();
-            db.prepare(`INSERT INTO roles (id, name, description, created_at)
-                VALUES (?, ?, ?, ?)`).run(roleId, 'SUPER_ADMIN', 'System super administrator', nowIso());
+            db.prepare(`INSERT INTO roles (id, name, description, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)`).run(roleId, 'SUPER_ADMIN', 'System super administrator', nowIso(), nowIso());
         }
         // 2) Ensure role authorities exist (idempotent)
-        const authorities = [
-            'SUPER_ADMIN',
-            'USERS_WRITE',
-            'ROLES_WRITE',
-            'LABS_WRITE',
-            'MACHINES_WRITE',
-            'MAPPINGS_WRITE',
-            'ROUTES_WRITE',
-            'VIEW_LOGS',
-            'OUTBOX_MANAGE',
-            'AUDIT_READ',
-        ];
+        const authorities = exports.ALL_AUTHORITIES;
         const insAuth = db.prepare(`INSERT OR IGNORE INTO role_authorities (role_id, authority_code)
             VALUES (?, ?)`);
         const txAuth = db.transaction(() => {
@@ -75,7 +87,7 @@ class AuthService {
         if (!userId) {
             userId = (0, crypto_1.randomUUID)();
             // IMPORTANT: use your hashPassword() here
-            const passwordHash = await hashPassword('admin');
+            const passwordHash = await hashPasswordValue('admin');
             db.prepare(`INSERT INTO users
                 (id, username, password_hash, must_change_password, is_active, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)`).run(userId, 'admin', passwordHash, 1, 1, nowIso(), nowIso());
@@ -97,6 +109,13 @@ class AuthService {
         const ok = await verifyPassword(u.password_hash, password);
         if (!ok)
             throw new Error('Invalid username or password');
+        const roleRows = db
+            .prepare(`SELECT DISTINCT r.name
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ?
+                ORDER BY r.name ASC`)
+            .all(u.id);
         const authRows = db
             .prepare(`SELECT ra.authority_code
                 FROM user_roles ur
@@ -104,18 +123,39 @@ class AuthService {
                 WHERE ur.user_id = ?`)
             .all(u.id);
         const authorities = Array.from(new Set(authRows.map((r) => r.authority_code)));
-        return {
-            user: {
-                id: u.id,
-                username: u.username,
-                authorities,
-                mustChangePassword: u.must_change_password === 1,
-            },
+        const roles = Array.from(new Set(roleRows.map((r) => r.name)));
+        const snapshot = {
+            id: u.id,
+            username: u.username,
+            roles,
+            authorities,
+            mustChangePassword: u.must_change_password === 1,
         };
+        db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run('current_session_user', JSON.stringify(snapshot));
+        return { user: snapshot };
+    }
+    currentUser() {
+        const db = (0, db_1.getDb)();
+        const row = db
+            .prepare(`SELECT value FROM meta WHERE key = ? LIMIT 1`)
+            .get('current_session_user');
+        if (!row?.value)
+            return null;
+        try {
+            return JSON.parse(String(row.value));
+        }
+        catch {
+            return null;
+        }
+    }
+    async logout() {
+        const db = (0, db_1.getDb)();
+        db.prepare(`DELETE FROM meta WHERE key = ?`).run('current_session_user');
+        return true;
     }
     async changePassword(userId, newPassword) {
         const db = (0, db_1.getDb)();
-        const hash = await hashPassword(newPassword);
+        const hash = await hashPasswordValue(newPassword);
         const res = db
             .prepare(`UPDATE users
                 SET password_hash = ?, must_change_password = 0, updated_at = ?

@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>{{ data.mode === 'create' ? 'New Target' : 'Edit Target' }}</h2>
+
+<mat-dialog-content class="dialog-content">
+    @if (data.mode === 'create' && data.presetLabel) {
+    <div class="preset-banner">
+        <div class="preset-title">Starter loaded: {{ data.presetLabel }}</div>
+        @for (note of data.presetNotes ?? []; track note) {
+        <div class="preset-line">- {{ note }}</div>
+        }
+    </div>
+    }
+
+    @if (data.mode === 'create' && data.recommendedOperationalDefaults) {
+    <div class="helper-card">
+        <div class="helper-title">Recommended operational defaults</div>
+        <div class="helper-line">- Request timeout: {{ data.recommendedOperationalDefaults.requestTimeoutMs }} ms</div>
+        <div class="helper-line">- Auto retry: {{ data.recommendedOperationalDefaults.autoRetry }}</div>
+        <div class="helper-line">- Max attempts: {{ data.recommendedOperationalDefaults.maxAttempts }}</div>
+        <div class="helper-line">- Backoff: {{ data.recommendedOperationalDefaults.backoffStrategy }}</div>
+        <div class="helper-line">- Base delay: {{ data.recommendedOperationalDefaults.baseDelayMs }} ms</div>
+        <div class="helper-line">- Delay cap: {{ data.recommendedOperationalDefaults.maxDelayMs }} ms</div>
+        <div class="helper-sub">These are applied later in the connector-specific target configuration and retry workflow.</div>
+    </div>
+    }
+
+    <div class="helper-card">
+        <div class="helper-title">{{ helper.label }}</div>
+        <div class="helper-sub">
+            Example base URL: <span class="mono">{{ helper.exampleUrl }}</span>
+        </div>
+        @for (line of helper.helperLines; track line) {
+        <div class="helper-line">- {{ line }}</div>
+        }
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <form class="form-grid" [formGroup]="form">
+        <mat-form-field appearance="outline">
+            <mat-label>Target name</mat-label>
+            <input matInput formControlName="name" />
+            <mat-hint>Human-readable name used in queue, history, and diagnostics.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Target type</mat-label>
+            <mat-select formControlName="type">
+                @for (item of targetTypes; track item) {
+                <mat-option [value]="item">{{ item }}</mat-option>
+                }
+            </mat-select>
+            <mat-hint>Connector behavior, validation, and mapping guidance depend on this type.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Base URL</mat-label>
+            <input matInput formControlName="base_url" />
+            <mat-hint>Secrets are managed separately from this form.</mat-hint>
+        </mat-form-field>
+
+        <mat-slide-toggle formControlName="enabled">Enabled</mat-slide-toggle>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()">
+        {{ data.mode === 'create' ? 'Create target' : 'Save changes' }}
+    </button>
+</mat-dialog-actions>

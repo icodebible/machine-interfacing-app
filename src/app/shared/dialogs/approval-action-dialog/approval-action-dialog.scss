@@ -1,0 +1,36 @@
+.dlg-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.sub {
+    font-size: 12px;
+    opacity: .72;
+    margin-top: 4px;
+    word-break: break-word;
+}
+
+.dlg-body {
+    display: grid;
+    gap: 12px;
+    min-width: min(620px, 94vw);
+    max-width: 94vw;
+}
+
+.meta {
+    font-size: 13px;
+    opacity: .8;
+}
+
+.full {
+    width: 100%;
+}

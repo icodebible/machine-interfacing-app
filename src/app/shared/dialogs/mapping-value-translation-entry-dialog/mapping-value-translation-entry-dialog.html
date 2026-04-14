@@ -1,0 +1,80 @@
+<h2 mat-dialog-title class="dialog-title-row">
+    <div class="dialog-title-copy">
+        <div class="eyebrow">Value translation</div>
+        <div class="title">
+            {{ data.mode === 'create' ? 'Add translation value' : 'Edit translation value' }}
+        </div>
+        <div class="sub">
+            Define how a source value should be converted before the mapped field is sent to the
+            destination system.
+        </div>
+    </div>
+
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close value translation editor">
+        <mat-icon>close</mat-icon>
+    </button>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    @if (error()) {
+    <div class="banner banner--error">
+        <mat-icon>error</mat-icon>
+        <span>{{ error() }}</span>
+    </div>
+    }
+
+    <div class="hero-facts">
+        <span class="chip">{{ data.mode === 'create' ? 'New entry' : 'Edit entry' }}</span>
+        <span class="chip chip--accent">Optional value translation</span>
+        <span class="chip chip--muted">Unmapped values follow parent-rule behavior</span>
+    </div>
+
+    <section class="surface-block">
+        <div class="section-title">Translation entry</div>
+        <div class="section-copy">
+            Use this when the destination expects different values from the machine or parser source.
+        </div>
+
+        <div class="form-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Source value</mat-label>
+                <input matInput [(ngModel)]="sourceValue" placeholder="Example: H" />
+                <mat-hint>The value produced by the source or resolved field mapping.</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Destination value</mat-label>
+                <input matInput [(ngModel)]="destinationValue" placeholder="Example: HIGH" />
+                <mat-hint>The value that should be sent to the destination system.</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Status</mat-label>
+                <mat-select [(ngModel)]="enabled">
+                    <mat-option [value]="1">Enabled</mat-option>
+                    <mat-option [value]="0">Disabled</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+            <mat-label>Note</mat-label>
+            <textarea matInput [(ngModel)]="note" rows="2" placeholder="Optional guidance for operators"></textarea>
+        </mat-form-field>
+
+        <div class="inline-note">
+            <mat-icon>info</mat-icon>
+            <span>
+                Keep source and destination values short, stable, and unambiguous. Use notes only when the mapping needs
+                operator context.
+            </span>
+        </div>
+    </section>
+</div>
+
+<div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="close()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()">
+        {{ data.mode === 'create' ? 'Add value' : 'Save changes' }}
+    </button>
+</div>

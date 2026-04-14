@@ -43,24 +43,65 @@ export class Sidebar {
     return !!u?.authorities?.includes(code);
   };
 
-  navMain: NavItem[] = [
+  navOperations: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/app/dashboard' },
     { label: 'Laboratories', icon: 'science', route: '/app/labs' },
     { label: 'Machines', icon: 'memory', route: '/app/machines' },
     { label: 'Live Monitor', icon: 'lan', route: '/app/live-monitor' },
-    { label: 'Mappings', icon: 'rule', route: '/app/mappings' },
-    { label: 'Routes', icon: 'route', route: '/app/routes' },
-    { label: 'Outbox', icon: 'outbox', route: '/app/outbox' },
+  ];
+
+  navResults: NavItem[] = [
+    { label: 'Parsed Results', icon: 'receipt_long', route: '/app/parsed-results' },
+    { label: 'Normalized Results', icon: 'science', route: '/app/normalized-results' },
+    {
+      label: 'Pending Approvals',
+      icon: 'approval',
+      route: '/app/pending-approvals',
+      requires: 'RESULT_APPROVE',
+    },
+    {
+      label: 'Approval History',
+      icon: 'history',
+      route: '/app/approval-history',
+      requires: 'RESULT_APPROVE',
+    },
+  ];
+
+  navRouting: NavItem[] = [
+    { label: 'Routing Rules', icon: 'alt_route', route: '/app/routing-rules' },
+    { label: 'Targets', icon: 'route', route: '/app/targets' },
+    { label: 'Transform Mappings', icon: 'rule', route: '/app/mappings' },
+    {
+      label: 'Outbound Queue',
+      icon: 'outbox',
+      route: '/app/outbound-queue',
+      requires: 'RESULT_ROUTE',
+    },
+    {
+      label: 'Delivery History',
+      icon: 'local_shipping',
+      route: '/app/delivery-history',
+      requires: 'RESULT_ROUTE',
+    },
+    { label: 'Legacy Outbox', icon: 'archive', route: '/app/outbox' },
   ];
 
   navAdmin: NavItem[] = [
     { label: 'Users', icon: 'group', route: '/app/users', requires: 'USERS_WRITE' },
     { label: 'Roles', icon: 'admin_panel_settings', route: '/app/roles', requires: 'ROLES_WRITE' },
+    {
+      label: 'Approval Policies',
+      icon: 'fact_check',
+      route: '/app/approval-policies',
+      requires: 'APPROVAL_POLICY_WRITE',
+    },
     { label: 'Audit Logs', icon: 'policy', route: '/app/audit-logs', requires: 'AUDIT_READ' },
   ];
 
   navBottom: NavItem[] = [{ label: 'Settings', icon: 'settings', route: '/app/settings' }];
 
+  showResults = computed(() => this.navResults.some((i) => this.can(i.requires)));
+  showRouting = computed(() => this.navRouting.some((i) => this.can(i.requires)));
   showAdmin = computed(() => this.navAdmin.some((i) => this.can(i.requires)));
 
   logout() {

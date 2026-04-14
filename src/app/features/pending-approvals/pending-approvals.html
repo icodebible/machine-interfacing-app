@@ -1,0 +1,241 @@
+<div class="content">
+    <div class="page-toolbar">
+        <div class="title">
+            <h2>Pending Approvals</h2>
+            <div class="sub">Normalized laboratory results waiting for supervisory review before routing.</div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button mat-stroked-button (click)="refresh()">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    <div class="card">
+        <div class="summary-row">
+            <div class="summary-card">
+                <div class="summary-label">Pending results</div>
+                <div class="summary-value">{{ summary().total }}</div>
+            </div>
+            <div class="summary-card info">
+                <div class="summary-label">Ready to act</div>
+                <div class="summary-value">{{ summary().requiresAction }}</div>
+            </div>
+            <div class="summary-card warn">
+                <div class="summary-label">Waiting more</div>
+                <div class="summary-value">{{ summary().waitingMore }}</div>
+            </div>
+            <div class="summary-card idle">
+                <div class="summary-label">Blocked / held</div>
+                <div class="summary-value">{{ summary().blocked }}</div>
+            </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <table mat-table [dataSource]="pagedRows()" class="table" multiTemplateDataRows>
+            <ng-container matColumnDef="result">
+                <th mat-header-cell *matHeaderCellDef>Result</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="row-main-cell">
+                        <button
+                            mat-icon-button
+                            class="expander"
+                            [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
+                            (click)="toggleRow(row); $event.stopPropagation()"
+                        >
+                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+
+                        <div>
+                            <div class="cell-title">{{ row.normalized_result_id }}</div>
+                            <div class="cell-sub">
+                                <span>Workflow result</span>
+                                <span class="dot">•</span>
+                                <span>{{ policyName(row.approval_policy_id) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="policy">
+                <th mat-header-cell *matHeaderCellDef>Policy</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="cell-title small">{{ policyName(row.approval_policy_id) }}</div>
+                    <div class="micro-copy">{{ routeTargetSummary(row) }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="approvals">
+                <th mat-header-cell *matHeaderCellDef>Approvals</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="metric-value">{{ row.approval_count_received || 0 }} / {{ row.approval_count_required || 0 }}</div>
+                    <div class="micro-copy">approval progress</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let row">
+                    <span class="status-dot" [class]="statusClass(row.status)"></span>
+                    <span class="muted">{{ row.status || '—' }}</span>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="created">
+                <th mat-header-cell *matHeaderCellDef>Created</th>
+                <td mat-cell *matCellDef="let row">
+                    <div>{{ formatDateTime(row.created_at) }}</div>
+                    <div class="micro-copy">{{ row.created_by_username || 'SYSTEM' }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                <td mat-cell *matCellDef="let row" class="actions-col">
+                    <button mat-icon-button matTooltip="Open full review" (click)="openDetailDialog(row); $event.stopPropagation()">
+                        <mat-icon>open_in_new</mat-icon>
+                    </button>
+
+                    @if (canReevaluate(row)) {
+                    <button mat-icon-button matTooltip="Re-check policy" (click)="reevaluatePolicy(row); $event.stopPropagation()">
+                        <mat-icon>rule_folder</mat-icon>
+                    </button>
+                    }
+
+                    <button
+                        mat-icon-button
+                        color="warn"
+                        matTooltip="Reject"
+                        (click)="openAction(row, 'reject'); $event.stopPropagation()"
+                        [disabled]="!canAct(row)"
+                    >
+                        <mat-icon>close</mat-icon>
+                    </button>
+
+                    <button
+                        mat-icon-button
+                        color="primary"
+                        matTooltip="Approve"
+                        (click)="openAction(row, 'approve'); $event.stopPropagation()"
+                        [disabled]="!canAct(row)"
+                    >
+                        <mat-icon>check</mat-icon>
+                    </button>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+                    @if (isExpanded(row)) {
+                    <div class="row-expansion-shell">
+                        <div class="expansion-grid">
+                            <div class="expansion-card emphasis">
+                                <div class="expansion-label">Approval context</div>
+                                <div class="expansion-value">{{ row.approval_count_received || 0 }} / {{ row.approval_count_required || 0 }}</div>
+                                <div class="expansion-meta">
+                                    Status: {{ row.status || '—' }}
+                                    <span class="dot">•</span>
+                                    Policy: {{ policyName(row.approval_policy_id) }}
+                                </div>
+                            </div>
+
+                            <div class="expansion-card">
+                                <div class="expansion-label">Quick details</div>
+                                <div class="quick-grid">
+                                    <div><b>Created:</b> {{ formatDateTime(row.created_at) }}</div>
+                                    <div><b>Updated:</b> {{ formatDateTime(row.updated_at) }}</div>
+                                    <div><b>Created by:</b> {{ row.created_by_username || 'SYSTEM' }}</div>
+                                    <div><b>Updated by:</b> {{ row.updated_by_username || row.created_by_username || 'SYSTEM' }}</div>
+                                    <div><b>Patient:</b> {{ row.patient_name || row.patient_id || '—' }}</div>
+                                    <div><b>Targets:</b> {{ routeTargetSummary(row) }}</div>
+                                </div>
+                            </div>
+
+                            <div class="expansion-card">
+                                <div class="expansion-label">Workflow notes</div>
+                                <div class="note-list">
+                                    @for (note of expansionNotes(row); track note.text) {
+                                    <div class="context-note" [class.bad]="note.kind === 'bad'" [class.warn]="note.kind === 'warn'" [class.info]="note.kind === 'info'">
+                                        {{ note.text }}
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="expansion-actions">
+                            <button mat-stroked-button (click)="openDetailDialog(row); $event.stopPropagation()">
+                                <mat-icon>visibility</mat-icon>
+                                Review details
+                            </button>
+
+                            @if (canReevaluate(row)) {
+                            <button mat-stroked-button (click)="reevaluatePolicy(row); $event.stopPropagation()">
+                                <mat-icon>rule_folder</mat-icon>
+                                Re-check policy
+                            </button>
+                            }
+
+                            <button
+                                mat-stroked-button
+                                color="warn"
+                                (click)="openAction(row, 'reject'); $event.stopPropagation()"
+                                [disabled]="!canAct(row)"
+                            >
+                                <mat-icon>close</mat-icon>
+                                Reject
+                            </button>
+
+                            <button
+                                mat-flat-button
+                                color="primary"
+                                (click)="openAction(row, 'approve'); $event.stopPropagation()"
+                                [disabled]="!canAct(row)"
+                            >
+                                <mat-icon>check</mat-icon>
+                                Approve
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="cols"></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: cols; trackBy: rowTrackBy"
+                class="row-clickable main-row"
+                [class.row-selected]="isExpanded(row)"
+                (click)="toggleRow(row)"
+            ></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: detailCols; trackBy: rowTrackBy"
+                class="detail-row"
+                [class.detail-row-open]="isExpanded(row)"
+            ></tr>
+        </table>
+
+        @if (rows().length === 0 && !loading()) {
+        <div class="empty">No pending approvals found.</div>
+        } @else {
+        <mat-paginator
+            [length]="rows().length"
+            [pageIndex]="pageIndex()"
+            [pageSize]="pageSize()"
+            [pageSizeOptions]="pageSizeOptions"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+        ></mat-paginator>
+        }
+    </div>
+</div>

@@ -8,4 +8,15 @@ export type Authority =
     | 'VIEW_LOGS'
     | 'OUTBOX_MANAGE'
     | 'AUDIT_READ'
-    | 'SUPER_ADMIN';
+    | 'SUPER_ADMIN'
+    | 'RESULT_VIEW'
+    | 'RESULT_APPROVE'
+    | 'RESULT_REJECT'
+    | 'RESULT_ROUTE'
+    | 'RESULT_REQUEUE'
+    | 'APPROVAL_POLICY_READ'
+    | 'APPROVAL_POLICY_WRITE'
+    | 'TARGET_CONFIG_WRITE'
+    | 'MAPPING_WRITE'
+    | 'AUDIT_VIEW'
+    | 'RESULT_VIEW_SENSITIVE';

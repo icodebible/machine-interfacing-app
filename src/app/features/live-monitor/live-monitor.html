@@ -1,1 +1,415 @@
-<p>live-monitor works!</p>
+<mat-drawer-container class="monitor-shell" autosize>
+    <mat-drawer-content class="content">
+        <div class="page-toolbar">
+            <div class="title-block">
+                <h2>Live Monitor</h2>
+                <div class="sub">
+                    Observe machine runtime health, simulation activity, recent traffic, and processing flow
+                    from one operational surface without losing access to deeper inspection tools.
+                </div>
+            </div>
+
+            <div class="toolbar-actions">
+                <button mat-stroked-button (click)="refresh()">
+                    <mat-icon>refresh</mat-icon>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card primary">
+                <div class="summary-label">Total Machines</div>
+                <div class="summary-value">{{ summary().total }}</div>
+                <div class="summary-sub">Registered machine sources</div>
+            </div>
+
+            <div class="summary-card success">
+                <div class="summary-label">Connected</div>
+                <div class="summary-value">{{ summary().connected }}</div>
+                <div class="summary-sub">Runtime sessions currently connected</div>
+            </div>
+
+            <div class="summary-card accent">
+                <div class="summary-label">Simulations</div>
+                <div class="summary-value">{{ summary().simulations }}</div>
+                <div class="summary-sub">Machines currently emitting simulated traffic</div>
+            </div>
+
+            <div class="summary-card info">
+                <div class="summary-label">Recent Activity</div>
+                <div class="summary-value">{{ summary().recentActivity }}</div>
+                <div class="summary-sub">Machines active in the last 10 minutes</div>
+            </div>
+
+            <div class="summary-card warning">
+                <div class="summary-label">Attention Needed</div>
+                <div class="summary-value">{{ summary().attention }}</div>
+                <div class="summary-sub">Machines needing operator review</div>
+            </div>
+        </div>
+
+        <div class="filters-card">
+            <div class="filters-grid">
+                <mat-form-field appearance="outline" class="search-field">
+                    <mat-label>Search</mat-label>
+                    <input matInput [value]="q()" (input)="q.set($any($event.target).value)"
+                        placeholder="Machine, code, lab, protocol, or traffic preview" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Runtime</mat-label>
+                    <mat-select [value]="runtimeFilter()" (selectionChange)="runtimeFilter.set($event.value)">
+                        <mat-option value="ALL">All</mat-option>
+                        <mat-option value="CONNECTED">Connected</mat-option>
+                        <mat-option value="CONNECTING">Connecting</mat-option>
+                        <mat-option value="ATTENTION">Attention</mat-option>
+                        <mat-option value="IDLE">Idle</mat-option>
+                        <mat-option value="STOPPED">Stopped</mat-option>
+                        <mat-option value="DISCONNECTED">Disconnected</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Connection</mat-label>
+                    <mat-select [value]="connFilter()" (selectionChange)="connFilter.set($event.value)">
+                        <mat-option value="ALL">All</mat-option>
+                        <mat-option value="TCP">TCP</mat-option>
+                        <mat-option value="SERIAL">Serial</mat-option>
+                        <mat-option value="HL7_MLLP">HL7 MLLP</mat-option>
+                        <mat-option value="FTP">FTP</mat-option>
+                        <mat-option value="SFTP">SFTP</mat-option>
+                        <mat-option value="FILE_WATCHER">File Watcher</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Activity</mat-label>
+                    <mat-select [value]="activityFilter()" (selectionChange)="activityFilter.set($event.value)">
+                        <mat-option value="ALL">All</mat-option>
+                        <mat-option value="RECENT_ACTIVITY">Recent activity</mat-option>
+                        <mat-option value="SIMULATING">Simulating</mat-option>
+                        <mat-option value="HAS_PARSED">Has parsed results</mat-option>
+                        <mat-option value="HAS_NORMALIZED">Has normalized results</mat-option>
+                        <mat-option value="ATTENTION">Attention</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <div class="filter-actions">
+                    <button mat-stroked-button (click)="clearFilters()">
+                        <mat-icon>filter_alt_off</mat-icon>
+                        Clear filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (loading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        }
+
+        <div class="card">
+            <mat-divider></mat-divider>
+
+            <table mat-table [dataSource]="filtered()" class="table" multiTemplateDataRows>
+                <ng-container matColumnDef="machine">
+                    <th mat-header-cell *matHeaderCellDef>Machine</th>
+                    <td mat-cell *matCellDef="let row">
+                        <div class="cell-title">{{ row.name }}</div>
+                        <div class="cell-sub">
+                            {{ row.labName || '—' }}
+                            @if (row.code) {
+                            <span class="dot">•</span>
+                            <span>{{ row.code }}</span>
+                            }
+                        </div>
+                        <div class="cell-sub muted">
+                            {{ row.connectionType }}
+                            <span class="dot">•</span>
+                            {{ row.protocol }}
+                            @if (row.brand || row.model) {
+                            <span class="dot">•</span>
+                            <span>{{ row.brand || '—' }} {{ row.model || '' }}</span>
+                            }
+                        </div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="runtime">
+                    <th mat-header-cell *matHeaderCellDef>Runtime</th>
+                    <td mat-cell *matCellDef="let row">
+                        <div class="status-line">
+                            <span class="status-dot" [class]="runtimeClass(row.runtimeStatus)"></span>
+                            <span class="muted">{{ row.runtimeStatus | titlecase }}</span>
+                        </div>
+                        <div class="cell-sub muted">{{ row.runtimeMessage || 'No runtime message' }}</div>
+                        <div class="cell-sub muted">Updated {{ relativeTime(row.runtimeUpdatedAt) }}</div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="simulation">
+                    <th mat-header-cell *matHeaderCellDef>Simulation</th>
+                    <td mat-cell *matCellDef="let row">
+                        <span class="status-pill" [class]="simulationClass(row)">
+                            {{ row.simulationRunning ? 'Running' : 'Stopped' }}
+                        </span>
+                        <div class="cell-sub muted">
+                            {{ row.simulationScenario || '—' }}
+                            @if (row.simulationIntervalMs) {
+                            <span>· {{ row.simulationIntervalMs }} ms</span>
+                            }
+                        </div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="activity">
+                    <th mat-header-cell *matHeaderCellDef>Activity</th>
+                    <td mat-cell *matCellDef="let row">
+                        <span class="status-pill" [class]="activityClass(row)">{{ activityLabel(row) }}</span>
+                        <div class="cell-sub muted">
+                            Parsed: {{ row.parsedRecentCount }} · Normalized: {{ row.normalizedRecentCount }}
+                        </div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="traffic">
+                    <th mat-header-cell *matHeaderCellDef>Latest Traffic</th>
+                    <td mat-cell *matCellDef="let row">
+                        <div class="cell-sub mono preview-text">
+                            {{ row.latestTrafficPreview || 'No recent traffic' }}
+                        </div>
+                        <div class="cell-sub muted">{{ relativeTime(row.latestTrafficAt) }}</div>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                    <td mat-cell *matCellDef="let row" class="actions-col">
+                        <button mat-icon-button matTooltip="Open operator detail" (click)="openDetails(row)">
+                            <mat-icon>info</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Toggle inline details" (click)="toggleExpanded(row)">
+                            <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Open logs console" (click)="openLogs(row)">
+                            <mat-icon>terminal</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Refresh machine activity" (click)="refreshMachine(row)">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="expandedDetail">
+                    <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+                        @if (expandedId() === row.id) {
+                        <div class="expanded-panel">
+                            <div class="expanded-grid">
+                                <div class="section-block">
+                                    <div class="section-title">Runtime Snapshot</div>
+                                    <div class="summary-grid-mini compact">
+                                        <div><b>Status:</b> {{ row.runtimeStatus | titlecase }}</div>
+                                        <div><b>Updated:</b> {{ formatDateTime(row.runtimeUpdatedAt) }}</div>
+                                        <div class="span-2"><b>Message:</b> {{ row.runtimeMessage || '—' }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="section-block">
+                                    <div class="section-title">Processing Snapshot</div>
+                                    <div class="snapshot-chips">
+                                        <span class="status-pill info">Parsed {{ row.parsedRecentCount }}</span>
+                                        <span class="status-pill ok">Normalized {{ row.normalizedRecentCount }}</span>
+                                        <span class="status-pill idle">Traffic {{ relativeTime(row.latestTrafficAt)
+                                            }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="section-block span-2">
+                                    <div class="section-head-inline">
+                                        <div class="section-title">Latest Traffic Preview</div>
+                                        <button mat-stroked-button (click)="openLogs(row)">
+                                            <mat-icon>terminal</mat-icon>
+                                            Open console
+                                        </button>
+                                    </div>
+
+                                    <div class="traffic-preview mono">
+                                        {{ row.latestTrafficPreview || 'No recent traffic preview.' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        }
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="cols"></tr>
+                <tr mat-row *matRowDef="let row; columns: cols; trackBy: trackById" class="row-clickable"></tr>
+                <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"
+                    [class.visible]="expandedId() === row.id"></tr>
+            </table>
+
+            @if (filtered().length === 0 && !loading()) {
+            <div class="empty">No machine activity matched the current filters.</div>
+            }
+        </div>
+    </mat-drawer-content>
+
+    <mat-drawer #drawer [mode]="drawerMode()" position="end" class="monitor-drawer">
+        @if (selected(); as selectedRow) {
+        <div class="drawer-header">
+            <div>
+                <div class="drawer-title">{{ selectedRow.name }}</div>
+                <div class="drawer-sub">
+                    {{ selectedRow.labName || '—' }}
+                    @if (selectedRow.code) {
+                    <span class="dot">•</span>
+                    <span>{{ selectedRow.code }}</span>
+                    }
+                </div>
+            </div>
+
+            <button mat-icon-button (click)="closeDetails()" matTooltip="Close details">
+                <mat-icon>close</mat-icon>
+            </button>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="drawer-body">
+            <div class="drawer-badge-row">
+                <span class="status-pill info">{{ selectedRow.connectionType }}</span>
+                <span class="status-pill info">{{ selectedRow.protocol }}</span>
+                <span class="status-pill" [class]="runtimeClass(selectedRow.runtimeStatus)">
+                    {{ selectedRow.runtimeStatus | titlecase }}
+                </span>
+                <span class="status-pill" [class]="simulationClass(selectedRow)">
+                    {{ selectedRow.simulationRunning ? 'Simulation running' : 'Simulation stopped' }}
+                </span>
+            </div>
+
+            <div class="drawer-section">
+                <div class="section-title">Operational Overview</div>
+                <div class="drawer-kv-grid">
+                    <div>
+                        <b>Machine ID:</b> <span class="mono">{{ selectedRow.id }}</span>
+                    </div>
+                    <div><b>Connection:</b> {{ selectedRow.connectionType }}</div>
+                    <div>
+                        <b>Brand / Model:</b> {{ selectedRow.brand || '—' }} {{ selectedRow.model || '' }}
+                    </div>
+                    <div>
+                        <b>Last runtime update:</b> {{ formatDateTime(selectedRow.runtimeUpdatedAt) }}
+                    </div>
+                    <div class="span-2">
+                        <b>Runtime message:</b> {{ selectedRow.runtimeMessage || '—' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="drawer-section two-column">
+                <div class="section-card">
+                    <div class="section-title">Simulation</div>
+                    <div class="drawer-kv-grid compact">
+                        <div><b>Scenario:</b> {{ selectedRow.simulationScenario || '—' }}</div>
+                        <div>
+                            <b>Interval:</b>
+                            {{
+                            selectedRow.simulationIntervalMs ? selectedRow.simulationIntervalMs + ' ms' : '—'
+                            }}
+                        </div>
+                        <div><b>Updated:</b> {{ formatDateTime(selectedRow.simulationUpdatedAt) }}</div>
+                        <div><b>Status:</b> {{ selectedRow.simulationRunning ? 'Running' : 'Stopped' }}</div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-title">Processing</div>
+                    <div class="drawer-kv-grid compact">
+                        <div><b>Parsed recent:</b> {{ selectedRow.parsedRecentCount }}</div>
+                        <div><b>Normalized recent:</b> {{ selectedRow.normalizedRecentCount }}</div>
+                        <div><b>Latest parsed:</b> {{ relativeTime(selectedRow.latestParsedAt) }}</div>
+                        <div>
+                            <b>Latest normalized:</b> {{ relativeTime(selectedRow.latestNormalizedAt) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="section-head-inline">
+                    <div class="section-title">Recent Traffic</div>
+                    <button mat-stroked-button (click)="openLogs(selectedRow)">
+                        <mat-icon>terminal</mat-icon>
+                        Open terminal view
+                    </button>
+                </div>
+
+                @if (selectedRow.recentLogs.length) {
+                <div class="drawer-log-list">
+                    @for (log of selectedRow.recentLogs; track log.id) {
+                    <div class="drawer-log-item">
+                        <div class="drawer-log-meta">
+                            <span class="status-pill info">{{ log.direction }}</span>
+                            <span class="status-pill" [class]="
+                        log.eventType === 'error'
+                          ? 'bad'
+                          : log.eventType === 'payload'
+                            ? 'ok'
+                            : 'idle'
+                      ">
+                                {{ log.eventType }}
+                            </span>
+                            <span class="muted">{{ formatDateTime(log.createdAt) }}</span>
+                        </div>
+                        <div class="drawer-log-preview mono">{{ log.payloadPreview || '—' }}</div>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="empty-inline">No recent traffic loaded for this machine.</div>
+                }
+            </div>
+
+            <div class="drawer-section">
+                <div class="section-title">Operator Actions</div>
+                <div class="action-row stack-on-small">
+                    <button mat-stroked-button (click)="refreshMachine(selectedRow)">
+                        <mat-icon>refresh</mat-icon>
+                        Refresh machine
+                    </button>
+                    <button mat-stroked-button (click)="startRuntime(selectedRow)">
+                        <mat-icon>play_arrow</mat-icon>
+                        Start runtime
+                    </button>
+                    <button mat-stroked-button (click)="stopRuntime(selectedRow)">
+                        <mat-icon>stop</mat-icon>
+                        Stop runtime
+                    </button>
+                    <button mat-stroked-button (click)="restartRuntime(selectedRow)">
+                        <mat-icon>restart_alt</mat-icon>
+                        Restart runtime
+                    </button>
+                    <button mat-stroked-button (click)="startSimulation(selectedRow)">
+                        <mat-icon>smart_toy</mat-icon>
+                        Start simulation
+                    </button>
+                    <button mat-stroked-button (click)="stopSimulation(selectedRow)">
+                        <mat-icon>stop_circle</mat-icon>
+                        Stop simulation
+                    </button>
+                    <button mat-flat-button color="warn" (click)="clearLogs(selectedRow)">
+                        <mat-icon>delete_sweep</mat-icon>
+                        Clear logs
+                    </button>
+                </div>
+            </div>
+        </div>
+        } @else {
+        <div class="drawer-empty">Select <b>info</b> on a machine row to open operator details.</div>
+        }
+    </mat-drawer>
+</mat-drawer-container>

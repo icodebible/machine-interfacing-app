@@ -30,12 +30,12 @@
                 <mat-form-field appearance="outline" class="search">
                     <mat-icon matPrefix>search</mat-icon>
                     <input matInput placeholder="Search labs…" [value]="q()"
-                        (input)="q.set($any($event.target).value)" />
+                        (input)="q.set($any($event.target).value); pageIndex.set(0)" />
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="filter">
                     <mat-label>Status</mat-label>
-                    <mat-select [value]="status()" (selectionChange)="status.set($event.value)">
+                    <mat-select [value]="status()" (selectionChange)="status.set($event.value); pageIndex.set(0)">
                         <mat-option value="all">All</mat-option>
                         <mat-option value="active">Active</mat-option>
                         <mat-option value="inactive">Inactive</mat-option>
@@ -45,7 +45,7 @@
 
             <mat-divider></mat-divider>
 
-            <table mat-table [dataSource]="filtered()" class="table">
+            <table mat-table [dataSource]="pagedRows()" class="table">
                 <ng-container matColumnDef="name">
                     <th mat-header-cell *matHeaderCellDef>Name</th>
                     <td mat-cell *matCellDef="let r">
@@ -148,6 +148,9 @@
 
             @if (filtered().length === 0 && !loading()) {
             <div class="empty">No labs found. Click <b>Add Lab</b> to create your first lab.</div>
+            } @else {
+            <mat-paginator [length]="filtered().length" [pageIndex]="pageIndex()" [pageSize]="pageSize()"
+                [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons></mat-paginator>
             }
         </div>
     </mat-drawer-content>
@@ -199,13 +202,23 @@
             </div>
 
             <div class="kv">
+                <div class="k">Created</div>
+                <div class="v">{{ s.created_at || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Created by</div>
+                <div class="v">{{ s.created_by_username || 'SYSTEM' }}</div>
+            </div>
+
+            <div class="kv">
                 <div class="k">Updated</div>
                 <div class="v">{{ s.updated_at || '—' }}</div>
             </div>
 
             <div class="kv">
-                <div class="k">Created</div>
-                <div class="v">{{ s.created_at || '—' }}</div>
+                <div class="k">Updated by</div>
+                <div class="v">{{ s.updated_by_username || s.created_by_username || 'SYSTEM' }}</div>
             </div>
         </div>
 

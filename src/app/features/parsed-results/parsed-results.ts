@@ -1,0 +1,346 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+
+import { PlatformApiService } from '../../core/platform/platform-api.service';
+import { ParsedResultDetailDialog } from '../../shared/dialogs/parsed-result-detail-dialog/parsed-result-detail-dialog';
+
+type ParsedStatus = 'PARSED' | 'WARNING' | 'FAILED';
+
+interface ParsedResultViewRow {
+  id: string;
+  machineId: string;
+  machineName: string;
+  machineCode: string;
+  labName: string;
+  protocol: 'ASTM' | 'HL7' | 'RAW';
+  messageType: string;
+  parseStatus: ParsedStatus;
+  createdAt: string;
+  summary: string | null;
+  patientId: string | null;
+  sampleId: string | null;
+  orderId: string | null;
+  warningCount: number;
+  errorCount: number;
+  warnings: string[];
+  errors: string[];
+  observationCount: number;
+  rawPayload: string | null;
+  parsedPayload: Record<string, any>;
+}
+
+@Component({
+  selector: 'app-parsed-results',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatDividerModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    MatSnackBarModule,
+    MatTableModule,
+  ],
+  templateUrl: './parsed-results.html',
+  styleUrl: './parsed-results.scss',
+})
+export class ParsedResults {
+  private api = inject(PlatformApiService);
+  private snack = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+
+  loading = signal(false);
+  rows = signal<ParsedResultViewRow[]>([]);
+  expandedRowId = signal<string | null>(null);
+
+  searchTerm = '';
+  protocolFilter: 'ALL' | ParsedResultViewRow['protocol'] = 'ALL';
+  statusFilter: 'ALL' | ParsedStatus = 'ALL';
+
+  cols: string[] = ['message', 'protocol', 'status', 'received', 'actions'];
+  detailCols: string[] = ['expandedDetail'];
+
+  filteredRows = computed(() => {
+    const term = this.searchTerm.trim().toLowerCase();
+
+    return this.rows().filter((row) => {
+      const matchesTerm =
+        !term ||
+        [
+          row.id,
+          row.machineName,
+          row.machineCode,
+          row.labName,
+          row.messageType,
+          row.patientId ?? '',
+          row.sampleId ?? '',
+          row.orderId ?? '',
+          row.summary ?? '',
+        ].some((value) => value.toLowerCase().includes(term));
+
+      const matchesProtocol = this.protocolFilter === 'ALL' || row.protocol === this.protocolFilter;
+      const matchesStatus = this.statusFilter === 'ALL' || row.parseStatus === this.statusFilter;
+
+      return matchesTerm && matchesProtocol && matchesStatus;
+    });
+  });
+
+  summaryCards = computed(() => {
+    const rows = this.filteredRows();
+    return [
+      { label: 'Total messages', value: rows.length, tone: 'idle' },
+      {
+        label: 'Parsed cleanly',
+        value: rows.filter((row) => row.parseStatus === 'PARSED').length,
+        tone: 'ok',
+      },
+      {
+        label: 'Warnings',
+        value: rows.filter((row) => row.parseStatus === 'WARNING').length,
+        tone: 'warn',
+      },
+      {
+        label: 'Failures',
+        value: rows.filter((row) => row.parseStatus === 'FAILED').length,
+        tone: 'bad',
+      },
+    ];
+  });
+
+  constructor() {
+    this.refresh();
+  }
+
+  async refresh() {
+    try {
+      this.loading.set(true);
+
+      const machines = await this.api.machinesList();
+      const parsedByMachine = await Promise.allSettled(
+        (machines ?? []).map((machine) => this.api.machinesParsedList(machine.id, 200)),
+      );
+
+      const rows: ParsedResultViewRow[] = [];
+      let failedMachines = 0;
+
+      for (let i = 0; i < (machines ?? []).length; i++) {
+        const machine = machines[i];
+        const result = parsedByMachine[i];
+
+        if (result.status !== 'fulfilled') {
+          failedMachines += 1;
+          continue;
+        }
+
+        for (const item of result.value ?? []) {
+          rows.push(this.toViewRow(machine, item));
+        }
+      }
+
+      rows.sort((a, b) => this.dateValue(b.createdAt) - this.dateValue(a.createdAt));
+      this.rows.set(rows);
+
+      if (this.expandedRowId() && !rows.some((row) => row.id === this.expandedRowId())) {
+        this.expandedRowId.set(null);
+      }
+
+      if (failedMachines > 0) {
+        this.snack.open(
+          `Parsed results loaded with ${failedMachines} machine source${failedMachines > 1 ? 's' : ''} skipped.`,
+          'Close',
+          { duration: 2600 },
+        );
+      }
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Failed to load parsed results', 'Close', {
+        duration: 3500,
+      });
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  toggleRow(row: ParsedResultViewRow, event?: Event) {
+    event?.stopPropagation();
+    this.expandedRowId.set(this.expandedRowId() === row.id ? null : row.id);
+  }
+
+  isExpanded(row: ParsedResultViewRow): boolean {
+    return this.expandedRowId() === row.id;
+  }
+
+  openInspector(row: ParsedResultViewRow, event?: Event) {
+    event?.stopPropagation();
+    this.dialog.open(ParsedResultDetailDialog, {
+      width: 'min(1180px, 96vw)',
+      maxWidth: '96vw',
+      autoFocus: false,
+      panelClass: 'app-wide-dialog-panel',
+      data: { row },
+    });
+  }
+
+  prettyJson(value: unknown): string {
+    return JSON.stringify(value ?? {}, null, 2);
+  }
+
+  formatDateTime(value?: string | null): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(d);
+  }
+
+  statusClass(status?: ParsedStatus | null): string {
+    switch (status) {
+      case 'PARSED':
+        return 'ok';
+      case 'WARNING':
+        return 'warn';
+      case 'FAILED':
+        return 'bad';
+      default:
+        return 'idle';
+    }
+  }
+
+  private toViewRow(machine: any, item: any): ParsedResultViewRow {
+    const parsedPayload = this.safeJson(item?.data_json);
+    const warnings = this.extractMessages(parsedPayload, [
+      'warnings',
+      'warningMessages',
+      'validation.warnings',
+    ]);
+    const errors = this.extractMessages(parsedPayload, [
+      'errors',
+      'errorMessages',
+      'validation.errors',
+    ]);
+
+    let status: ParsedStatus = 'PARSED';
+    if (errors.length > 0 || parsedPayload['parseState'] === 'FAILED') {
+      status = 'FAILED';
+    } else if (warnings.length > 0) {
+      status = 'WARNING';
+    }
+
+    return {
+      id: item?.id,
+      machineId: item?.machine_id,
+      machineName: machine?.name ?? item?.machine_id,
+      machineCode: machine?.code ?? '—',
+      labName: machine?.lab_name ?? '—',
+      protocol: item?.protocol,
+      messageType: item?.message_type ?? '—',
+      parseStatus: status,
+      createdAt: item?.created_at,
+      summary: item?.summary ?? null,
+      patientId: this.extractScalar(parsedPayload, [
+        'patient.patientId',
+        'patient.id',
+        'patientId',
+        'pid.patientId',
+      ]),
+      sampleId: this.extractScalar(parsedPayload, [
+        'order.sampleId',
+        'sample.sampleId',
+        'sampleId',
+        'obr.sampleId',
+      ]),
+      orderId: this.extractScalar(parsedPayload, [
+        'order.orderId',
+        'order.id',
+        'orderId',
+        'obr.orderId',
+      ]),
+      warningCount: warnings.length,
+      errorCount: errors.length,
+      warnings,
+      errors,
+      observationCount: this.extractObservationCount(parsedPayload),
+      rawPayload: item?.raw ?? null,
+      parsedPayload,
+    };
+  }
+
+  private safeJson(value: string | null | undefined): Record<string, any> {
+    if (!value) return {};
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : { value: parsed };
+    } catch {
+      return {
+        rawValue: value,
+        parseError: 'Stored parsed JSON could not be decoded.',
+      };
+    }
+  }
+
+  private extractMessages(obj: Record<string, any>, paths: string[]): string[] {
+    for (const path of paths) {
+      const value = this.readPath(obj, path);
+      if (Array.isArray(value)) {
+        return value.map((item) => String(item));
+      }
+    }
+    return [];
+  }
+
+  private extractScalar(obj: Record<string, any>, paths: string[]): string | null {
+    for (const path of paths) {
+      const value = this.readPath(obj, path);
+      if (value !== undefined && value !== null && String(value).trim()) {
+        return String(value);
+      }
+    }
+    return null;
+  }
+
+  private extractObservationCount(obj: Record<string, any>): number {
+    const candidates = [
+      this.readPath(obj, 'observations'),
+      this.readPath(obj, 'results'),
+      this.readPath(obj, 'obx'),
+      this.readPath(obj, 'payload.observations'),
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate.length;
+    }
+    return 0;
+  }
+
+  private readPath(obj: any, path: string): any {
+    return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  }
+
+  private dateValue(value?: string | null): number {
+    const time = value ? new Date(value).getTime() : Number.NaN;
+    return Number.isNaN(time) ? 0 : time;
+  }
+}

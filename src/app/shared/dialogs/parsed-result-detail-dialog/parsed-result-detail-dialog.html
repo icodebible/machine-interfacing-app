@@ -1,0 +1,71 @@
+<h2 mat-dialog-title>Parsed Result Inspection</h2>
+
+<mat-dialog-content class="dialog-content">
+    <div class="dialog-shell">
+        <section class="info-column">
+            <div class="hero-card">
+                <div>
+                    <div class="hero-title">{{ data.row.id }}</div>
+                    <div class="hero-sub">
+                        {{ data.row.machineName }} · {{ data.row.protocol }} · {{ data.row.messageType }}
+                    </div>
+                </div>
+                <div class="status-pill" [class]="statusClass(data.row.parseStatus)">
+                    {{ data.row.parseStatus }}
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="section-title">Traceability</div>
+                <div class="summary-grid">
+                    <div><b>Lab:</b> {{ data.row.labName || '—' }}</div>
+                    <div><b>Machine code:</b> {{ data.row.machineCode || '—' }}</div>
+                    <div><b>Patient:</b> {{ data.row.patientId || '—' }}</div>
+                    <div><b>Sample:</b> {{ data.row.sampleId || '—' }}</div>
+                    <div><b>Order:</b> {{ data.row.orderId || '—' }}</div>
+                    <div><b>Observations:</b> {{ data.row.observationCount ?? 0 }}</div>
+                    <div><b>Received:</b> {{ formatDateTime(data.row.createdAt) }}</div>
+                    <div><b>Summary:</b> {{ data.row.summary || '—' }}</div>
+                </div>
+            </div>
+
+            @if (data.row.warnings?.length) {
+            <div class="info-card">
+                <div class="section-title">Warnings</div>
+                <div class="warning-box">
+                    @for (warning of data.row.warnings; track warning) {
+                    <div>- {{ warning }}</div>
+                    }
+                </div>
+            </div>
+            }
+
+            @if (data.row.errors?.length) {
+            <div class="info-card">
+                <div class="section-title">Errors</div>
+                <div class="error-box">
+                    @for (error of data.row.errors; track error) {
+                    <div>- {{ error }}</div>
+                    }
+                </div>
+            </div>
+            }
+        </section>
+
+        <section class="preview-column">
+            <div class="preview-card">
+                <div class="section-title">Raw Source Payload</div>
+                <div class="payload mono">{{ data.row.rawPayload || '—' }}</div>
+            </div>
+
+            <div class="preview-card">
+                <div class="section-title">Parsed Output</div>
+                <div class="payload mono">{{ prettyJson(data.row.parsedPayload) }}</div>
+            </div>
+        </section>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>

@@ -1,0 +1,97 @@
+<h2 mat-dialog-title>{{ isCreate ? 'New User' : 'Edit User' }}</h2>
+
+<mat-dialog-content class="dialog-content">
+    <div class="helper-card">
+        <div class="helper-title">Local operator account</div>
+        <div class="helper-sub">
+            Use this dialog to manage the operator identity, password lifecycle, and assigned roles.
+        </div>
+        <ul class="helper-list">
+            <li>All inputs use Angular Material for consistency across the app.</li>
+            <li>Secrets stay explicit and operator-managed rather than hidden in implicit defaults.</li>
+        </ul>
+    </div>
+
+    @if (!isCreate && isProtectedUser) {
+    <div class="preset-banner">
+        <div class="preset-title">Protected bootstrap account</div>
+        <div class="preset-line">
+            The admin username stays fixed and the account must remain active so the system never
+            becomes orphaned.
+        </div>
+    </div>
+    }
+
+    <mat-divider></mat-divider>
+
+    <form class="form-grid" [formGroup]="form">
+        <mat-form-field appearance="outline" class="field field-primary">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" />
+            <mat-hint>Used for sign-in and audit attribution.</mat-hint>
+        </mat-form-field>
+
+        @if (isCreate) {
+        <mat-form-field appearance="outline" class="field field-primary">
+            <mat-label>Temporary password</mat-label>
+            <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="password" />
+            <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
+                <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            <mat-hint>Set a starter password that can be rotated after first use.</mat-hint>
+        </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" class="field field-secondary">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="is_active">
+                <mat-option [value]="1">Active</mat-option>
+                <mat-option [value]="0" [disabled]="isProtectedUser">Disabled</mat-option>
+            </mat-select>
+            <mat-hint>{{
+                isProtectedUser
+                ? 'Bootstrap admin remains active by protection rule.'
+                : 'Disable to block sign-in without deleting history.'
+                }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field field-secondary">
+            <mat-label>Password lifecycle</mat-label>
+            <mat-select formControlName="must_change_password">
+                <mat-option [value]="1">Force password change on next sign-in</mat-option>
+                <mat-option [value]="0">Keep current password state</mat-option>
+            </mat-select>
+            <mat-hint>Use force-change for temporary credentials and resets.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field full-width">
+            <mat-label>Assigned roles</mat-label>
+            <mat-select multiple formControlName="role_ids">
+                @for (role of data.roles; track role.id) {
+                <mat-option [value]="role.id">{{ role.name }}</mat-option>
+                }
+            </mat-select>
+            <mat-hint>Authorities are derived from assigned roles.</mat-hint>
+        </mat-form-field>
+    </form>
+
+    <div class="selection-preview">
+        <div class="selection-title">Selected roles</div>
+        <div class="tag-list">
+            @if (selectedRoles.length === 0) {
+            <span class="tag subtle">No roles selected</span>
+            } @else {
+            @for (role of selectedRoles; track role.id) {
+            <span class="tag info">{{ role.name }}</span>
+            }
+            }
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()">
+        {{ isCreate ? 'Create user' : 'Save changes' }}
+    </button>
+</mat-dialog-actions>

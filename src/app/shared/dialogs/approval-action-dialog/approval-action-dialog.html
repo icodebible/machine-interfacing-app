@@ -1,0 +1,55 @@
+<h2 mat-dialog-title class="dlg-head">
+  <div>
+    <div class="title">
+      {{ data.action === 'approve' ? 'Approve Result' : 'Reject Result' }}
+    </div>
+    <div class="sub">
+      {{ data.row?.normalized_result_id }}
+    </div>
+  </div>
+
+  <button mat-icon-button aria-label="Close dialog" (click)="close()">
+    <mat-icon>close</mat-icon>
+  </button>
+</h2>
+
+<div mat-dialog-content class="dlg-body">
+  <div class="meta">
+    Required approvals: {{ data.row?.approval_count_required ?? 0 }} · Received:
+    {{ data.row?.approval_count_received ?? 0 }} · Targets after release: {{ routeTargetSummary() }}
+  </div>
+
+  @if (data.row?.last_error) {
+    <div class="meta warn">{{ data.row?.last_error }}</div>
+  }
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>{{ data.action === 'approve' ? 'Comment' : 'Reason for rejection' }}</mat-label>
+    <textarea
+      matInput
+      rows="4"
+      [value]="comment()"
+      (input)="onCommentInput($any($event.target).value)"
+      (blur)="markTouched()"
+      [placeholder]="
+        data.action === 'approve' ? 'Optional approval comment' : 'Required rejection reason'
+      "
+    ></textarea>
+
+    @if (commentRequired() && commentInvalid() && touched()) {
+      <mat-error>Provide a brief rejection reason.</mat-error>
+    }
+  </mat-form-field>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Cancel</button>
+
+  <button
+    mat-flat-button
+    [color]="data.action === 'approve' ? 'primary' : 'warn'"
+    (click)="submit()"
+  >
+    {{ data.action === 'approve' ? 'Approve' : 'Reject' }}
+  </button>
+</div>

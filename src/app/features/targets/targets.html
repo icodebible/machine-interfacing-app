@@ -1,0 +1,348 @@
+<div class="content">
+  <div class="page-toolbar">
+    <div class="title-wrap">
+      <div class="title">Targets</div>
+      <div class="sub">
+        Manage destination systems, connector security, connection tests, and transformation
+        preview.
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        New Target
+      </button>
+    </div>
+  </div>
+
+  <div class="starter-panel card">
+    <div class="panel-head">
+      <div>
+        <div class="section-title">Target creation defaults</div>
+        <div class="sub">
+          Start with a connector-specific default so naming, base URL patterns, and recommended
+          operational posture stay consistent.
+        </div>
+      </div>
+    </div>
+
+    <div class="starter-grid">
+      @for (starter of starters; track starter.type) {
+      <div class="starter-card">
+        <div class="starter-label-row">
+          <div class="starter-label">{{ starter.label }}</div>
+          <div class="starter-chip">{{ starter.type }}</div>
+        </div>
+
+        <div class="starter-description">{{ starter.description }}</div>
+        <div class="starter-url mono">{{ starter.defaultBaseUrl }}</div>
+
+        <div class="starter-block">
+          <div class="starter-block-title">Metadata defaults</div>
+          <div class="starter-default"><b>Name:</b> {{ starter.defaultName }}</div>
+          <div class="starter-default"><b>Base URL:</b> {{ starter.defaultBaseUrl }}</div>
+          <div class="starter-notes">
+            @for (note of starter.metadataNotes; track note) {
+            <div>- {{ note }}</div>
+            }
+          </div>
+        </div>
+
+        <div class="starter-block">
+          <div class="starter-block-title">Recommended operational defaults</div>
+          <div class="starter-default-grid">
+            <div>
+              <b>Request timeout:</b> {{ starter.operationalDefaults.requestTimeoutMs }} ms
+            </div>
+            <div><b>Auto retry:</b> {{ starter.operationalDefaults.autoRetry }}</div>
+            <div><b>Max attempts:</b> {{ starter.operationalDefaults.maxAttempts }}</div>
+            <div><b>Backoff:</b> {{ starter.operationalDefaults.backoffStrategy }}</div>
+            <div><b>Base delay:</b> {{ starter.operationalDefaults.baseDelayMs }} ms</div>
+            <div><b>Delay cap:</b> {{ starter.operationalDefaults.maxDelayMs }} ms</div>
+          </div>
+        </div>
+
+        <div class="starter-footnote">
+          Secrets intentionally stay blank and should be saved under Connector Security after the
+          target is created.
+        </div>
+
+        <button mat-stroked-button (click)="openCreate(starter.type)">
+          <mat-icon>playlist_add</mat-icon>
+          Use {{ starter.type }} defaults
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <div class="card">
+    <mat-divider></mat-divider>
+
+    <table mat-table [dataSource]="rows()" class="table">
+      <ng-container matColumnDef="target">
+        <th mat-header-cell *matHeaderCellDef>Target</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.name }}</div>
+          <div class="cell-sub">{{ row.base_url }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.type }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="status-dot" [class]="statusClass(row.enabled)"></span>
+          <span class="muted">{{ row.enabled === 1 ? 'Enabled' : 'Disabled' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="updated">
+        <th mat-header-cell *matHeaderCellDef>Updated</th>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDateTime(row.updated_at) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-col">
+          <button mat-icon-button (click)="selectRow(row); $event.stopPropagation()">
+            <mat-icon>info</mat-icon>
+          </button>
+
+          <button mat-icon-button (click)="openEdit(row); $event.stopPropagation()">
+            <mat-icon>edit</mat-icon>
+          </button>
+
+          <button mat-icon-button color="warn" (click)="remove(row); $event.stopPropagation()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable" (click)="selectRow(row)"></tr>
+    </table>
+
+    @if (rows().length === 0 && !loading()) {
+    <div class="empty">No targets found.</div>
+    }
+
+    @if (selected()) {
+    <mat-divider></mat-divider>
+
+    <div class="detail-panel">
+      <div class="detail-head">
+        <div>
+          <div class="title">{{ selected()?.name }}</div>
+          <div class="meta">{{ selected()?.type }} · {{ selected()?.base_url }}</div>
+        </div>
+      </div>
+
+      @if (selectedStarter()) {
+      <div class="recommendation-box">
+        <div class="section-title">Recommended defaults for {{ selectedStarter()?.type }}</div>
+        <div class="recommendation-grid">
+          <div><b>Starter:</b> {{ selectedStarter()?.label }}</div>
+          <div>
+            <b>Request timeout:</b>
+            {{ selectedStarter()?.operationalDefaults?.requestTimeoutMs }} ms
+          </div>
+          <div><b>Auto retry:</b> {{ selectedStarter()?.operationalDefaults?.autoRetry }}</div>
+          <div>
+            <b>Max attempts:</b> {{ selectedStarter()?.operationalDefaults?.maxAttempts }}
+          </div>
+          <div>
+            <b>Backoff:</b> {{ selectedStarter()?.operationalDefaults?.backoffStrategy }}
+          </div>
+          <div>
+            <b>Delay cap:</b> {{ selectedStarter()?.operationalDefaults?.maxDelayMs }} ms
+          </div>
+        </div>
+        <div class="recommendation-note">
+          These are recommended connector defaults. Secrets remain separate and should stay
+          blank until they are saved under Connector Security.
+        </div>
+      </div>
+      }
+
+      <div class="section-title">Connector Security</div>
+
+      @if (secretLoading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
+
+      <div class="preview-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Auth Mode</mat-label>
+          <mat-select [(ngModel)]="authType">
+            <mat-option value="none">None</mat-option>
+            <mat-option value="bearer">Bearer Token</mat-option>
+            <mat-option value="basic">Basic Auth</mat-option>
+            <mat-option value="api_key">API Key</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Allow Insecure TLS</mat-label>
+          <mat-select [(ngModel)]="allowInsecureTls">
+            <mat-option [value]="false">No</mat-option>
+            <mat-option [value]="true">Yes (dev only)</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      @if (authType === 'bearer') {
+      <div class="secret-field">
+        <mat-form-field appearance="outline">
+          <mat-label>Bearer Token</mat-label>
+          <input matInput [(ngModel)]="token" [type]="showToken() ? 'text' : 'password'" />
+        </mat-form-field>
+
+        <button mat-stroked-button type="button" (click)="showToken.set(!showToken())">
+          <mat-icon>{{ showToken() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          {{ showToken() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+      }
+
+      @if (authType === 'basic') {
+      <div class="preview-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Username</mat-label>
+          <input matInput [(ngModel)]="username" />
+        </mat-form-field>
+
+        <div class="secret-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Password</mat-label>
+            <input matInput [(ngModel)]="password" [type]="showPassword() ? 'text' : 'password'" />
+          </mat-form-field>
+
+          <button mat-stroked-button type="button" (click)="showPassword.set(!showPassword())">
+            <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+      </div>
+      }
+
+      @if (authType === 'api_key') {
+      <div class="preview-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>API Key Header Name</mat-label>
+          <input matInput [(ngModel)]="apiKeyName" />
+        </mat-form-field>
+
+        <div class="secret-field">
+          <mat-form-field appearance="outline">
+            <mat-label>API Key Value</mat-label>
+            <input matInput [(ngModel)]="apiKeyValue" [type]="showApiKeyValue() ? 'text' : 'password'" />
+          </mat-form-field>
+
+          <button mat-stroked-button type="button" (click)="showApiKeyValue.set(!showApiKeyValue())">
+            <mat-icon>{{ showApiKeyValue() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            {{ showApiKeyValue() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+      </div>
+      }
+
+      <div class="toolbar-actions">
+        <button mat-stroked-button (click)="saveSecrets()" [disabled]="savingSecrets()">
+          <mat-icon>save</mat-icon>
+          Save Secrets
+        </button>
+
+        <button mat-flat-button color="primary" (click)="testConnection()" [disabled]="testing()">
+          <mat-icon>wifi_tethering</mat-icon>
+          Test Connection
+        </button>
+      </div>
+
+      @if (diagnostics()) {
+      <div class="warning-box">
+        <div><b>Diagnostics</b></div>
+        <div>{{ diagnostics() }}</div>
+
+        @if (diagnosticsDetails()) {
+        <div class="diag-grid">
+          <div>
+            <b>Target:</b>
+            {{ diagnosticsDetails()?.targetName || diagnosticsDetails()?.targetId || '—' }}
+          </div>
+          <div><b>Type:</b> {{ diagnosticsDetails()?.targetType || '—' }}</div>
+          <div><b>URL:</b> {{ diagnosticsDetails()?.baseUrl || '—' }}</div>
+          <div><b>Auth:</b> {{ diagnosticsDetails()?.authType || '—' }}</div>
+          <div><b>TLS:</b> {{ diagnosticsDetails()?.tlsMode || '—' }}</div>
+          <div><b>HTTP Status:</b> {{ diagnosticsDetails()?.httpStatus ?? '—' }}</div>
+          <div><b>Checked:</b> {{ diagnosticsDetails()?.checkedAt || '—' }}</div>
+        </div>
+
+        @if (diagnosticsDetails()?.notes?.length) {
+        <div class="diag-notes">
+          <div><b>Notes</b></div>
+          @for (note of diagnosticsDetails()?.notes; track note) {
+          <div>- {{ note }}</div>
+          }
+        </div>
+        }
+        }
+      </div>
+      }
+
+      <mat-divider></mat-divider>
+
+      <div class="section-title">Transformation Preview</div>
+
+      <div class="preview-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Normalized Result ID</mat-label>
+          <input matInput [(ngModel)]="normalizedResultId" />
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" (click)="previewTransform()">
+          <mat-icon>visibility</mat-icon>
+          Preview Transform
+        </button>
+      </div>
+
+      @if (previewLoading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
+
+      @if (preview()) {
+      <div class="section-title">{{ preview()?.previewName }}</div>
+
+      @if (preview()?.warnings?.length) {
+      <div class="warning-box">
+        <div><b>Warnings</b></div>
+        @for (w of preview()?.warnings; track w) {
+        <div>- {{ w }}</div>
+        }
+      </div>
+      }
+
+      <div class="payload mono">{{ prettyJson(preview()?.payload) }}</div>
+      }
+    </div>
+    }
+  </div>
+</div>

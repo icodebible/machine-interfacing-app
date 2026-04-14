@@ -1,5 +1,74 @@
-.content {
+.dialog-title-row {
+    display: flex;
+    align-items: flex-start;
+    // justify-content: space-between;
+    // gap: 16px;
+    padding-bottom: 10px;
+}
+
+.dialog-title-copy {
+    min-width: 0;
+}
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    opacity: 0.68;
+}
+
+.title {
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.sub {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: 0.78;
+    max-width: 64ch;
+}
+
+.dialog-shell {
+    padding-top: 4px;
+}
+
+.surface-block {
     display: grid;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 14px;
+}
+
+.section-title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.section-copy {
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.78;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.dialog-actions {
+    padding-top: 12px;
+}
+
+@media (max-width: 720px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }

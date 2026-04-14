@@ -1,121 +1,185 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-settings',
+  standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     FormsModule,
     ReactiveFormsModule,
+    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressBarModule,
   ],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
 export class Settings implements OnInit {
-  mode = '';
-  newPassword = '';
-  confirmPassword = '';
-  loading = false;
-  error = '';
-  currentUsername = '';
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly snack = inject(MatSnackBar);
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private auth: AuthService,
-    private snack: MatSnackBar,
-  ) {
-    this.currentUsername = this.auth.user()?.username ?? 'user';
-    const u = this.auth.user();
-    this.isForced = this.mode === 'change-password' && !!u?.mustChangePassword;
+  readonly mode = signal('');
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly success = signal('');
+  readonly showNew = signal(false);
+  readonly showConfirm = signal(false);
+  readonly capsLockOn = signal(false);
+  readonly currentUsername = signal('Operator');
 
-    this.route.queryParamMap.subscribe((p) => {
-      this.mode = p.get('mode') ?? '';
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
+
+  readonly isForced = computed(() => {
+    const user = this.auth.user?.();
+    return this.mode() === 'change-password' && !!user?.mustChangePassword;
+  });
+
+  readonly strengthPct = computed(() => {
+    const value = this.newPassword();
+    let score = 0;
+    if (value.length >= 8) score += 20;
+    if (value.length >= 12) score += 15;
+    if (/[A-Z]/.test(value)) score += 15;
+    if (/[a-z]/.test(value)) score += 15;
+    if (/\d/.test(value)) score += 15;
+    if (/[^A-Za-z0-9]/.test(value)) score += 20;
+    return Math.max(4, Math.min(score, 100));
+  });
+
+  readonly strengthLabel = computed(() => {
+    const pct = this.strengthPct();
+    if (pct >= 85) return 'Strong';
+    if (pct >= 60) return 'Good';
+    if (pct >= 40) return 'Fair';
+    return 'Weak';
+  });
+
+  readonly strengthTone = computed(() => {
+    const pct = this.strengthPct();
+    if (pct >= 85) return 'good';
+    if (pct >= 60) return 'ok';
+    if (pct >= 40) return 'warn';
+    return 'bad';
+  });
+
+  readonly guidance = [
+    'Use at least 12 characters whenever possible.',
+    'Combine uppercase, lowercase, numbers, and symbols.',
+    'Avoid names of facilities, labs, devices, or shared team phrases.',
+    'Use a password unique to this workstation and integration environment.',
+  ];
+
+  readonly canSubmit = computed(() => {
+    const value = this.newPassword();
+    const confirm = this.confirmPassword();
+    const hasMinimum = value.length >= 8;
+    const matches = !!value && value === confirm;
+    const complexityCount = [
+      /[A-Z]/.test(value),
+      /[a-z]/.test(value),
+      /\d/.test(value),
+      /[^A-Za-z0-9]/.test(value),
+    ].filter(Boolean).length;
+    return hasMinimum && matches && complexityCount >= 2;
+  });
+
+  ngOnInit(): void {
+    const user: any = this.auth.user?.() ?? null;
+    const username = user?.displayName || user?.username || user?.name;
+    if (typeof username === 'string' && username.trim()) {
+      this.currentUsername.set(username.trim());
+    }
+
+    this.route.queryParamMap.subscribe((params) => {
+      this.mode.set(params.get('mode') ?? '');
     });
   }
-  ngOnInit(): void {}
+
+  @HostListener('window:keydown', ['$event'])
+  @HostListener('window:keyup', ['$event'])
+  onKeyboardState(event: KeyboardEvent) {
+    const state = event.getModifierState?.('CapsLock');
+    if (typeof state === 'boolean') this.capsLockOn.set(state);
+  }
+
+  onNewPasswordChange(value: string) {
+    this.newPassword.set(value ?? '');
+    this.clearMessages();
+  }
+
+  onConfirmPasswordChange(value: string) {
+    this.confirmPassword.set(value ?? '');
+    this.clearMessages();
+  }
+
+  clearMessages() {
+    if (this.error()) this.error.set('');
+    if (this.success()) this.success.set('');
+  }
 
   async onChangePassword() {
-    this.error = '';
+    this.clearMessages();
 
-    if (this.newPassword.length < 8) {
-      this.error = 'Password must be at least 8 characters.';
+    const newPassword = this.newPassword().trim();
+    const confirmPassword = this.confirmPassword().trim();
+
+    if (!newPassword || !confirmPassword) {
+      this.error.set('Enter and confirm the new password to continue.');
       return;
     }
-    if (this.newPassword !== this.confirmPassword) {
-      this.error = 'Passwords do not match.';
+
+    if (newPassword.length < 8) {
+      this.error.set('Password must be at least 8 characters long.');
       return;
     }
 
-    this.loading = true;
+    if (newPassword !== confirmPassword) {
+      this.error.set('Passwords do not match.');
+      return;
+    }
+
+    this.loading.set(true);
     try {
-      await this.auth.changePassword(this.newPassword);
+      await this.auth.changePassword(newPassword);
+      this.success.set('Password updated successfully.');
+      this.snack.open('Password updated successfully', 'OK', { duration: 2800 });
 
-      this.snack.open('Password updated successfully', 'OK', { duration: 3000 });
-
-      // After forced change, go to dashboard
-      await this.router.navigateByUrl('/app/dashboard');
+      if (this.isForced()) {
+        await this.router.navigateByUrl('/app/dashboard');
+      }
     } catch (e: any) {
-      this.error = e?.message ?? 'Failed to update password';
+      this.error.set(e?.message ?? 'Failed to update password');
     } finally {
-      this.loading = false;
+      this.loading.set(false);
     }
   }
 
-  isForced = false; // set this on init based on route mode + user.mustChangePassword
-
-  showNew = false;
-  showConfirm = false;
-
-  strengthPct = 10;
-  strengthLabel = 'Weak';
-  canSubmit = false;
-
-  recomputeStrength() {
-    const p = this.newPassword ?? '';
-    let score = 0;
-    if (p.length >= 8) score += 25;
-    if (p.length >= 12) score += 15;
-    if (/[A-Z]/.test(p)) score += 15;
-    if (/[a-z]/.test(p)) score += 15;
-    if (/\d/.test(p)) score += 15;
-    if (/[^A-Za-z0-9]/.test(p)) score += 15;
-
-    this.strengthPct = Math.min(100, Math.max(10, score));
-
-    this.strengthLabel =
-      this.strengthPct >= 80
-        ? 'Strong'
-        : this.strengthPct >= 55
-          ? 'Good'
-          : this.strengthPct >= 35
-            ? 'Fair'
-            : 'Weak';
-
-    this.canSubmit =
-      (this.newPassword?.length ?? 0) >= 8 && this.newPassword === this.confirmPassword;
-  }
-
-  goBack() {
-    if (this.isForced) {
+  async goBack() {
+    if (this.isForced()) {
       this.auth.logout();
-      this.router.navigateByUrl('/login');
-    } else {
-      this.router.navigateByUrl('/app/dashboard');
+      await this.router.navigateByUrl('/login');
+      return;
     }
+
+    await this.router.navigateByUrl('/app/dashboard');
   }
 }

@@ -1,0 +1,181 @@
+<h2 mat-dialog-title class="dlg-header">
+    <div class="dlg-header__text">
+        <div class="dlg-header__title">Normalized Results</div>
+        <div class="dlg-header__subtitle">
+            {{ data.machine?.name }} · Unified laboratory result view
+        </div>
+    </div>
+
+    <div class="dlg-header__meta">
+        @if (lastRefreshed()) {
+        <span class="status-badge status-badge--neutral">
+            Refreshed {{ formatDateTime(lastRefreshed()) }}
+        </span>
+        }
+
+        <span class="status-badge status-badge--neutral">
+            {{ rows().length }} record{{ rows().length === 1 ? '' : 's' }}
+        </span>
+
+        <button mat-icon-button aria-label="Close normalized results dialog" (click)="close()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="dialog-section">
+        <div class="context-grid">
+            <div class="kv">
+                <div class="k">Machine</div>
+                <div class="v">{{ data.machine?.name || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Protocol</div>
+                <div class="v">
+                    <span class="status-badge status-badge--info">
+                        {{ data.machine?.protocol || '—' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Connection Type</div>
+                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Machine ID</div>
+                <div class="v mono">{{ data.machine?.id || '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="toolbar-row">
+            <div>
+                <div class="dialog-section__title">Normalized Result Stream</div>
+                <div class="dialog-section__subtitle">
+                    Result values extracted into one common structure for routing.
+                </div>
+            </div>
+
+            <div class="toolbar-actions">
+                <mat-form-field appearance="outline" class="limit-field">
+                    <mat-label>Limit</mat-label>
+                    <mat-select [value]="limit()" (selectionChange)="setLimit($event.value)">
+                        <mat-option [value]="30">30</mat-option>
+                        <mat-option [value]="50">50</mat-option>
+                        <mat-option [value]="100">100</mat-option>
+                        <mat-option [value]="300">300</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <button mat-stroked-button (click)="refresh()">
+                    <mat-icon>refresh</mat-icon>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        @if (loading()) {
+        <div class="state-text">Loading normalized results...</div>
+        } @else if (rows().length === 0) {
+        <div class="state-text">No normalized results yet.</div>
+        } @else {
+        <div class="normalized-list">
+            @for (row of rows(); track row.id) {
+            <div class="normalized-item">
+                <div class="normalized-meta">
+                    <span class="normalized-time">{{ formatDateTime(row.created_at) }}</span>
+
+                    <span class="status-badge status-badge--info">
+                        {{ row.protocol }}
+                    </span>
+
+                    <span class="status-badge status-badge--success">
+                        {{ row.source_message_type || 'RESULT' }}
+                    </span>
+
+                    @if (row.abnormal_flag) {
+                    <span class="status-badge status-badge--warning">
+                        {{ row.abnormal_flag }}
+                    </span>
+                    }
+                </div>
+
+                <div class="result-grid">
+                    <div class="kv">
+                        <div class="k">Sample ID</div>
+                        <div class="v">{{ row.sample_id || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Patient</div>
+                        <div class="v">
+                            {{ row.patient_name || row.patient_id || '—' }}
+                        </div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Order ID</div>
+                        <div class="v">{{ row.order_id || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Observed At</div>
+                        <div class="v">{{ formatDateTime(row.observed_at) }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Test Code</div>
+                        <div class="v">{{ row.test_code || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Test Name</div>
+                        <div class="v">{{ row.test_name || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Value</div>
+                        <div class="v">{{ row.value || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Units</div>
+                        <div class="v">{{ row.units || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Reference Range</div>
+                        <div class="v">{{ row.reference_range || '—' }}</div>
+                    </div>
+
+                    <div class="kv">
+                        <div class="k">Summary</div>
+                        <div class="v">{{ row.summary || '—' }}</div>
+                    </div>
+                </div>
+
+                <div class="normalized-json mono">
+                    {{ prettyJson(row.data_json) }}
+                </div>
+
+                <div class="normalized-actions">
+                    <button mat-button (click)="copy(prettyJson(row.data_json))">
+                        <mat-icon>data_object</mat-icon>
+                        Copy JSON
+                    </button>
+                </div>
+            </div>
+            }
+        </div>
+        }
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-button (click)="close()">Close</button>
+</div>

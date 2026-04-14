@@ -1,0 +1,139 @@
+.dialog-content {
+    padding-top: 8px;
+}
+
+.dialog-shell {
+    min-width: min(1120px, 94vw);
+    display: grid;
+    grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.info-column,
+.preview-column {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+
+.hero-card,
+.info-card,
+.preview-card {
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--mat-sys-surface, #fff);
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.hero-card {
+    background: rgba(15, 23, 42, 0.03);
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+}
+
+.hero-title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.hero-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    opacity: 0.78;
+    line-height: 1.4;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.status-pill.ok {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.25);
+    color: #166534;
+}
+
+.status-pill.warn {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #92400e;
+}
+
+.status-pill.bad {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #991b1b;
+}
+
+.status-pill.idle {
+    background: rgba(100, 116, 139, 0.12);
+    border-color: rgba(100, 116, 139, 0.24);
+    color: #334155;
+}
+
+.payload,
+.warning-box,
+.error-box {
+    padding: 12px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.45;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.payload {
+    background: rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    max-height: 360px;
+    overflow: auto;
+}
+
+.warning-box {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.error-box {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
+@media (max-width: 900px) {
+
+    .dialog-shell,
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dialog-shell {
+        min-width: auto;
+    }
+}

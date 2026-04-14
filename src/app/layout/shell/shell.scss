@@ -1,19 +1,82 @@
+:host {
+    display: block;
+    height: 100%;
+    min-height: 0;
+}
+
+.shell-frame {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(30, 136, 229, 0.08), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(46, 125, 50, 0.08), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #f4f7fb 100%);
+}
+
 .container {
-    height: 100vh;
+    height: 100%;
+    min-height: 0;
+    background: transparent;
 }
 
 .sidenav {
-    width: 280px;
+    width: 320px;
+    max-width: min(88vw, 360px);
+    border-right: 1px solid rgba(15, 23, 42, 0.08);
+    background: transparent;
+    overflow: hidden;
 }
 
 .content {
-    height: 100vh;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    background: transparent;
+    overflow: hidden;
+}
+
+// .router-shell {
+//     flex: 1 1 auto;
+//     min-height: 0;
+//     overflow: auto;
+//     padding: 0 20px 20px;
+// }
+
+// .router {
+//     min-height: 100%;
+//     width: 100%;
+// }
+
+.router-shell {
+    flex: 1;
+    min-height: 0;
+    padding: 8px;
 }
 
 .router {
-    padding: 16px;
-    flex: 1;
+    height: 100%;
     overflow: auto;
+    border-radius: 0px;
+}
+
+
+::ng-deep .mat-drawer-inner-container {
+    overflow: hidden !important;
+}
+
+@media (max-width: 1199px) {
+    .sidenav {
+        width: 296px;
+    }
+
+    .router-shell {
+        padding: 0 16px 16px;
+    }
+}
+
+@media (max-width: 899px) {
+    .router-shell {
+        padding: 0 12px 12px;
+    }
 }

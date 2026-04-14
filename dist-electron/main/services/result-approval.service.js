@@ -1,0 +1,352 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ResultApprovalService = void 0;
+const crypto_1 = require("crypto");
+const db_1 = require("../db/db");
+const result_flow_service_1 = require("./result-flow.service");
+const actor_context_service_1 = require("./actor-context.service");
+const nowIso = () => new Date().toISOString();
+class ResultApprovalService {
+    flow = new result_flow_service_1.ResultFlowService();
+    listPending(limit = 100) {
+        const db = (0, db_1.getDb)();
+        const rows = db
+            .prepare(`
+                SELECT
+                    rws.*,
+                    ap.name AS policy_name,
+                    nr.machine_id,
+                    nr.protocol,
+                    nr.sample_id,
+                    nr.patient_id,
+                    nr.patient_name,
+                    nr.order_id,
+                    nr.test_code,
+                    nr.test_name,
+                    nr.value,
+                    nr.units,
+                    nr.reference_range,
+                    nr.abnormal_flag,
+                    nr.observed_at,
+                    nr.source_message_type,
+                    nr.summary AS result_summary,
+                    nr.data_json,
+                    m.name AS machine_name,
+                    m.code AS machine_code,
+                    l.id AS lab_id,
+                    l.name AS lab_name,
+                    l.code AS lab_code
+                FROM result_workflow_status rws
+                LEFT JOIN approval_policies ap ON ap.id = rws.approval_policy_id
+                LEFT JOIN normalized_lab_results nr ON nr.id = rws.normalized_result_id
+                LEFT JOIN machines m ON m.id = nr.machine_id
+                LEFT JOIN labs l ON l.id = m.lab_id
+                WHERE rws.status IN ('PENDING_APPROVAL', 'PENDING_POLICY', 'POLICY_DISABLED')
+                ORDER BY rws.updated_at DESC, rws.created_at DESC
+                LIMIT ?
+                `)
+            .all(limit);
+        return rows.map((row) => ({
+            ...row,
+            parsed_result_data: this.tryParseJson(row.data_json),
+            route_targets: this.listPolicyTargets(row.approval_policy_id),
+        }));
+    }
+    listByResult(normalizedResultId) {
+        const db = (0, db_1.getDb)();
+        const rows = db
+            .prepare(`
+                SELECT
+                    ra.*,
+                    ap.name AS policy_name
+                FROM result_approvals ra
+                LEFT JOIN approval_policies ap ON ap.id = ra.policy_id
+                WHERE ra.normalized_result_id = ?
+                ORDER BY ra.acted_at DESC, ra.step_order ASC
+                `)
+            .all(normalizedResultId);
+        return rows.map((row) => ({
+            ...row,
+            approver_roles: this.tryParseJson(row.approver_roles_json) ?? [],
+            snapshot_result: this.tryParseJson(row.snapshot_result_json),
+            snapshot_policy: this.tryParseJson(row.snapshot_policy_json),
+            snapshot_route_targets: this.tryParseJson(row.snapshot_route_targets_json) ?? [],
+        }));
+    }
+    listAll(limit = 100) {
+        const db = (0, db_1.getDb)();
+        const rows = db
+            .prepare(`
+                SELECT
+                    ra.*,
+                    ap.name AS policy_name
+                FROM result_approvals ra
+                LEFT JOIN approval_policies ap ON ap.id = ra.policy_id
+                ORDER BY ra.acted_at DESC
+                LIMIT ?
+                `)
+            .all(limit);
+        return rows.map((row) => ({
+            ...row,
+            approver_roles: this.tryParseJson(row.approver_roles_json) ?? [],
+            snapshot_result: this.tryParseJson(row.snapshot_result_json),
+            snapshot_policy: this.tryParseJson(row.snapshot_policy_json),
+            snapshot_route_targets: this.tryParseJson(row.snapshot_route_targets_json) ?? [],
+        }));
+    }
+    approve(dto) {
+        const db = (0, db_1.getDb)();
+        const actor = (0, actor_context_service_1.getCurrentActorStamp)();
+        const workflow = this.requirePendingApprovalWorkflow(dto.normalizedResultId, dto.policyId);
+        this.ensureApproverHasNotActed(dto.normalizedResultId, dto.policyId, dto.approverUserId);
+        const snapshot = this.buildApprovalSnapshot(dto.normalizedResultId, dto.policyId, dto.approverUserId);
+        const stepOrder = Number(workflow.approval_count_received ?? 0) + 1;
+        db.prepare(`
+                INSERT INTO result_approvals (
+                    id,
+                    normalized_result_id,
+                    policy_id,
+                    step_order,
+                    approver_user_id,
+                    approver_display_name,
+                    approver_username,
+                    approver_roles_json,
+                    action,
+                    comment,
+                    acted_at,
+                    snapshot_result_json,
+                    snapshot_policy_json,
+                    snapshot_route_targets_json,
+                    created_by_user_id,
+                    created_by_username,
+                    updated_by_user_id,
+                    updated_by_username
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'APPROVED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run((0, crypto_1.randomUUID)(), dto.normalizedResultId, dto.policyId, stepOrder, dto.approverUserId, snapshot.approver.displayName, snapshot.approver.username, JSON.stringify(snapshot.approver.roles ?? []), dto.comment ?? null, nowIso(), JSON.stringify(snapshot.result), JSON.stringify(snapshot.policy), JSON.stringify(snapshot.routeTargets), actor.userId, actor.username, actor.userId, actor.username);
+        const nextCount = Number(workflow.approval_count_received ?? 0) + 1;
+        const required = Math.max(1, Number(workflow.approval_count_required ?? 1));
+        db.prepare(`
+                UPDATE result_workflow_status
+                SET approval_count_received = ?,
+                    updated_at = ?,
+                    updated_by_user_id = ?,
+                    updated_by_username = ?
+                WHERE normalized_result_id = ?
+            `).run(nextCount, nowIso(), actor.userId, actor.username, dto.normalizedResultId);
+        if (nextCount >= required) {
+            const queueResult = this.flow.queueApprovedResult(dto.normalizedResultId, dto.policyId);
+            return {
+                ok: true,
+                finalApprovalReached: true,
+                queuedCount: Number(queueResult?.queuedCount ?? 0),
+                queueErrors: Array.isArray(queueResult?.errors) ? queueResult.errors : [],
+            };
+        }
+        return {
+            ok: true,
+            finalApprovalReached: false,
+            queuedCount: 0,
+            queueErrors: [],
+        };
+    }
+    reject(dto) {
+        const db = (0, db_1.getDb)();
+        const actor = (0, actor_context_service_1.getCurrentActorStamp)();
+        const workflow = this.requirePendingApprovalWorkflow(dto.normalizedResultId, dto.policyId);
+        this.ensureApproverHasNotActed(dto.normalizedResultId, dto.policyId, dto.approverUserId);
+        const snapshot = this.buildApprovalSnapshot(dto.normalizedResultId, dto.policyId, dto.approverUserId);
+        const stepOrder = Number(workflow.approval_count_received ?? 0) + 1;
+        db.prepare(`
+                INSERT INTO result_approvals (
+                    id,
+                    normalized_result_id,
+                    policy_id,
+                    step_order,
+                    approver_user_id,
+                    approver_display_name,
+                    approver_username,
+                    approver_roles_json,
+                    action,
+                    comment,
+                    acted_at,
+                    snapshot_result_json,
+                    snapshot_policy_json,
+                    snapshot_route_targets_json,
+                    created_by_user_id,
+                    created_by_username,
+                    updated_by_user_id,
+                    updated_by_username
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'REJECTED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run((0, crypto_1.randomUUID)(), dto.normalizedResultId, dto.policyId, stepOrder, dto.approverUserId, snapshot.approver.displayName, snapshot.approver.username, JSON.stringify(snapshot.approver.roles ?? []), dto.comment ?? null, nowIso(), JSON.stringify(snapshot.result), JSON.stringify(snapshot.policy), JSON.stringify(snapshot.routeTargets), actor.userId, actor.username, actor.userId, actor.username);
+        db.prepare(`
+                UPDATE result_workflow_status
+                SET status = 'REJECTED',
+                    failed_at = ?,
+                    last_error = ?,
+                    updated_at = ?,
+                    updated_by_user_id = ?,
+                    updated_by_username = ?
+                WHERE normalized_result_id = ?
+            `).run(nowIso(), dto.comment?.trim() || 'Rejected by approver', nowIso(), actor.userId, actor.username, dto.normalizedResultId);
+        return {
+            ok: true,
+            finalApprovalReached: true,
+            queuedCount: 0,
+            queueErrors: [],
+        };
+    }
+    reevaluatePolicy(normalizedResultId) {
+        return this.flow.reevaluateHeldResult(normalizedResultId);
+    }
+    requirePendingApprovalWorkflow(normalizedResultId, policyId) {
+        const db = (0, db_1.getDb)();
+        const workflow = db
+            .prepare(`SELECT * FROM result_workflow_status WHERE normalized_result_id = ? LIMIT 1`)
+            .get(normalizedResultId);
+        if (!workflow)
+            throw new Error('Workflow record not found');
+        if (workflow.status !== 'PENDING_APPROVAL') {
+            throw new Error('Result is not awaiting approval');
+        }
+        if (String(workflow.approval_policy_id ?? '') !== String(policyId ?? '')) {
+            throw new Error('The approval policy for this result no longer matches the submitted action. Refresh and try again.');
+        }
+        return workflow;
+    }
+    ensureApproverHasNotActed(normalizedResultId, policyId, approverUserId) {
+        const db = (0, db_1.getDb)();
+        const existing = db
+            .prepare(`
+                    SELECT action, acted_at
+                    FROM result_approvals
+                    WHERE normalized_result_id = ?
+                      AND policy_id = ?
+                      AND approver_user_id = ?
+                    ORDER BY acted_at DESC
+                    LIMIT 1
+                `)
+            .get(normalizedResultId, policyId, approverUserId);
+        if (existing) {
+            throw new Error(`This approver already recorded a ${String(existing.action ?? 'decision').toLowerCase()} action for this result on ${existing.acted_at ?? 'an earlier attempt'}.`);
+        }
+    }
+    buildApprovalSnapshot(normalizedResultId, policyId, approverUserId) {
+        return {
+            result: this.getResultContext(normalizedResultId),
+            policy: this.getPolicyContext(policyId),
+            routeTargets: this.listPolicyTargets(policyId),
+            approver: this.getApproverContext(approverUserId),
+        };
+    }
+    getResultContext(normalizedResultId) {
+        const db = (0, db_1.getDb)();
+        const row = db
+            .prepare(`
+                SELECT
+                    nr.*,
+                    m.name AS machine_name,
+                    m.code AS machine_code,
+                    l.id AS lab_id,
+                    l.name AS lab_name,
+                    l.code AS lab_code
+                FROM normalized_lab_results nr
+                LEFT JOIN machines m ON m.id = nr.machine_id
+                LEFT JOIN labs l ON l.id = m.lab_id
+                WHERE nr.id = ?
+                LIMIT 1
+                `)
+            .get(normalizedResultId);
+        if (!row)
+            return null;
+        return {
+            ...row,
+            parsed_data: this.tryParseJson(row.data_json),
+        };
+    }
+    getPolicyContext(policyId) {
+        const db = (0, db_1.getDb)();
+        const row = db
+            .prepare(`SELECT * FROM approval_policies WHERE id = ? LIMIT 1`)
+            .get(policyId);
+        if (!row)
+            return null;
+        return {
+            ...row,
+            route_targets: this.listPolicyTargets(policyId),
+        };
+    }
+    listPolicyTargets(policyId) {
+        if (!policyId)
+            return [];
+        const db = (0, db_1.getDb)();
+        const rows = db
+            .prepare(`
+                SELECT
+                    t.id,
+                    t.name,
+                    t.type,
+                    t.base_url,
+                    t.enabled
+                FROM approval_policy_targets apt
+                INNER JOIN targets t ON t.id = apt.target_id
+                WHERE apt.policy_id = ?
+                ORDER BY t.name ASC
+                `)
+            .all(policyId);
+        if (rows.length)
+            return rows;
+        return db
+            .prepare(`
+                SELECT id, name, type, base_url, enabled
+                FROM targets
+                WHERE id = (SELECT applies_to_target_id FROM approval_policies WHERE id = ?)
+                LIMIT 1
+                `)
+            .all(policyId);
+    }
+    getApproverContext(approverUserId) {
+        const db = (0, db_1.getDb)();
+        const user = db
+            .prepare(`
+                SELECT id, username
+                FROM users
+                WHERE id = ? OR username = ?
+                LIMIT 1
+                `)
+            .get(approverUserId, approverUserId);
+        if (!user) {
+            return {
+                id: approverUserId,
+                username: approverUserId,
+                displayName: approverUserId,
+                roles: [],
+            };
+        }
+        const roles = db
+            .prepare(`
+                SELECT r.name
+                FROM user_roles ur
+                INNER JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ?
+                ORDER BY r.name ASC
+                `)
+            .all(user.id);
+        return {
+            id: user.id,
+            username: user.username,
+            displayName: user.username,
+            roles: roles.map((role) => role.name),
+        };
+    }
+    tryParseJson(value) {
+        if (!value || !String(value).trim())
+            return null;
+        try {
+            return JSON.parse(value);
+        }
+        catch {
+            return null;
+        }
+    }
+}
+exports.ResultApprovalService = ResultApprovalService;

@@ -15,12 +15,17 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { LabFormDialog } from '../../shared/dialogs/lab-form-dialog/lab-form-dialog';
 
 type LabRow = {
   id: string;
+  created_by_user_id?: string | null;
+  created_by_username?: string | null;
+  updated_by_user_id?: string | null;
+  updated_by_username?: string | null;
   code?: string | null;
   name: string;
   location?: string | null;
@@ -50,6 +55,7 @@ type FilterStatus = 'all' | 'active' | 'inactive';
     MatInputModule,
     MatSelectModule,
     MatProgressBarModule,
+    MatPaginatorModule,
   ],
   templateUrl: './labs.html',
   styleUrl: './labs.scss',
@@ -71,6 +77,10 @@ export class Labs {
   q = signal('');
   status = signal<FilterStatus>('all');
 
+  pageIndex = signal(0);
+  pageSize = signal(10);
+  readonly pageSizeOptions = [10, 25, 50];
+
   // Details drawer
   selected = signal<LabRow | null>(null);
   drawerMode = signal<'side' | 'over'>('side');
@@ -91,6 +101,11 @@ export class Labs {
           `${r.name} ${r.code ?? ''} ${r.location ?? ''} ${r.description ?? ''}`.toLowerCase();
         return hay.includes(query);
       });
+  });
+
+  pagedRows = computed(() => {
+    const start = this.pageIndex() * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
   });
 
   constructor() {
@@ -115,6 +130,7 @@ export class Labs {
       this.loading.set(true);
       const list = await this.api.labsList();
       this.rows.set(list);
+      this.ensureValidPage();
 
       // Keep selection stable if still exists
       const sel = this.selected();
@@ -223,6 +239,17 @@ export class Labs {
     } catch {
       this.snack.open('Failed to copy', 'OK', { duration: 2000 });
     }
+  }
+
+  onPageChange(event: PageEvent) {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+  }
+
+  private ensureValidPage() {
+    const total = this.filtered().length;
+    const maxPage = Math.max(0, Math.ceil(total / this.pageSize()) - 1);
+    if (this.pageIndex() > maxPage) this.pageIndex.set(maxPage);
   }
 
   trackById = (_: number, r: LabRow) => r.id;

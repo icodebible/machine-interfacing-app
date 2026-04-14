@@ -1,0 +1,123 @@
+<h2 mat-dialog-title class="dialog-title-row">
+    <div class="dialog-title-copy">
+        <div class="eyebrow">Pending approval</div>
+        <div class="title">{{ row()?.test_name || row()?.test_code || row()?.normalized_result_id }}</div>
+        <div class="sub">{{ row()?.lab_name || 'No lab' }} • {{ row()?.machine_name || row()?.machine_id || 'No machine' }}</div>
+    </div>
+
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close pending approval dialog">
+        <mat-icon>close</mat-icon>
+    </button>
+</h2>
+
+@if (historyLoading() || actionInProgress()) {
+<mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<div mat-dialog-content class="dialog-shell">
+    @if (reviewAlert(); as alert) {
+    <section class="alert-banner" [class.bad]="alert.tone === 'bad'" [class.warn]="alert.tone === 'warn'" [class.info]="alert.tone === 'info'">
+        <div class="alert-title">{{ alert.title }}</div>
+        <div class="alert-copy">{{ alert.message }}</div>
+    </section>
+    }
+
+    <section class="surface-block">
+        <div class="section-title">Decision summary</div>
+        <div class="summary-grid">
+            <div><b>Status:</b> <span class="status-chip" [class]="statusClass(row()?.status)">{{ row()?.status || '—' }}</span></div>
+            <div><b>Policy:</b> {{ row()?.policy_name || row()?.approval_policy_id || 'Policy not matched yet' }}</div>
+            <div><b>Targets after release:</b> {{ routeTargetSummary() }}</div>
+            <div><b>Required approvals:</b> {{ row()?.approval_count_required || 0 }}</div>
+            <div><b>Received approvals:</b> {{ row()?.approval_count_received || 0 }}</div>
+            <div><b>Current approver:</b> {{ currentApprover() }}</div>
+        </div>
+        @if (row()?.last_error) {
+        <div class="context-note warn">{{ row()?.last_error }}</div>
+        }
+    </section>
+
+    <section class="surface-block">
+        <div class="section-title">Review cards</div>
+        <div class="review-grid">
+            <div class="review-card">
+                <div class="review-title">Result context</div>
+                <div class="key-value-list">
+                    <div><b>Patient</b><span>{{ patientSummary() }}</span></div>
+                    <div><b>Sample / Order</b><span>{{ sampleOrderSummary() }}</span></div>
+                    <div><b>Test</b><span>{{ row()?.test_name || row()?.test_code || '—' }}</span></div>
+                    <div><b>Protocol</b><span>{{ row()?.protocol || '—' }}</span></div>
+                </div>
+            </div>
+
+            <div class="review-card">
+                <div class="review-title">Clinical summary</div>
+                <div class="key-value-list">
+                    <div><b>Value</b><span>{{ resultValueSummary() }}</span></div>
+                    <div><b>Reference range</b><span>{{ row()?.reference_range || '—' }}</span></div>
+                    <div><b>Abnormal flag</b><span>{{ row()?.abnormal_flag || '—' }}</span></div>
+                    <div><b>Observed</b><span>{{ formatDateTime(row()?.observed_at) }}</span></div>
+                </div>
+            </div>
+
+            <div class="review-card">
+                <div class="review-title">Release context</div>
+                <div class="key-value-list">
+                    <div><b>Policy</b><span>{{ row()?.policy_name || row()?.approval_policy_id || '—' }}</span></div>
+                    <div><b>Route targets</b><span>{{ routeTargetSummary() }}</span></div>
+                    <div><b>Approvals required</b><span>{{ row()?.approval_count_required || 0 }}</span></div>
+                    <div><b>Approvals received</b><span>{{ row()?.approval_count_received || 0 }}</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-block">
+        <div class="section-title">Route targets after approval</div>
+        @if (routeTargetList().length) {
+        <div class="chip-list">
+            @for (target of routeTargetList(); track target.id || target.name) {
+            <div class="route-chip">
+                <div class="route-chip-title">{{ target.name || target.id }}</div>
+                <div class="route-chip-sub">{{ target.type || 'Configured target' }}</div>
+            </div>
+            }
+        </div>
+        } @else {
+        <div class="context-note info">No route targets are configured for release yet.</div>
+        }
+    </section>
+
+    <section class="surface-block">
+        <div class="section-title">Normalized result details</div>
+        <div class="payload">{{ prettyJson(row()?.parsed_result_data) }}</div>
+    </section>
+
+    <section class="surface-block">
+        <div class="section-title">Approval history</div>
+        @if (history().length === 0) {
+        <div class="context-note info">No approval actions have been recorded yet for this result.</div>
+        } @else {
+        <div class="history-list">
+            @for (item of history(); track item.id) {
+            <div class="history-item">
+                <div class="history-title">{{ item.action }} • {{ item.approver_display_name || item.approver_username || item.approver_user_id }}</div>
+                <div class="history-meta">{{ formatDateTime(item.acted_at) }} @if (item.approver_roles?.length) { • {{ item.approver_roles.join(', ') }} }</div>
+                @if (item.comment) {
+                <div class="history-comment">{{ item.comment }}</div>
+                }
+            </div>
+            }
+        </div>
+        }
+    </section>
+</div>
+
+<div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="close()">Close</button>
+    @if (canReevaluate()) {
+    <button mat-stroked-button type="button" (click)="reevaluatePolicy()" [disabled]="actionInProgress()">Re-check policy</button>
+    }
+    <button mat-stroked-button color="warn" type="button" (click)="openAction('reject')" [disabled]="!canAct() || actionInProgress()">Reject</button>
+    <button mat-flat-button color="primary" type="button" (click)="openAction('approve')" [disabled]="!canAct() || actionInProgress()">Approve</button>
+</div>

@@ -1,17 +1,16 @@
 "use strict";
 
 // electron/src/preload/preload.ts
-var import_electron2 = require("electron");
+var import_electron3 = require("electron");
 
 // electron/src/preload/api/index.ts
-var import_electron = require("electron");
+var import_electron2 = require("electron");
 
 // electron/src/shared/channels.ts
 var IPC_CHANNELS = {
   APP_GET_VERSION: "app:getVersion",
   APP_PING: "app:ping",
   LOG_RENDERER: "log:renderer",
-  // existing...
   MACHINE_TCP_CONNECT: "machine:tcp:connect",
   MACHINE_TCP_SEND: "machine:tcp:send",
   MACHINE_TCP_DISCONNECT: "machine:tcp:disconnect",
@@ -19,24 +18,25 @@ var IPC_CHANNELS = {
   MACHINE_SERIAL_CONNECT: "machine:serial:connect",
   MACHINE_SERIAL_SEND: "machine:serial:send",
   MACHINE_SERIAL_DISCONNECT: "machine:serial:disconnect",
-  // Auth
   AUTH_LOGIN: "auth:login",
   AUTH_LOGOUT: "auth:logout",
+  AUTH_ME: "auth:me",
   AUTH_CHANGE_PASSWORD: "auth:changePassword",
-  // Users/Roles
+  AUTH_CURRENT_USER: "auth:currentUser",
   USERS_LIST: "users:list",
   USERS_CREATE: "users:create",
   USERS_UPDATE: "users:update",
   USERS_RESET_PASSWORD: "users:resetPassword",
+  USERS_DELETE: "users:delete",
   ROLES_LIST: "roles:list",
   ROLES_CREATE: "roles:create",
   ROLES_UPDATE: "roles:update",
-  // Labs
+  ROLES_DELETE: "roles:delete",
+  ROLES_AUTHORITIES_CATALOG: "roles:authorities:catalog",
   LABS_LIST: "labs:list",
   LABS_CREATE: "labs:create",
   LABS_UPDATE: "labs:update",
   LABS_DELETE: "labs:delete",
-  // Machines
   MACHINES_LIST: "machines:list",
   MACHINES_CREATE: "machines:create",
   MACHINES_UPDATE: "machines:update",
@@ -45,51 +45,113 @@ var IPC_CHANNELS = {
   MACHINES_CONNECT: "machines:connect",
   MACHINES_DISCONNECT: "machines:disconnect",
   MACHINES_TEST: "machines:test",
-  // Targets (DHIS2/OpenMRS)
   TARGETS_LIST: "targets:list",
   TARGETS_CREATE: "targets:create",
   TARGETS_UPDATE: "targets:update",
   TARGETS_TEST: "targets:test",
   TARGETS_DELETE: "targets:delete",
-  // Logs + monitor
+  TARGETS_HARNESS_SEND: "targets:harness:send",
+  TARGET_MAPPINGS_LIST: "target-mappings:list",
+  TARGET_MAPPINGS_CREATE: "target-mappings:create",
+  TARGET_MAPPINGS_UPDATE: "target-mappings:update",
+  TARGET_MAPPINGS_DELETE: "target-mappings:delete",
+  TARGET_MAPPINGS_EXPORT: "target-mappings:export",
+  TARGET_MAPPINGS_IMPORT: "target-mappings:import",
+  TARGETS_SECRET_GET: "targets:secret:get",
+  TARGETS_SECRET_SET: "targets:secret:set",
+  TARGETS_SECRET_DELETE: "targets:secret:delete",
   LOGS_QUERY: "logs:query",
-  // Outbox
   OUTBOX_LIST: "outbox:list",
   OUTBOX_RETRY: "outbox:retry",
   OUTBOX_DELETE: "outbox:delete",
-  // Clipboard (native Electron)
-  CLIPBOARD_COPY: "clipboard:copy"
+  CLIPBOARD_COPY: "clipboard:copy",
+  MACHINES_RUNTIME_START: "machines:runtime:start",
+  MACHINES_RUNTIME_STOP: "machines:runtime:stop",
+  MACHINES_RUNTIME_RESTART: "machines:runtime:restart",
+  MACHINES_RUNTIME_STATE: "machines:runtime:state",
+  MACHINES_RUNTIME_STATES: "machines:runtime:states",
+  MACHINES_LOGS_LIST: "machines:logs:list",
+  MACHINES_LOGS_CLEAR: "machines:logs:clear",
+  MACHINES_SIM_START: "machines:sim:start",
+  MACHINES_SIM_STOP: "machines:sim:stop",
+  MACHINES_SIM_RESTART: "machines:sim:restart",
+  MACHINES_SIM_STATE: "machines:sim:state",
+  MACHINES_SIM_STATES: "machines:sim:states",
+  MACHINES_PARSED_LIST: "machines:parsed:list",
+  MACHINES_NORMALIZED_LIST: "machines:normalized:list",
+  APPROVAL_POLICIES_LIST: "approval-policies:list",
+  APPROVAL_POLICIES_CREATE: "approval-policies:create",
+  APPROVAL_POLICIES_UPDATE: "approval-policies:update",
+  APPROVAL_POLICIES_DELETE: "approval-policies:delete",
+  RESULTS_PENDING_APPROVALS: "results:pending-approvals",
+  RESULT_APPROVE: "result:approve",
+  RESULT_REJECT: "result:reject",
+  RESULT_APPROVALS_LIST: "result:approvals:list",
+  RESULT_REEVALUATE_POLICY: "result:reevaluate-policy",
+  RESULT_APPROVALS_ALL: "result:approvals:all",
+  OUTBOUND_QUEUE_LIST: "outbound-queue:list",
+  OUTBOUND_QUEUE_PENDING: "outbound-queue:pending",
+  DELIVERY_HISTORY_LIST: "delivery-history:list",
+  DELIVERY_AUDIT_LIST: "delivery-audit:list",
+  DELIVERY_AUDIT_QUERY: "delivery-audit:query",
+  TARGET_TRANSFORM_PREVIEW: "targets:transform:preview",
+  OUTBOUND_QUEUE_RETRY: "outbound-queue:retry",
+  OUTBOUND_QUEUE_REQUEUE: "outbound-queue:requeue",
+  OUTBOUND_QUEUE_SEND_NOW: "outbound-queue:send-now",
+  TARGET_SECRETS_GET: "target-secrets:get",
+  TARGET_SECRETS_SAVE: "target-secrets:save",
+  TARGET_TRANSFORM_PREVIEW_FROM_QUEUE: "targets:transform:preview-from-queue",
+  TARGET_TRANSFORM_PREVIEW_FROM_DELIVERY_HISTORY: "targets:transform:preview-from-delivery-history",
+  MAPPINGS_LIST: "mappings:list",
+  MAPPINGS_CREATE: "mappings:create",
+  MAPPINGS_UPDATE: "mappings:update",
+  MAPPINGS_DELETE: "mappings:delete",
+  MAPPINGS_VALIDATE: "mappings:validate",
+  MAPPING_VALUE_TRANSLATIONS_LIST: "mapping-value-translations:list",
+  MAPPING_VALUE_TRANSLATIONS_CREATE: "mapping-value-translations:create",
+  MAPPING_VALUE_TRANSLATIONS_UPDATE: "mapping-value-translations:update",
+  MAPPING_VALUE_TRANSLATIONS_DELETE: "mapping-value-translations:delete",
+  MAPPING_VALUE_TRANSLATIONS_SAVE_CONFIG: "mapping-value-translations:save-config",
+  LOGS_LIST: "logs:list",
+  PLATFORM_INFO: "platform:info",
+  COPY_TO_CLIPBOARD: "platform:copy",
+  MACHINES_RUNTIME_EVENT: "machines:runtime:event"
 };
+
+// electron/src/main/runtime/runtime-event-bus.ts
+var import_electron = require("electron");
+var RUNTIME_EVENT_CHANNEL = "machines:runtime:event";
 
 // electron/src/preload/api/index.ts
 var api = {
   // Base
-  getAppVersion: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.APP_GET_VERSION),
-  ping: (msg) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.APP_PING, msg),
-  log: (level, message) => import_electron.ipcRenderer.send(IPC_CHANNELS.LOG_RENDERER, { level, message }),
+  getAppVersion: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APP_GET_VERSION),
+  ping: (msg) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APP_PING, msg),
+  log: (level, message) => import_electron2.ipcRenderer.send(IPC_CHANNELS.LOG_RENDERER, { level, message }),
   // Machine TCP
-  tcpConnect: (host, port) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_CONNECT, { host, port }),
-  tcpSend: (payload) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_SEND, payload),
-  tcpDisconnect: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_DISCONNECT),
+  tcpConnect: (host, port) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_CONNECT, { host, port }),
+  tcpSend: (payload) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_SEND, payload),
+  tcpDisconnect: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_TCP_DISCONNECT),
   // Machine Serial
-  serialList: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_LIST),
-  serialConnect: (path, baudRate) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_CONNECT, { path, baudRate }),
-  serialSend: (payload) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_SEND, payload),
-  serialDisconnect: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_DISCONNECT),
+  serialList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_LIST),
+  serialConnect: (path, baudRate) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_CONNECT, { path, baudRate }),
+  serialSend: (payload) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_SEND, payload),
+  serialDisconnect: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINE_SERIAL_DISCONNECT),
   onMachineMessage: (cb) => {
     const handler = (_, msg) => cb(msg);
-    import_electron.ipcRenderer.on(IPC_CHANNELS.MACHINE_MESSAGE, handler);
-    return () => import_electron.ipcRenderer.removeListener(IPC_CHANNELS.MACHINE_MESSAGE, handler);
+    import_electron2.ipcRenderer.on(IPC_CHANNELS.MACHINE_MESSAGE, handler);
+    return () => import_electron2.ipcRenderer.removeListener(IPC_CHANNELS.MACHINE_MESSAGE, handler);
   },
   // Auth
-  authLogin: (username, password) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, username, password),
-  authChangePassword: (userId, newPassword) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, userId, newPassword),
-  authLogout: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT),
+  authLogin: (username, password) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, username, password),
+  authChangePassword: (userId, newPassword) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, userId, newPassword),
+  authCurrentUser: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.AUTH_CURRENT_USER),
+  authLogout: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT),
   // ✅ Labs
-  labsList: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.LABS_LIST),
-  labsCreate: (dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.LABS_CREATE, dto),
-  labsUpdate: (id, dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.LABS_UPDATE, id, dto),
-  labsDelete: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.LABS_DELETE, id),
+  labsList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.LABS_LIST),
+  labsCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.LABS_CREATE, dto),
+  labsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.LABS_UPDATE, id, dto),
+  labsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.LABS_DELETE, id),
   // ✅ Machines
   // machinesList: () => ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LIST),
   // machinesCreate: (dto) => ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CREATE, dto),
@@ -98,26 +160,90 @@ var api = {
   // machinesConnect: (id) => ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CONNECT, id),
   // machinesDisconnect: (id) => ipcRenderer.invoke(IPC_CHANNELS.MACHINES_DISCONNECT, id),
   // ✅ Machines
-  machinesList: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LIST),
-  machinesCreate: (dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CREATE, dto),
-  machinesUpdate: (id, dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_UPDATE, id, dto),
-  machinesDelete: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_DELETE, id),
-  machinesConnect: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CONNECT, id),
-  machinesDisconnect: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_DISCONNECT, id),
-  machinesTest: (machine) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_TEST, machine),
+  machinesList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LIST),
+  machinesCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CREATE, dto),
+  machinesUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_UPDATE, id, dto),
+  machinesDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_DELETE, id),
+  machinesConnect: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_CONNECT, id),
+  machinesDisconnect: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_DISCONNECT, id),
+  machinesTest: (machine) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_TEST, machine),
   // ✅ Targets
-  targetsList: () => import_electron.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_LIST),
-  targetsCreate: (dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_CREATE, dto),
-  targetsUpdate: (id, dto) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_UPDATE, id, dto),
-  targetsDelete: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_DELETE, id),
-  targetsTest: (id) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_TEST, id),
+  targetsList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_LIST),
+  targetsCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_CREATE, dto),
+  targetsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_UPDATE, id, dto),
+  targetsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_DELETE, id),
+  targetsTest: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_TEST, id),
   // ✅ Logs
-  logsQuery: (q) => import_electron.ipcRenderer.invoke(IPC_CHANNELS.LOGS_QUERY, q)
+  logsQuery: (q) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.LOGS_QUERY, q),
+  deliveryAuditList: (q) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.DELIVERY_AUDIT_LIST, q),
+  machinesRuntimeStart: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_RUNTIME_START, id),
+  machinesRuntimeStop: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_RUNTIME_STOP, id),
+  machinesRuntimeRestart: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_RUNTIME_RESTART, id),
+  machinesRuntimeState: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_RUNTIME_STATE, id),
+  machinesRuntimeStates: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_RUNTIME_STATES),
+  onMachinesRuntimeEvent: (cb) => {
+    const handler = (_, event) => cb(event);
+    import_electron2.ipcRenderer.on(RUNTIME_EVENT_CHANNEL, handler);
+    return () => import_electron2.ipcRenderer.removeListener(RUNTIME_EVENT_CHANNEL, handler);
+  },
+  machinesLogsList: (machineId, limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_LIST, machineId, limit),
+  machinesLogsClear: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_CLEAR, machineId),
+  machinesSimStart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_START, machineId, scenario, intervalMs),
+  machinesSimStop: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STOP, machineId),
+  machinesSimRestart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_RESTART, machineId, scenario, intervalMs),
+  machinesSimState: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STATE, machineId),
+  machinesSimStates: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STATES),
+  machinesParsedList: (machineId, limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_PARSED_LIST, machineId, limit),
+  machinesNormalizedList: (machineId, limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_NORMALIZED_LIST, machineId, limit),
+  approvalPoliciesList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APPROVAL_POLICIES_LIST),
+  approvalPoliciesCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APPROVAL_POLICIES_CREATE, dto),
+  approvalPoliciesUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APPROVAL_POLICIES_UPDATE, id, dto),
+  approvalPoliciesDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APPROVAL_POLICIES_DELETE, id),
+  resultsPendingApprovals: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULTS_PENDING_APPROVALS, limit),
+  resultApprove: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_APPROVE, dto),
+  resultReject: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_REJECT, dto),
+  resultApprovalsList: (normalizedResultId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_APPROVALS_LIST, normalizedResultId),
+  outboundQueueList: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.OUTBOUND_QUEUE_LIST, limit),
+  outboundQueuePending: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.OUTBOUND_QUEUE_PENDING, limit),
+  outboundQueueRetry: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.OUTBOUND_QUEUE_RETRY, queueId),
+  outboundQueueRequeue: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.OUTBOUND_QUEUE_REQUEUE, queueId),
+  outboundQueueSendNow: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.OUTBOUND_QUEUE_SEND_NOW, queueId),
+  resultApprovalsAll: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_APPROVALS_ALL, limit),
+  deliveryHistoryList: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.DELIVERY_HISTORY_LIST, limit),
+  deliveryAuditQuery: (q) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.DELIVERY_AUDIT_QUERY, q),
+  targetTransformPreview: (targetId, normalizedResultId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW, targetId, normalizedResultId),
+  targetSecretsGet: (targetId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_SECRETS_GET, targetId),
+  targetSecretsSave: (targetId, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_SECRETS_SAVE, targetId, dto),
+  mappingsList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_LIST),
+  mappingsCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_CREATE, dto),
+  mappingsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_UPDATE, id, dto),
+  mappingsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_DELETE, id),
+  mappingsValidate: (targetType) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_VALIDATE, targetType),
+  mappingValueTranslationsList: (mappingRuleId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST, mappingRuleId),
+  mappingValueTranslationsCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_CREATE, dto),
+  mappingValueTranslationsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_UPDATE, id, dto),
+  mappingValueTranslationsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_DELETE, id),
+  mappingValueTranslationsSaveConfig: (mappingRuleId, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_SAVE_CONFIG, mappingRuleId, dto),
+  targetTransformPreviewFromQueue: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_QUEUE, queueId),
+  targetTransformPreviewFromDeliveryHistory: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_DELIVERY_HISTORY, queueId),
+  // preload index.ts
+  targetsHarnessSend: (targetId, payload, previewName) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_HARNESS_SEND, targetId, payload, previewName),
+  usersList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_LIST),
+  usersCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_CREATE, dto),
+  usersUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_UPDATE, id, dto),
+  usersResetPassword: (id, newPassword) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_RESET_PASSWORD, id, newPassword),
+  usersDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_DELETE, id),
+  rolesList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_LIST),
+  rolesAuthoritiesCatalog: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_AUTHORITIES_CATALOG),
+  rolesCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_CREATE, dto),
+  rolesUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_UPDATE, id, dto),
+  rolesDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_DELETE, id),
+  resultReevaluatePolicy: (normalizedResultId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_REEVALUATE_POLICY, normalizedResultId)
 };
 
 // electron/src/preload/preload.ts
-import_electron2.contextBridge.exposeInMainWorld("appAPI", api);
-import_electron2.contextBridge.exposeInMainWorld("platform", {
-  copyToClipboard: (text) => import_electron2.ipcRenderer.invoke("clipboard:copy", text)
+import_electron3.contextBridge.exposeInMainWorld("appAPI", api);
+import_electron3.contextBridge.exposeInMainWorld("platform", {
+  copyToClipboard: (text) => import_electron3.ipcRenderer.invoke("clipboard:copy", text)
 });
 //# sourceMappingURL=preload.js.map

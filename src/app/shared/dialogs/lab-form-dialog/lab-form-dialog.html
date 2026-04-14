@@ -1,35 +1,55 @@
-<h2 mat-dialog-title>{{ data.mode === 'create' ? 'Add Lab' : 'Edit Lab' }}</h2>
+<h2 mat-dialog-title class="dialog-title-row">
+    <div class="dialog-title-copy">
+        <div class="eyebrow">Laboratory</div>
+        <div class="title">{{ dialogTitle() }}</div>
+        <div class="sub">{{ dialogSubtitle() }}</div>
+    </div>
 
-<div mat-dialog-content class="content" [formGroup]="form">
-    <mat-form-field appearance="outline">
-        <mat-label>Name</mat-label>
-        <input matInput formControlName="name" autocomplete="off" />
-    </mat-form-field>
+    <button mat-icon-button type="button" (click)="cancel()" aria-label="Close laboratory dialog">
+        <mat-icon>close</mat-icon>
+    </button>
+</h2>
 
-    <mat-form-field appearance="outline">
-        <mat-label>Code</mat-label>
-        <input matInput formControlName="code" autocomplete="off" />
-    </mat-form-field>
+<div mat-dialog-content class="dialog-shell" [formGroup]="form">
+    <section class="surface-block">
+        <div class="section-title">Laboratory details</div>
+        <div class="section-copy">
+            Capture only the core details needed for lab setup. Machines, simulation, and routing can be linked after
+            this step.
+        </div>
 
-    <mat-form-field appearance="outline">
-        <mat-label>Location</mat-label>
-        <input matInput formControlName="location" autocomplete="off" />
-    </mat-form-field>
+        <div class="form-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="name" autocomplete="off" placeholder="Example: Central Lab" />
+                @if (form.controls['name'].hasError('required') && form.controls['name'].touched) {
+                <mat-error>Laboratory name is required.</mat-error>
+                }
+            </mat-form-field>
 
-    <mat-form-field appearance="outline">
-        <mat-label>Description</mat-label>
-        <input matInput formControlName="description" autocomplete="off" />
-    </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Code</mat-label>
+                <input matInput formControlName="code" autocomplete="off" placeholder="Optional short code" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+                <mat-label>Location</mat-label>
+                <input matInput formControlName="location" autocomplete="off"
+                    placeholder="Town, region, facility, or site" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+                <mat-label>Description</mat-label>
+                <textarea matInput formControlName="description" rows="3" autocomplete="off"
+                    placeholder="Optional operational context for this laboratory"></textarea>
+            </mat-form-field>
+        </div>
+    </section>
 </div>
 
-<!-- <div mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="save()">Save</button>
-</div> -->
-
-<div mat-dialog-actions align="end">
-    <button mat-button (click)="cancel()">Cancel</button>
-    <button mat-flat-button color="primary" (click)="save()" [disabled]="form.invalid">
-        Save
+<div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="form.invalid">
+        {{ data.mode === 'create' ? 'Create lab' : 'Save changes' }}
     </button>
 </div>

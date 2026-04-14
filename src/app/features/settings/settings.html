@@ -1,114 +1,200 @@
-<div class="security-page">
-  <div class="security-header">
-    <div class="security-icon">
-      <mat-icon>lock</mat-icon>
+<div class="settings-shell">
+  <section class="settings-hero" aria-hidden="true">
+    <div class="hero-mark">MI</div>
+
+    <div class="hero-copy">
+      <div class="hero-eyebrow">Security workspace</div>
+      <h1>
+        {{
+          isForced()
+            ? 'Complete security setup before continuing.'
+            : 'Protect the workstation and the platform.'
+        }}
+      </h1>
+      <p>
+        Maintain account security for machine connectivity, result governance, delivery routing, and
+        audit accountability from one controlled workspace.
+      </p>
     </div>
 
-    <div class="security-title">
-      <div class="h1">
-        {{ isForced ? 'Security setup' : 'Security' }}
-      </div>
-      <div class="sub" *ngIf="isForced">
-        For security, you must update your password before continuing.
-      </div>
-      <div class="sub" *ngIf="!isForced">
-        Update your password and security preferences.
-      </div>
-
-      <div class="meta">
-        Logged in as <b>{{ currentUsername }}</b>
+    <div class="hero-panel">
+      <div class="hero-panel__title">Security priorities</div>
+      <div class="hero-panel__items">
+        <div class="hero-chip">
+          <span class="hero-chip__dot"></span>
+          <span>Protect device configuration and routing actions</span>
+        </div>
+        <div class="hero-chip">
+          <span class="hero-chip__dot"></span>
+          <span>Strengthen local operator accountability</span>
+        </div>
+        <div class="hero-chip">
+          <span class="hero-chip__dot"></span>
+          <span>Keep password hygiene aligned with governance standards</span>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="security-grid">
-    <!-- Form -->
-    <mat-card class="card">
-      <mat-card-title>Change password</mat-card-title>
+  <section class="settings-panel">
+    <div class="settings-page">
+      <div class="page-head">
+        <div class="page-head__icon">
+          <mat-icon>shield_lock</mat-icon>
+        </div>
 
-      <div *ngIf="error" class="alert error">
-        <mat-icon>error</mat-icon>
-        <div>{{ error }}</div>
-      </div>
-
-      <form (ngSubmit)="onChangePassword()" class="form">
-        <mat-form-field appearance="outline">
-          <mat-label>New password</mat-label>
-          <input
-            matInput
-            [type]="showNew ? 'text' : 'password'"
-            [(ngModel)]="newPassword"
-            name="newPassword"
-            required
-            minlength="8"
-            autocomplete="new-password"
-            (input)="recomputeStrength()"
-          />
-          <button mat-icon-button matSuffix type="button" (click)="showNew = !showNew">
-            <mat-icon>{{ showNew ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          <mat-hint>Minimum 8 characters</mat-hint>
-        </mat-form-field>
-
-        <div class="strength">
-          <div class="strength-label">Strength</div>
-          <div class="strength-bar">
-            <div class="strength-fill" [style.width.%]="strengthPct"></div>
+        <div class="page-head__copy">
+          <div class="page-head__title">
+            {{ isForced() ? 'Security setup' : 'Security settings' }}
           </div>
-          <div class="strength-text">{{ strengthLabel }}</div>
+          <div class="page-head__sub">
+            {{
+              isForced()
+                ? 'For security, update the local administrator password before using the platform.'
+                : 'Update your password to protect this workstation and its machine interfacing services.'
+            }}
+          </div>
+          <div class="page-head__meta">
+            Signed in as <b>{{ currentUsername() }}</b>
+          </div>
         </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Confirm password</mat-label>
-          <input
-            matInput
-            [type]="showConfirm ? 'text' : 'password'"
-            [(ngModel)]="confirmPassword"
-            name="confirmPassword"
-            required
-            minlength="8"
-            autocomplete="new-password"
-            (input)="recomputeStrength()"
-          />
-          <button mat-icon-button matSuffix type="button" (click)="showConfirm = !showConfirm">
-            <mat-icon>{{ showConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-        </mat-form-field>
-
-        <div class="actions">
-          <button mat-button type="button" (click)="goBack()" [disabled]="loading">
-            {{ isForced ? 'Logout' : 'Cancel' }}
-          </button>
-
-          <button
-            mat-flat-button
-            color="primary"
-            type="submit"
-            [disabled]="loading || !canSubmit"
-          >
-            {{ loading ? 'Saving…' : 'Update password' }}
-          </button>
-        </div>
-      </form>
-    </mat-card>
-
-    <!-- Tips -->
-    <mat-card class="card tips">
-      <mat-card-title>Password guidelines</mat-card-title>
-      <ul class="rules">
-        <li>At least 8 characters (12+ recommended)</li>
-        <li>Use a mix of uppercase, lowercase, numbers</li>
-        <li>Add a symbol for extra strength</li>
-        <li>Avoid common words and lab/facility names</li>
-      </ul>
-
-      <div class="note">
-        <mat-icon>info</mat-icon>
-        <div>
-          This workstation runs a lab integration service. Use a strong password
-          to protect results routing and device configurations.
+        <div class="page-head__badge" [class.warn]="isForced()">
+          <mat-icon>{{ isForced() ? 'warning' : 'verified_user' }}</mat-icon>
+          <span>{{ isForced() ? 'Action required' : 'Secure session' }}</span>
         </div>
       </div>
-    </mat-card>
-  </div>
+
+      @if (error()) {
+        <div class="banner banner--error" role="alert">
+          <mat-icon>error</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      @if (success()) {
+        <div class="banner banner--success" role="status">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ success() }}</span>
+        </div>
+      }
+
+      @if (capsLockOn()) {
+        <div class="banner banner--warn">
+          <mat-icon>keyboard_capslock</mat-icon>
+          <span>Caps Lock is on.</span>
+        </div>
+      }
+
+      <div class="settings-grid">
+        <mat-card class="surface-card surface-card--form">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Change password</div>
+              <div class="card-sub">
+                Use a strong password to protect this workstation and its integrations.
+              </div>
+            </div>
+          </div>
+
+          <form (ngSubmit)="onChangePassword()" class="settings-form" autocomplete="off">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>New password</mat-label>
+              <input
+                matInput
+                [type]="showNew() ? 'text' : 'password'"
+                [ngModel]="newPassword()"
+                (ngModelChange)="onNewPasswordChange($event)"
+                name="newPassword"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              />
+              <button mat-icon-button matSuffix type="button" (click)="showNew.set(!showNew())">
+                <mat-icon>{{ showNew() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-hint>Minimum 8 characters. 12+ is recommended.</mat-hint>
+            </mat-form-field>
+
+            <div class="strength-shell">
+              <div class="strength-head">
+                <span>Password strength</span>
+                <span class="strength-pill" [class]="strengthTone()">{{ strengthLabel() }}</span>
+              </div>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="strengthPct()"
+                class="strength-bar"
+                [class]="strengthTone()"
+              ></mat-progress-bar>
+            </div>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Confirm password</mat-label>
+              <input
+                matInput
+                [type]="showConfirm() ? 'text' : 'password'"
+                [ngModel]="confirmPassword()"
+                (ngModelChange)="onConfirmPasswordChange($event)"
+                name="confirmPassword"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                (click)="showConfirm.set(!showConfirm())"
+              >
+                <mat-icon>{{ showConfirm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <div class="actions">
+              <button mat-button type="button" (click)="goBack()" [disabled]="loading()">
+                {{ isForced() ? 'Logout' : 'Back' }}
+              </button>
+
+              <button
+                mat-flat-button
+                color="primary"
+                type="submit"
+                [disabled]="loading() || !canSubmit()"
+              >
+                @if (loading()) {
+                  Saving…
+                } @else {
+                  Update password
+                }
+              </button>
+            </div>
+          </form>
+        </mat-card>
+
+        <mat-card class="surface-card surface-card--guidance">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Password guidance</div>
+              <div class="card-sub">Use these recommendations to keep the workstation secure.</div>
+            </div>
+          </div>
+
+          <div class="guidance-list">
+            @for (item of guidance; track item) {
+              <div class="guidance-item">
+                <mat-icon>info</mat-icon>
+                <span>{{ item }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="guidance-note">
+            This workstation controls machine integrations, approvals, routing, and audit trails.
+            Use a password that is unique to this environment.
+          </div>
+        </mat-card>
+      </div>
+    </div>
+  </section>
 </div>

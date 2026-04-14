@@ -1,0 +1,44 @@
+.content {
+    display: grid;
+    gap: 16px;
+}
+
+.page-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.title h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.sub {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.78;
+}
+
+.card {
+    padding: 18px;
+    border-radius: 16px;
+    background: var(--mat-sys-surface, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    display: grid;
+    gap: 10px;
+}
+
+.placeholder-title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.placeholder-copy {
+    font-size: 13px;
+    line-height: 1.55;
+    opacity: 0.84;
+}

@@ -1,28 +1,122 @@
-<div class="login">
-  <mat-card class="card">
-    <mat-card-title>Machine Interfacing</mat-card-title>
-    <mat-card-subtitle>Sign in to continue</mat-card-subtitle>
+<div class="login-shell">
+  <section class="login-hero" aria-hidden="true">
+    <div class="hero-mark">MI</div>
 
-    <div *ngIf="error" class="error">{{ error }}</div>
-
-    <form (ngSubmit)="onLogin()" class="form">
-      <mat-form-field appearance="outline">
-        <mat-label>Username</mat-label>
-        <input matInput [(ngModel)]="username" name="username" required />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Password</mat-label>
-        <input matInput [(ngModel)]="password" name="password" type="password" required />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="loading">
-        {{ loading ? 'Signing in...' : 'Login' }}
-      </button>
-    </form>
-
-    <div class="hint">
-      Default first-run login: <b>admin / admin</b> (you’ll be asked to change it)
+    <div class="hero-copy">
+      <div class="hero-eyebrow">Machine Interfacing Platform</div>
+      <h1>MOH | NPHL</h1>
+      <p>
+        ISO 15189:2012 ACCREDITED.
+      </p>
+      <p>
+        Sign in to manage connectivity, parsing, approvals, routing, delivery, and auditability
+        across the platform.
+      </p>
     </div>
-  </mat-card>
+
+    <div class="hero-panel">
+      <div class="hero-panel__title">Operational strengths</div>
+      <div class="hero-panel__items">
+        @for (item of highlights; track item) {
+          <div class="hero-chip">
+            <span class="hero-chip__dot"></span>
+            <span>{{ item }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <mat-card class="login-card">
+      <div class="login-card__head">
+        <div class="brand-row">
+          <div class="brand-row__mark">MI</div>
+          <div class="brand-row__copy">
+            <div class="brand-row__title">Welcome back</div>
+            <div class="brand-row__subtitle">Sign in to continue</div>
+          </div>
+        </div>
+
+        <div class="context-badge">
+          <span class="context-badge__dot"></span>
+          <span>{{ environmentLabel }}</span>
+        </div>
+      </div>
+
+      @if (error) {
+        <div class="message-banner message-banner--error" role="alert">
+          <mat-icon>error</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+      }
+
+      @if (capsLockOn) {
+        <div class="message-banner message-banner--warn">
+          <mat-icon>keyboard_capslock</mat-icon>
+          <span>Caps Lock is on.</span>
+        </div>
+      }
+
+      <form (ngSubmit)="onLogin()" class="login-form" autocomplete="on">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Username</mat-label>
+          <input
+            matInput
+            [(ngModel)]="username"
+            name="username"
+            autocomplete="username"
+            required
+            (input)="clearError()"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [(ngModel)]="password"
+            name="password"
+            [type]="showPassword ? 'text' : 'password'"
+            autocomplete="current-password"
+            required
+            (input)="clearError()"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            (click)="showPassword = !showPassword"
+          >
+            <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          class="submit-btn"
+          type="submit"
+          [disabled]="loading"
+        >
+          @if (loading) {
+            <mat-spinner diameter="18"></mat-spinner>
+            <span>Signing in...</span>
+          } @else {
+            <!-- <mat-icon>login</mat-icon> -->
+            <span>Sign in</span>
+          }
+        </button>
+      </form>
+
+      <div class="login-footnote">
+        <div class="login-footnote__title">First-time access</div>
+        <div class="login-footnote__text">
+          Use the local administrator account provisioned for the workstation. You will be prompted
+          to change the password on first successful sign-in.
+        </div>
+      </div>
+    </mat-card>
+  </section>
 </div>

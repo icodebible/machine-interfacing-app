@@ -1,8 +1,85 @@
-<button mat-icon-button [matMenuTriggerFor]="userMenu">
-  <mat-icon>account_circle</mat-icon>
-</button>
+<header class="topbar-shell">
+  <div class="topbar-shell__flag" aria-hidden="true">
+    <span class="flag flag--green"></span>
+    <span class="flag flag--gold"></span>
+    <span class="flag flag--black"></span>
+    <span class="flag flag--blue"></span>
+  </div>
 
-<mat-menu #userMenu="matMenu">
+  <div class="topbar-shell__left">
+    <button
+      class="nav-trigger"
+      mat-icon-button
+      type="button"
+      aria-label="Toggle navigation"
+      (click)="openNav()"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <div class="product-mark" aria-hidden="true">
+      <span class="product-mark__text">MI</span>
+    </div>
+
+    <div class="title-stack">
+      <div class="title-stack__eyebrow">Machine Interfacing Platform</div>
+      <h1 class="title-stack__title">{{ pageTitle() }}</h1>
+    </div>
+  </div>
+
+  <div class="topbar-shell__right">
+    <button
+      class="profile-trigger"
+      mat-button
+      type="button"
+      [matMenuTriggerFor]="userMenu"
+      aria-label="Open user menu"
+    >
+      <span class="profile-trigger__avatar">{{ initials }}</span>
+
+      <!-- <span class="profile-trigger__text">
+        <span class="profile-trigger__name" [title]="userName()">{{ userName() }}</span>
+        @if (roleSummary()) {
+          <span class="profile-trigger__caption" [title]="roleSummary()">{{ roleSummary() }}</span>
+        } @else {
+          <span class="profile-trigger__caption">Current session</span>
+        }
+      </span> -->
+
+      <!-- <mat-icon class="profile-trigger__chevron">expand_more</mat-icon> -->
+    </button>
+  </div>
+</header>
+
+<mat-menu #userMenu="matMenu" xPosition="before" class="user-menu-panel">
+  <div class="user-menu-panel__header">
+    <div class="user-menu-panel__avatar">{{ initials }}</div>
+
+    <div class="user-menu-panel__copy">
+      <div class="user-menu-panel__name" [title]="userName()">{{ userName() }}</div>
+      <div class="user-menu-panel__caption">Machine Interfacing session</div>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="user-menu-panel__section user-menu-panel__section--page">
+    <div class="user-menu-panel__label">Current page</div>
+    <div class="user-menu-panel__value">{{ pageTitle() }}</div>
+    <div class="user-menu-panel__hint">{{ pageSubtitle() }}</div>
+  </div>
+
+  @if (roleSummary()) {
+    <div class="user-menu-panel__section">
+      <div class="user-menu-panel__label">Session role</div>
+      <div class="user-menu-panel__badges">
+        <span class="menu-badge menu-badge--info" [title]="roleSummary()">{{ roleSummary() }}</span>
+      </div>
+    </div>
+  }
+
+  <mat-divider></mat-divider>
+
   <button mat-menu-item (click)="logout()">
     <mat-icon>logout</mat-icon>
     <span>Logout</span>

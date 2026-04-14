@@ -1,0 +1,187 @@
+<div class="content">
+  <div class="page-toolbar">
+    <div class="title-block">
+      <h2>Normalized Results</h2>
+      <div class="sub">
+        Review canonical result records before and during governance, routing, and delivery.
+        Workflow state shown here is inferred from current approval and queue state using the
+        backend currently available in this chat.
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filters-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Search</mat-label>
+        <input matInput [(ngModel)]="searchTerm" placeholder="Patient, sample, order, test, machine, or summary" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Protocol</mat-label>
+        <mat-select [(ngModel)]="protocolFilter">
+          <mat-option value="ALL">All</mat-option>
+          <mat-option value="ASTM">ASTM</mat-option>
+          <mat-option value="HL7">HL7</mat-option>
+          <mat-option value="RAW">RAW</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Workflow</mat-label>
+        <mat-select [(ngModel)]="workflowFilter">
+          <mat-option value="ALL">All</mat-option>
+          <mat-option value="READY">Ready</mat-option>
+          <mat-option value="PENDING_APPROVAL">Pending Approval</mat-option>
+          <mat-option value="QUEUED">Queued</mat-option>
+          <mat-option value="SENDING">Sending</mat-option>
+          <mat-option value="DELIVERED">Delivered</mat-option>
+          <mat-option value="FAILED_DELIVERY">Failed Delivery</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div class="summary-strip summary-strip-five">
+    @for (card of summaryCards(); track card.label) {
+    <div class="summary-card" [class]="'summary-card ' + card.tone">
+      <div class="summary-label">{{ card.label }}</div>
+      <div class="summary-value">{{ card.value }}</div>
+    </div>
+    }
+  </div>
+
+  @if (loading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <div class="card">
+    <mat-divider></mat-divider>
+
+    <table mat-table [dataSource]="filteredRows()" class="table" multiTemplateDataRows>
+      <ng-container matColumnDef="result">
+        <th mat-header-cell *matHeaderCellDef>Result</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.id }}</div>
+          <div class="cell-sub">{{ row.machineName }} · {{ row.labName }}</div>
+          <div class="cell-sub muted">
+            Patient: {{ row.patientId || '—' }} · Sample: {{ row.sampleId || '—' }}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="clinical">
+        <th mat-header-cell *matHeaderCellDef>Clinical</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.testName || row.testCode || '—' }}</div>
+          <div class="cell-sub">{{ row.value || '—' }} {{ row.units || '' }}</div>
+          <div class="cell-sub muted">
+            Flag:
+            <span class="status-dot inline-dot" [class]="abnormalClass(row.abnormalFlag)"></span>
+            {{ row.abnormalFlag || '—' }}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="workflow">
+        <th mat-header-cell *matHeaderCellDef>Workflow</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="status-dot" [class]="workflowClass(row.workflowState)"></span>
+          <span class="muted">{{ row.workflowState }}</span>
+          @if (row.queueTargetName) {
+          <div class="cell-sub muted">Target: {{ row.queueTargetName }}</div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="observed">
+        <th mat-header-cell *matHeaderCellDef>Observed</th>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDateTime(row.observedAt || row.createdAt) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-col">
+          <div class="row-actions">
+            <button mat-icon-button (click)="toggleRow(row, $event)">
+              <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+            <button mat-icon-button color="primary" (click)="openInspector(row, $event)">
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+          @if (isExpanded(row)) {
+          <div class="row-detail">
+            <div class="row-detail-grid">
+              <div class="detail-card">
+                <div class="section-title">Result overview</div>
+                <div class="mini-grid">
+                  <div><b>Patient:</b> {{ row.patientId || '—' }}</div>
+                  <div><b>Patient name:</b> {{ row.patientName || '—' }}</div>
+                  <div><b>Sample:</b> {{ row.sampleId || '—' }}</div>
+                  <div><b>Order:</b> {{ row.orderId || '—' }}</div>
+                  <div><b>Test:</b> {{ row.testName || row.testCode || '—' }}</div>
+                  <div>
+                    <b>Observed:</b> {{ formatDateTime(row.observedAt || row.createdAt) }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-card">
+                <div class="section-title">Workflow</div>
+                <div class="inline-status-row">
+                  <span class="status-pill" [class]="workflowClass(row.workflowState)">
+                    {{ row.workflowState }}
+                  </span>
+                  @if (row.queueTargetName) {
+                  <span class="metric-chip idle">Target: {{ row.queueTargetName }}</span>
+                  }
+                  @if (row.deliveryStatus) {
+                  <span class="metric-chip" [class]="workflowClass(row.workflowState)">
+                    Delivery: {{ row.deliveryStatus }}
+                  </span>
+                  }
+                </div>
+                <div class="inline-summary">
+                  {{ row.summary || 'No normalized summary available.' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="inline-actions">
+              <button mat-stroked-button color="primary" (click)="openInspector(row, $event)">
+                <mat-icon>visibility</mat-icon>
+                Open full inspection
+              </button>
+            </div>
+          </div>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable" [class.row-expanded]="isExpanded(row)"
+        (click)="toggleRow(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"
+        [class.detail-row-visible]="isExpanded(row)"></tr>
+    </table>
+
+    @if (filteredRows().length === 0 && !loading()) {
+    <div class="empty">No normalized results found.</div>
+    }
+  </div>
+</div>

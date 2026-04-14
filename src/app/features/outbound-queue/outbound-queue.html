@@ -1,0 +1,222 @@
+<div class="content">
+    <div class="page-toolbar">
+        <div class="title-wrap">
+            <h2>Outbound Queue</h2>
+            <div class="sub">Approved results waiting for secure delivery to destination systems.</div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button mat-stroked-button [disabled]="mode() === 'all'" (click)="selectMode('all')">
+                All
+            </button>
+
+            <button mat-stroked-button [disabled]="mode() === 'pending'" (click)="selectMode('pending')">
+                Pending only
+            </button>
+
+            <button mat-stroked-button (click)="refresh()">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    <div class="card">
+        <div class="summary-row">
+            <div class="summary-card accent-neutral">
+                <div class="summary-label">Visible items</div>
+                <div class="summary-value">{{ summary().total }}</div>
+            </div>
+            <div class="summary-card accent-info">
+                <div class="summary-label">Pending</div>
+                <div class="summary-value">{{ summary().pending }}</div>
+            </div>
+            <div class="summary-card accent-warn">
+                <div class="summary-label">Sending</div>
+                <div class="summary-value">{{ summary().sending }}</div>
+            </div>
+            <div class="summary-card accent-bad">
+                <div class="summary-label">Failed</div>
+                <div class="summary-value">{{ summary().failed }}</div>
+            </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <table mat-table [dataSource]="pagedRows()" class="table queue-table" multiTemplateDataRows>
+            <ng-container matColumnDef="target">
+                <th mat-header-cell *matHeaderCellDef>Target</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="row-main-cell">
+                        <button
+                            mat-icon-button
+                            class="expander"
+                            [attr.aria-label]="isExpanded(row) ? 'Collapse queue row' : 'Expand queue row'"
+                            (click)="toggleRow(row); $event.stopPropagation()"
+                        >
+                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+
+                        <div>
+                            <div class="cell-title">{{ targetDisplay(row) }}</div>
+                            <div class="cell-sub">
+                                <span>{{ row.target_type || '—' }}</span>
+                                <span class="dot">•</span>
+                                <span>Queue ID: {{ row.id }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="status-stack">
+                        <div>
+                            <span class="status-dot" [class]="statusClass(row.delivery_status)"></span>
+                            <span class="muted">{{ row.delivery_status || '—' }}</span>
+                        </div>
+                        <div class="micro-copy">{{ statusText(row) }}</div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="retry">
+                <th mat-header-cell *matHeaderCellDef>Retry</th>
+                <td mat-cell *matCellDef="let row">
+                    <div class="metric-stack">
+                        <div class="metric-value">{{ row.retry_count ?? 0 }}</div>
+                        <div class="micro-copy">attempts</div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="schedule">
+                <th mat-header-cell *matHeaderCellDef>Next Retry</th>
+                <td mat-cell *matCellDef="let row">
+                    <div>{{ formatDateTime(row.next_retry_at) }}</div>
+                    <div class="micro-copy">{{ payloadHint(row) }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="created">
+                <th mat-header-cell *matHeaderCellDef>Created</th>
+                <td mat-cell *matCellDef="let row">
+                    <div>{{ formatDateTime(row.created_at) }}</div>
+                    <div class="micro-copy">{{ row.created_by_username || 'SYSTEM' }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                <td mat-cell *matCellDef="let row" class="actions-col">
+                    <button mat-icon-button matTooltip="Open detailed view" (click)="openDetailDialog(row); $event.stopPropagation()">
+                        <mat-icon>open_in_new</mat-icon>
+                    </button>
+
+                    <button mat-icon-button (click)="retry(row); $event.stopPropagation()" [disabled]="!canRetry(row)" matTooltip="Retry failed item">
+                        <mat-icon>refresh</mat-icon>
+                    </button>
+
+                    <button mat-icon-button (click)="requeue(row); $event.stopPropagation()" [disabled]="!canRequeue(row)" matTooltip="Requeue item">
+                        <mat-icon>restart_alt</mat-icon>
+                    </button>
+
+                    <button mat-icon-button color="primary" (click)="sendNow(row); $event.stopPropagation()" [disabled]="!canSendNow(row)" matTooltip="Send now">
+                        <mat-icon>send</mat-icon>
+                    </button>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+                    @if (isExpanded(row)) {
+                    <div class="row-expansion-shell">
+                        <div class="expansion-grid">
+                            <div class="expansion-card emphasis">
+                                <div class="expansion-label">Lifecycle</div>
+                                <div class="expansion-value">{{ row.delivery_status || '—' }}</div>
+                                <div class="expansion-meta">
+                                    Retry count: {{ row.retry_count ?? 0 }}
+                                    <span class="dot">•</span>
+                                    Next retry: {{ formatDateTime(row.next_retry_at) }}
+                                </div>
+                            </div>
+
+                            <div class="expansion-card">
+                                <div class="expansion-label">Context</div>
+                                <div class="quick-grid">
+                                    <div><b>Target:</b> {{ targetDisplay(row) }}</div>
+                                    <div><b>Type:</b> {{ row.target_type || '—' }}</div>
+                                    <div><b>Created by:</b> {{ row.created_by_username || 'SYSTEM' }}</div>
+                                    <div><b>Updated:</b> {{ formatDateTime(row.updated_at) }}</div>
+                                </div>
+                            </div>
+
+                            <div class="expansion-card">
+                                <div class="expansion-label">Operational notes</div>
+                                <div class="note-list">
+                                    @for (note of summaryNotes(row); track note.text) {
+                                    <div class="context-note" [class.bad]="note.kind === 'bad'" [class.warn]="note.kind === 'warn'" [class.info]="note.kind === 'info'">
+                                        {{ note.text }}
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="expansion-actions">
+                            <button mat-stroked-button (click)="openDetailDialog(row); $event.stopPropagation()">
+                                <mat-icon>visibility</mat-icon>
+                                View full details
+                            </button>
+
+                            <button mat-stroked-button (click)="retry(row); $event.stopPropagation()" [disabled]="!canRetry(row)">
+                                <mat-icon>refresh</mat-icon>
+                                Retry
+                            </button>
+
+                            <button mat-stroked-button (click)="requeue(row); $event.stopPropagation()" [disabled]="!canRequeue(row)">
+                                <mat-icon>restart_alt</mat-icon>
+                                Requeue
+                            </button>
+
+                            <button mat-flat-button color="primary" (click)="sendNow(row); $event.stopPropagation()" [disabled]="!canSendNow(row)">
+                                <mat-icon>send</mat-icon>
+                                Send now
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="cols"></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: cols; trackBy: rowTrackBy"
+                class="row-clickable main-row"
+                [class.row-selected]="isExpanded(row)"
+                (click)="toggleRow(row)"
+            ></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: detailCols; trackBy: rowTrackBy"
+                class="detail-row"
+                [class.detail-row-open]="isExpanded(row)"
+            ></tr>
+        </table>
+
+        @if (rows().length === 0 && !loading()) {
+        <div class="empty">No outbound queue items found.</div>
+        } @else {
+        <mat-paginator [length]="rows().length" [pageIndex]="pageIndex()" [pageSize]="pageSize()"
+            [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons></mat-paginator>
+        }
+    </div>
+</div>

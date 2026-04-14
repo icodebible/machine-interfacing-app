@@ -1,0 +1,168 @@
+// .dlg-head {
+//     display: flex;
+//     align-items: flex-start;
+//     justify-content: space-between;
+//     gap: 12px;
+//     text-align: left;
+// }
+
+// .title {
+//     font-size: 18px;
+//     font-weight: 700;
+//     line-height: 1.2;
+// }
+
+// .sub {
+//     font-size: 12px;
+//     opacity: 0.72;
+//     margin-top: 4px;
+// }
+
+// .dlg-body {
+//     min-width: min(760px, 94vw);
+//     max-width: 94vw;
+// }
+
+// .grid {
+//     display: grid;
+//     grid-template-columns: repeat(2, minmax(0, 1fr));
+//     gap: 12px;
+// }
+
+// mat-form-field {
+//     width: 100%;
+// }
+
+// @media (max-width: 760px) {
+//     .grid {
+//         grid-template-columns: 1fr;
+//     }
+// }
+
+:host {
+    display: block;
+}
+
+.dialog-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    text-align: left;
+}
+
+.dialog-title-copy {
+    display: grid;
+    gap: 4px;
+}
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.sub {
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: 0.78;
+}
+
+.dialog-shell {
+    display: grid;
+    gap: 16px;
+    min-width: min(760px, 94vw);
+    max-width: 94vw;
+    overflow-x: hidden;
+}
+
+.surface-block {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.02);
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.section-copy {
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.78;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+mat-form-field {
+    width: 100%;
+}
+
+.context-card {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.context-card.info {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.18);
+}
+
+.context-card.accent {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.18);
+}
+
+.context-title {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.context-copy {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 24px 20px;
+}
+
+@media (max-width: 760px) {
+    .dialog-shell {
+        min-width: 0;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dialog-actions button {
+        width: 100%;
+    }
+}

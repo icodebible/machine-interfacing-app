@@ -1,0 +1,132 @@
+<h2 mat-dialog-title class="dlg-header">
+    <div class="dlg-header__text">
+        <div class="dlg-header__title">Parsed Results</div>
+        <div class="dlg-header__subtitle">
+            {{ data.machine?.name }} · Structured ASTM / HL7 / RAW output
+        </div>
+    </div>
+
+    <div class="dlg-header__meta">
+        @if (lastRefreshed()) {
+        <span class="status-badge status-badge--neutral">
+            Refreshed {{ formatDateTime(lastRefreshed()) }}
+        </span>
+        }
+
+        <span class="status-badge status-badge--neutral">
+            {{ rows().length }} record{{ rows().length === 1 ? '' : 's' }}
+        </span>
+
+        <button mat-icon-button aria-label="Close parsed results dialog" (click)="close()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="dialog-section">
+        <div class="context-grid">
+            <div class="kv">
+                <div class="k">Machine</div>
+                <div class="v">{{ data.machine?.name || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Protocol</div>
+                <div class="v">
+                    <span class="status-badge status-badge--info">
+                        {{ data.machine?.protocol || '—' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Connection Type</div>
+                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Machine ID</div>
+                <div class="v mono">{{ data.machine?.id || '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="toolbar-row">
+            <div>
+                <div class="dialog-section__title">Parsed Message Stream</div>
+                <div class="dialog-section__subtitle">
+                    Structured protocol output generated from machine traffic.
+                </div>
+            </div>
+
+            <div class="toolbar-actions">
+                <mat-form-field appearance="outline" class="limit-field">
+                    <mat-label>Limit</mat-label>
+                    <mat-select [value]="limit()" (selectionChange)="setLimit($event.value)">
+                        <mat-option [value]="30">30</mat-option>
+                        <mat-option [value]="50">50</mat-option>
+                        <mat-option [value]="100">100</mat-option>
+                        <mat-option [value]="300">300</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <button mat-stroked-button (click)="refresh()">
+                    <mat-icon>refresh</mat-icon>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        @if (loading()) {
+        <div class="state-text">Loading parsed messages...</div>
+        } @else if (rows().length === 0) {
+        <div class="state-text">No parsed messages yet.</div>
+        } @else {
+        <div class="parsed-list">
+            @for (row of rows(); track row.id) {
+            <div class="parsed-item">
+                <div class="parsed-meta">
+                    <span class="parsed-time">{{ formatDateTime(row.created_at) }}</span>
+
+                    <span class="status-badge status-badge--info">
+                        {{ row.protocol }}
+                    </span>
+
+                    <span class="status-badge status-badge--success">
+                        {{ row.message_type }}
+                    </span>
+                </div>
+
+                <div class="parsed-summary">
+                    {{ row.summary || '—' }}
+                </div>
+
+                <div class="parsed-json mono">
+                    {{ prettyJson(row.data_json) }}
+                </div>
+
+                @if (row.raw) {
+                <div class="parsed-actions">
+                    <button mat-button (click)="copy(row.raw)">
+                        <mat-icon>content_copy</mat-icon>
+                        Copy raw
+                    </button>
+
+                    <button mat-button (click)="copy(prettyJson(row.data_json))">
+                        <mat-icon>data_object</mat-icon>
+                        Copy JSON
+                    </button>
+                </div>
+                }
+            </div>
+            }
+        </div>
+        }
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-button (click)="close()">Close</button>
+</div>

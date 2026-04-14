@@ -1,0 +1,238 @@
+<!-- <h2 mat-dialog-title>Normalized Result Inspection</h2>
+
+<mat-dialog-content class="dialog-content">
+    <div class="dialog-shell">
+        <section class="info-column">
+            <div class="hero-card">
+                <div>
+                    <div class="hero-title">{{ data.row.id }}</div>
+                    <div class="hero-sub">
+                        {{ data.row.testName || data.row.testCode || '—' }} · {{ data.row.machineName }}
+                    </div>
+                </div>
+                <div class="status-pill" [class]="workflowClass(data.row.workflowState)">
+                    {{ data.row.workflowState }}
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="section-title">Result details</div>
+                <div class="summary-grid">
+                    <div><b>Lab:</b> {{ data.row.labName || '—' }}</div>
+                    <div><b>Machine code:</b> {{ data.row.machineCode || '—' }}</div>
+                    <div><b>Patient ID:</b> {{ data.row.patientId || '—' }}</div>
+                    <div><b>Patient name:</b> {{ data.row.patientName || '—' }}</div>
+                    <div><b>Sample ID:</b> {{ data.row.sampleId || '—' }}</div>
+                    <div><b>Order ID:</b> {{ data.row.orderId || '—' }}</div>
+                    <div><b>Test code:</b> {{ data.row.testCode || '—' }}</div>
+                    <div><b>Test name:</b> {{ data.row.testName || '—' }}</div>
+                    <div><b>Value:</b> {{ data.row.value || '—' }}</div>
+                    <div><b>Units:</b> {{ data.row.units || '—' }}</div>
+                    <div><b>Reference range:</b> {{ data.row.referenceRange || '—' }}</div>
+                    <div>
+                        <b>Abnormal flag:</b>
+                        <span class="flag-chip" [class]="abnormalClass(data.row.abnormalFlag)">
+                            {{ data.row.abnormalFlag || '—' }}
+                        </span>
+                    </div>
+                    <div><b>Source message:</b> {{ data.row.sourceMessageType || '—' }}</div>
+                    <div><b>Observed:</b> {{ formatDateTime(data.row.observedAt || data.row.createdAt) }}</div>
+                    <div><b>Current target:</b> {{ data.row.queueTargetName || '—' }}</div>
+                    <div><b>Delivery status:</b> {{ data.row.deliveryStatus || '—' }}</div>
+                </div>
+            </div>
+
+            @if (data.row.summary) {
+            <div class="info-card">
+                <div class="section-title">Summary</div>
+                <div class="info-box">{{ data.row.summary }}</div>
+            </div>
+            }
+        </section>
+
+        <section class="preview-column">
+            <div class="preview-card">
+                <div class="preview-head">
+                    <div class="section-title">Target preview</div>
+                    <button mat-flat-button color="primary" (click)="previewTransform()">
+                        <mat-icon>visibility</mat-icon>
+                        Preview transform
+                    </button>
+                </div>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Target</mat-label>
+                    <mat-select [(ngModel)]="selectedTargetId">
+                        @for (target of data.targets; track target.id) {
+                        <mat-option [value]="target.id">{{ target.name }} · {{ target.type }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                @if (previewLoading()) {
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                }
+
+                @if (preview()) {
+                <div class="preview-name">{{ preview()?.previewName }}</div>
+
+                @if (preview()?.warnings?.length) {
+                <div class="warning-box">
+                    @for (warning of preview()?.warnings; track warning) {
+                    <div>- {{ warning }}</div>
+                    }
+                </div>
+                }
+
+                <div class="payload mono">{{ prettyJson(preview()?.payload) }}</div>
+                } @else {
+                <div class="empty-state">Run a target preview to inspect the shaped outbound payload.</div>
+                }
+            </div>
+
+            <div class="preview-card">
+                <div class="section-title">Normalized payload</div>
+                <div class="payload mono">{{ prettyJson(data.row.dataJson) }}</div>
+            </div>
+        </section>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions> -->
+
+
+<h2 mat-dialog-title>Normalized Result Inspection</h2>
+
+<mat-dialog-content class="dialog-content">
+    <div class="dialog-shell">
+        <section class="info-column">
+            <div class="hero-card">
+                <div>
+                    <div class="hero-title">{{ data.row.id }}</div>
+                    <div class="hero-sub">
+                        {{ data.row.testName || data.row.testCode || '—' }} · {{ data.row.machineName }}
+                    </div>
+                </div>
+                <div class="status-pill" [class]="workflowClass(data.row.workflowState)">
+                    {{ data.row.workflowState }}
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="section-title">Result details</div>
+                <div class="summary-grid">
+                    <div><b>Lab:</b> {{ data.row.labName || '—' }}</div>
+                    <div><b>Machine code:</b> {{ data.row.machineCode || '—' }}</div>
+                    <div><b>Patient ID:</b> {{ data.row.patientId || '—' }}</div>
+                    <div><b>Patient name:</b> {{ data.row.patientName || '—' }}</div>
+                    <div><b>Sample ID:</b> {{ data.row.sampleId || '—' }}</div>
+                    <div><b>Order ID:</b> {{ data.row.orderId || '—' }}</div>
+                    <div><b>Test code:</b> {{ data.row.testCode || '—' }}</div>
+                    <div><b>Test name:</b> {{ data.row.testName || '—' }}</div>
+                    <div><b>Value:</b> {{ data.row.value || '—' }}</div>
+                    <div><b>Units:</b> {{ data.row.units || '—' }}</div>
+                    <div><b>Reference range:</b> {{ data.row.referenceRange || '—' }}</div>
+                    <div>
+                        <b>Abnormal flag:</b>
+                        <span class="flag-chip" [class]="abnormalClass(data.row.abnormalFlag)">
+                            {{ data.row.abnormalFlag || '—' }}
+                        </span>
+                    </div>
+                    <div><b>Source message:</b> {{ data.row.sourceMessageType || '—' }}</div>
+                    <div><b>Observed:</b> {{ formatDateTime(data.row.observedAt || data.row.createdAt) }}</div>
+                    <div><b>Current target:</b> {{ data.row.queueTargetName || '—' }}</div>
+                    <div><b>Delivery status:</b> {{ data.row.deliveryStatus || '—' }}</div>
+                </div>
+            </div>
+
+            @if (data.row.summary) {
+            <div class="info-card">
+                <div class="section-title">Summary</div>
+                <div class="info-box">{{ data.row.summary }}</div>
+            </div>
+            }
+        </section>
+
+        <section class="preview-column">
+            <div class="preview-card">
+                <div class="preview-head">
+                    <div class="section-title">Target preview</div>
+                    <button mat-flat-button color="primary" (click)="previewTransform()">
+                        <mat-icon>visibility</mat-icon>
+                        Preview transform
+                    </button>
+                </div>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Target</mat-label>
+                    <mat-select [(ngModel)]="selectedTargetId">
+                        @for (target of data.targets; track target.id) {
+                        <mat-option [value]="target.id">{{ target.name }} · {{ target.type }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                @if (previewLoading()) {
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                }
+
+                @if (preview()) {
+                <div class="preview-name">{{ preview()?.previewName }}</div>
+
+                @if (preview()?.summary) {
+                <div class="info-box">
+                    <div><b>Rules:</b> {{ preview()?.summary?.ruleCount ?? 0 }}</div>
+                    <div><b>Applied:</b> {{ preview()?.summary?.appliedCount ?? 0 }}</div>
+                    <div><b>Skipped:</b> {{ preview()?.summary?.skippedCount ?? 0 }}</div>
+                    <div><b>Translated:</b> {{ preview()?.summary?.translatedCount ?? 0 }}</div>
+                </div>
+                }
+
+                @if (preview()?.errors?.length) {
+                <div class="warning-box">
+                    @for (error of preview()?.errors; track error) {
+                    <div>- {{ error }}</div>
+                    }
+                </div>
+                }
+
+                @if (preview()?.warnings?.length) {
+                <div class="warning-box">
+                    @for (warning of preview()?.warnings; track warning) {
+                    <div>- {{ warning }}</div>
+                    }
+                </div>
+                }
+
+                <div class="preview-head">
+                    <div class="section-title">Rendered payload</div>
+                    <button mat-button type="button" (click)="copyJson(preview()?.payload)">
+                        <mat-icon>content_copy</mat-icon>
+                        Copy
+                    </button>
+                </div>
+                <div class="payload mono">{{ prettyJson(preview()?.payload) }}</div>
+                } @else {
+                <div class="empty-state">Run a target preview to inspect the shaped outbound payload.</div>
+                }
+            </div>
+
+            <div class="preview-card">
+                <div class="preview-head">
+                    <div class="section-title">Canonical source document</div>
+                    <button mat-button type="button" (click)="copyJson(preview()?.sourceDocument || data.row.dataJson)">
+                        <mat-icon>content_copy</mat-icon>
+                        Copy
+                    </button>
+                </div>
+                <div class="payload mono">{{ prettyJson(preview()?.sourceDocument || data.row.dataJson) }}</div>
+            </div>
+        </section>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>

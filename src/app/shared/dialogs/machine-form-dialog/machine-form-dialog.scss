@@ -1,151 +1,3 @@
-// :host {
-//   display: block;
-// }
-
-// /* ✅ Let the dialog size itself responsibly */
-// .wrap {
-//   width: min(920px, 96vw);
-//   max-width: 96vw;
-//   display: flex;
-//   flex-direction: column;
-// }
-
-// /* ✅ Prevent any accidental horizontal scroll inside content */
-// .content {
-//   padding-top: 10px;
-//   display: flex;
-//   flex-direction: column;
-//   gap: 18px;
-//   overflow-x: hidden;
-// }
-
-// /* ✅ Ensure ALL Material form fields can shrink in grids */
-// mat-form-field {
-//   width: 100%;
-//   min-width: 0;
-// }
-
-// /* ✅ Title */
-// .title {
-//   display: flex;
-//   align-items: baseline;
-//   justify-content: space-between;
-//   gap: 12px;
-
-//   .hint {
-//     font-size: 12px;
-//     opacity: 0.75;
-//     max-width: 55%;
-//     text-align: right;
-//   }
-// }
-
-// /* Sections */
-// .section {
-//   padding: 6px 2px;
-// }
-
-// .section-head {
-//   display: flex;
-//   flex-direction: column;
-//   gap: 4px;
-//   margin-bottom: 10px;
-// }
-
-// .section-title {
-//   display: inline-flex;
-//   align-items: center;
-//   gap: 10px;
-//   font-weight: 600;
-
-//   mat-icon {
-//     opacity: 0.9;
-//   }
-// }
-
-// .section-sub {
-//   font-size: 12px;
-//   opacity: 0.75;
-// }
-
-// .subsection {
-//   margin-top: 12px;
-//   padding: 10px 12px;
-//   border: 1px solid rgba(0, 0, 0, 0.08);
-//   border-radius: 12px;
-//   background: rgba(0, 0, 0, 0.02);
-// }
-
-// .sub-head {
-//   display: inline-flex;
-//   align-items: center;
-//   gap: 8px;
-//   font-weight: 600;
-//   margin-bottom: 10px;
-
-//   mat-icon {
-//     opacity: 0.85;
-//   }
-// }
-
-// /* ✅ Grid that never causes overflow */
-// .grid {
-//   display: grid;
-//   grid-template-columns: repeat(2, minmax(0, 1fr));
-//   gap: 12px;
-
-//   .full {
-//     grid-column: 1 / -1;
-//   }
-// }
-
-// .toggles {
-//   display: flex;
-//   flex-wrap: wrap;
-//   gap: 18px;
-//   padding-top: 6px;
-// }
-
-// /* ✅ Actions: wrap on small screens, no pushing off-screen */
-// .actions {
-//   padding: 12px 18px 16px;
-//   display: flex;
-//   gap: 10px;
-//   flex-wrap: wrap;
-//   align-items: center;
-
-//   .test {
-//     margin-right: auto;
-//   }
-// }
-
-// /* Responsive: collapse to single column earlier */
-// @media (max-width: 760px) {
-//   .title .hint {
-//     display: none;
-//   }
-
-//   .grid {
-//     grid-template-columns: 1fr;
-//   }
-
-//   .actions {
-//     .test {
-//       margin-right: 0;
-//       width: 100%;
-//     }
-
-//     button {
-//       width: 100%;
-//     }
-//   }
-// }
-
-// /* ✅ Extra safety: hide horizontal overflow from Angular Material dialog content */
-// :host ::ng-deep .mat-mdc-dialog-content {
-//   overflow-x: hidden !important;
-// }
-
 :host {
   display: block;
   width: 100%;
@@ -153,7 +5,43 @@
   overflow: hidden;
 }
 
-/* Main form wrapper */
+.dialog-title-row {
+  display: flex;
+  align-items: flex-start;
+  // justify-content: space-between;
+  // gap: 16px;
+  padding-bottom: 4px;
+}
+
+.dialog-title-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.eyebrow {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.sub {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  opacity: 0.78;
+  word-break: break-word;
+}
+
 .wrap {
   width: 100%;
   max-width: 100%;
@@ -163,7 +51,7 @@
   overflow-x: hidden;
 }
 
-/* Dialog content */
+.dialog-shell,
 .content {
   width: 100%;
   max-width: 100%;
@@ -175,26 +63,6 @@
   overflow-x: hidden;
 }
 
-/* Title */
-.title {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-
-  .hint {
-    font-size: 12px;
-    opacity: 0.75;
-    max-width: 55%;
-    text-align: right;
-    word-break: break-word;
-  }
-}
-
-/* Sections */
 .section {
   width: 100%;
   max-width: 100%;
@@ -250,7 +118,6 @@
   }
 }
 
-/* ✅ Critical: responsive grid with shrinkable children */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -258,91 +125,43 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+
+  .full {
+    grid-column: 1 / -1;
+  }
 }
 
-.full {
-  grid-column: 1 / -1;
-}
-
-/* ✅ Critical: all direct children can shrink */
-.grid > * {
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* ✅ Critical: Angular Material fields must not keep intrinsic min width */
 mat-form-field {
   width: 100%;
   min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
-/* Ensure inner Material wrappers don't force overflow */
-:host ::ng-deep .mat-mdc-form-field {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-}
-
-:host ::ng-deep .mat-mdc-text-field-wrapper {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-}
-
-:host ::ng-deep .mat-mdc-form-field-infix {
-  min-width: 0 !important;
-  width: auto !important;
-}
-
-/* Toggles */
 .toggles {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
   padding-top: 6px;
-  width: 100%;
-  max-width: 100%;
 }
 
-/* Actions */
 .actions {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
   padding: 12px 18px 16px;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
-  overflow-x: hidden;
 
   .test {
     margin-right: auto;
   }
 }
 
-/* Responsive behavior */
 @media (max-width: 760px) {
-  .title {
-    flex-direction: column;
-    align-items: flex-start;
-
-    .hint {
-      max-width: 100%;
-      text-align: left;
-    }
+  .dialog-title-row {
+    gap: 12px;
   }
 
   .grid {
     grid-template-columns: 1fr;
-  }
-
-  .full {
-    grid-column: auto;
   }
 
   .actions {
@@ -357,13 +176,6 @@ mat-form-field {
   }
 }
 
-/* Final safety net */
 :host ::ng-deep .mat-mdc-dialog-content {
-  overflow-x: hidden !important;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-:host ::ng-deep .mat-mdc-dialog-surface {
   overflow-x: hidden !important;
 }

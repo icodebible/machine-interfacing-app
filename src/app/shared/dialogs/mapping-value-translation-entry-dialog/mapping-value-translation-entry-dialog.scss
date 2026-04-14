@@ -1,0 +1,140 @@
+.dialog-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 8px;
+}
+
+.dialog-title-copy {
+    min-width: 0;
+}
+
+.eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.55);
+}
+
+.title {
+    font-size: 1.18rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+.sub {
+    color: rgba(0, 0, 0, 0.68);
+    margin-top: 6px;
+    line-height: 1.45;
+    max-width: 58ch;
+}
+
+.dialog-shell {
+    display: grid;
+    gap: 14px;
+    padding-top: 4px;
+    width: min(760px, 100%);
+}
+
+.hero-facts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    background: rgba(15, 23, 42, 0.06);
+    color: rgba(15, 23, 42, 0.82);
+}
+
+.chip--accent {
+    background: rgba(44, 102, 146, 0.12);
+    color: #2c6692;
+}
+
+.chip--muted {
+    background: rgba(15, 23, 42, 0.04);
+    color: rgba(15, 23, 42, 0.68);
+}
+
+.surface-block {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 18px;
+    background: #fff;
+    display: grid;
+    gap: 14px;
+}
+
+.section-title {
+    font-weight: 700;
+}
+
+.section-copy,
+.inline-note {
+    color: rgba(0, 0, 0, 0.68);
+    line-height: 1.5;
+}
+
+.banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+}
+
+.banner--error {
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.18);
+    color: #991b1b;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1.1fr 0.8fr;
+    gap: 12px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.inline-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(44, 102, 146, 0.06);
+    border: 1px solid rgba(44, 102, 146, 0.12);
+    font-size: 12px;
+}
+
+.inline-note mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #2c6692;
+}
+
+.dialog-actions {
+    padding-top: 4px;
+}
+
+@media (max-width: 860px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}

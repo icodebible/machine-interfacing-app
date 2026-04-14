@@ -1,1 +1,569 @@
-<p>dashboard works!</p>
+<div class="content">
+  <div class="page-toolbar">
+    <div class="title-block">
+      <h2>Dashboard</h2>
+      <div class="sub">
+        Overview of machine connectivity, result flow, governance backlog, delivery health, and
+        operational attention points across the platform.
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      @if (lastRefreshed()) {
+        <div class="refresh-note">Updated {{ formatDateTime(lastRefreshed()) }}</div>
+      }
+
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <div class="summary-grid">
+    <div class="summary-card primary">
+      <div class="summary-label">Machines</div>
+      <div class="summary-value">{{ summary().machines }}</div>
+      <div class="summary-sub">Registered machine sources</div>
+    </div>
+
+    <div class="summary-card success">
+      <div class="summary-label">Connected Runtime</div>
+      <div class="summary-value">{{ summary().connected }}</div>
+      <div class="summary-sub">Active machine runtime sessions</div>
+    </div>
+
+    <div class="summary-card accent">
+      <div class="summary-label">Simulations</div>
+      <div class="summary-value">{{ summary().simulations }}</div>
+      <div class="summary-sub">Machines emitting simulated traffic</div>
+    </div>
+
+    <div class="summary-card info">
+      <div class="summary-label">Parsed 24h</div>
+      <div class="summary-value">{{ summary().parsedRecent }}</div>
+      <div class="summary-sub">Recently parsed machine messages</div>
+    </div>
+
+    <div class="summary-card info">
+      <div class="summary-label">Normalized 24h</div>
+      <div class="summary-value">{{ summary().normalizedRecent }}</div>
+      <div class="summary-sub">Recently normalized result records</div>
+    </div>
+
+    <div class="summary-card warning">
+      <div class="summary-label">Pending Approvals</div>
+      <div class="summary-value">{{ summary().pendingApprovals }}</div>
+      <div class="summary-sub">Results waiting for governance action</div>
+    </div>
+
+    <div class="summary-card neutral">
+      <div class="summary-label">Queued Deliveries</div>
+      <div class="summary-value">{{ summary().pendingQueue }}</div>
+      <div class="summary-sub">Pending outbound delivery records</div>
+    </div>
+
+    <div class="summary-card success">
+      <div class="summary-label">Delivered</div>
+      <div class="summary-value">{{ summary().deliveredRecent }}</div>
+      <div class="summary-sub">Delivered records in recent history</div>
+    </div>
+
+    <div class="summary-card danger">
+      <div class="summary-label">Failed Deliveries</div>
+      <div class="summary-value">{{ summary().failedDeliveries }}</div>
+      <div class="summary-sub">Queue items currently in failed state</div>
+    </div>
+
+    <div class="summary-card warning">
+      <div class="summary-label">Attention Needed</div>
+      <div class="summary-value">{{ summary().machinesNeedingAttention }}</div>
+      <div class="summary-sub">Machines requiring operator review</div>
+    </div>
+
+    <div class="summary-card neutral">
+      <div class="summary-label">Active Targets</div>
+      <div class="summary-value">{{ summary().activeTargets }}</div>
+      <div class="summary-sub">Enabled delivery connectors</div>
+    </div>
+  </div>
+
+  <div class="sections-grid">
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Attention needed now</div>
+          <div class="section-sub">Priority queues, machines, and approvals requiring action.</div>
+        </div>
+      </div>
+
+      <div class="attention-grid">
+        <div class="attention-block">
+          <div class="block-title">Machines</div>
+          @if (machineAttention().length) {
+            @for (item of machineAttention(); track item.title + item.subtitle) {
+              <a class="attention-item" [routerLink]="item.route">
+                <span class="status-pill" [class]="item.tone">{{
+                  item.tone === 'bad' ? 'Critical' : 'Review'
+                }}</span>
+                <div>
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-sub">{{ item.subtitle }}</div>
+                </div>
+              </a>
+            }
+          } @else {
+            <div class="empty-inline">No machine issues requiring review right now.</div>
+          }
+        </div>
+
+        <div class="attention-block">
+          <div class="block-title">Approvals</div>
+          @if (approvalAttention().length) {
+            @for (item of approvalAttention(); track item.title + item.subtitle) {
+              <a class="attention-item" [routerLink]="item.route">
+                <span class="status-pill" [class]="item.tone">Pending</span>
+                <div>
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-sub">{{ item.subtitle }}</div>
+                </div>
+              </a>
+            }
+          } @else {
+            <div class="empty-inline">No approvals waiting at the moment.</div>
+          }
+        </div>
+
+        <div class="attention-block">
+          <div class="block-title">Deliveries</div>
+          @if (deliveryAttention().length) {
+            @for (item of deliveryAttention(); track item.title + item.subtitle) {
+              <a class="attention-item" [routerLink]="item.route">
+                <span class="status-pill" [class]="item.tone">Failed</span>
+                <div>
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-sub">{{ item.subtitle }}</div>
+                </div>
+              </a>
+            }
+          } @else {
+            <div class="empty-inline">No delivery failures currently highlighted.</div>
+          }
+        </div>
+      </div>
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Delivery health mix</div>
+          <div class="section-sub">Current governance and delivery state distribution.</div>
+        </div>
+      </div>
+
+      <div class="donut-layout">
+        <div class="donut-shell" [style.background]="deliveryMixGradient()">
+          <div class="donut-hole">
+            <div class="donut-value">{{ summary().deliveredRecent + summary().pendingQueue + summary().failedDeliveries + summary().pendingApprovals }}</div>
+            <div class="donut-label">Tracked items</div>
+          </div>
+        </div>
+
+        <div class="donut-legend">
+          @for (item of deliveryMix(); track item.label) {
+            <div class="donut-legend__item">
+              <span class="status-pill" [class]="deliveryTone(item.tone)">{{ item.label }}</span>
+              <div class="donut-legend__meta">
+                <b>{{ item.count }}</b>
+                <span>{{ item.pct }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">24-hour result flow</div>
+          <div class="section-sub">
+            Parsed and normalized result throughput over the last 24 hours for quick trend reading.
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-swatch legend-swatch--primary"></span> Parsed</span>
+          <span class="legend-item"><span class="legend-swatch legend-swatch--accent"></span> Normalized</span>
+        </div>
+      </div>
+
+      @if (trend24h().length) {
+        <div class="trend-card">
+          <div class="trend-chart">
+            @for (bucket of trend24h(); track bucket.label) {
+              <div class="trend-col">
+                <div class="trend-bars">
+                  <div class="trend-bar-shell">
+                    <div class="trend-bar trend-bar--primary" [style.height.%]="bucket.parsedPct"></div>
+                  </div>
+                  <div class="trend-bar-shell">
+                    <div class="trend-bar trend-bar--accent" [style.height.%]="bucket.normalizedPct"></div>
+                  </div>
+                </div>
+                <div class="trend-meta">
+                  <div class="trend-counts">{{ bucket.parsed }}/{{ bucket.normalized }}</div>
+                  <div class="trend-label">{{ bucket.label }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="empty-inline">No recent result flow is available yet.</div>
+      }
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Runtime pulse</div>
+          <div class="section-sub">Core platform state at a glance.</div>
+        </div>
+      </div>
+
+      <div class="kv-grid compact">
+        <div class="kv">
+          <span>Connected</span><b>{{ summary().connected }}</b>
+        </div>
+        <div class="kv">
+          <span>Simulating</span><b>{{ summary().simulations }}</b>
+        </div>
+        <div class="kv">
+          <span>Attention</span><b>{{ summary().machinesNeedingAttention }}</b>
+        </div>
+        <div class="kv">
+          <span>Targets</span><b>{{ summary().activeTargets }}</b>
+        </div>
+      </div>
+    </div>
+
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Recent machine activity</div>
+          <div class="section-sub">
+            Most recently active machine sources across parsing and normalization.
+          </div>
+        </div>
+      </div>
+
+      @if (recentMachines().length) {
+        <div class="activity-list">
+          @for (row of recentMachines(); track row.id) {
+            <a class="activity-item" routerLink="/app/live-monitor">
+              <div class="activity-main">
+                <div class="item-title">{{ row.name }}</div>
+                <div class="item-sub">
+                  {{ row.labName || '—' }} · {{ row.connectionType }} · {{ row.protocol }}
+                </div>
+              </div>
+
+              <div class="activity-meta">
+                <span class="status-pill" [class]="runtimeTone(row.runtimeStatus)">
+                  {{ row.runtimeStatus | titlecase }}
+                </span>
+                <span class="muted">Parsed {{ row.parsedRecentCount }}</span>
+                <span class="muted">Normalized {{ row.normalizedRecentCount }}</span>
+                <span class="muted">{{ relativeTime(row.latestNormalizedAt || row.latestParsedAt || row.runtimeUpdatedAt) }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="empty-inline">No machine activity is available yet.</div>
+      }
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Governance & delivery</div>
+          <div class="section-sub">Current review and send backlog.</div>
+        </div>
+      </div>
+
+      <div class="kv-grid compact">
+        <div class="kv">
+          <span>Pending approvals</span><b>{{ summary().pendingApprovals }}</b>
+        </div>
+        <div class="kv">
+          <span>Queued</span><b>{{ summary().pendingQueue }}</b>
+        </div>
+        <div class="kv">
+          <span>Delivered</span><b>{{ summary().deliveredRecent }}</b>
+        </div>
+        <div class="kv">
+          <span>Failed</span><b>{{ summary().failedDeliveries }}</b>
+        </div>
+      </div>
+    </div>
+
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Laboratory throughput table</div>
+          <div class="section-sub">
+            Top laboratories by recent normalized volume, with connectivity and attention context.
+          </div>
+        </div>
+      </div>
+
+      @if (labTable().length) {
+        <div class="table-shell">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Laboratory</th>
+                <th>Machines</th>
+                <th>Connected</th>
+                <th>Parsed 24h</th>
+                <th>Normalized 24h</th>
+                <th>Attention</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of labTable(); track row.labName) {
+                <tr>
+                  <td>{{ row.labName }}</td>
+                  <td>{{ row.machines }}</td>
+                  <td>{{ row.connected }}</td>
+                  <td>{{ row.parsedRecent }}</td>
+                  <td>{{ row.normalizedRecent }}</td>
+                  <td>
+                    <span class="status-pill" [class]="row.attention > 0 ? 'warn' : 'ok'">
+                      {{ row.attention }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-inline">No laboratory throughput data available yet.</div>
+      }
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Target estate</div>
+          <div class="section-sub">Configured delivery connectors by type.</div>
+        </div>
+      </div>
+
+      @if (targetBreakdown().length) {
+        <div class="breakdown-list">
+          @for (item of targetBreakdown(); track item.label) {
+            <div class="breakdown-item">
+              <div class="breakdown-meta">
+                <div class="item-title">{{ item.label }}</div>
+                <div class="item-sub">
+                  {{ item.count }} connector{{ item.count === 1 ? '' : 's' }}{{ item.secondary ? ' · ' + item.secondary : '' }}
+                </div>
+              </div>
+              <div class="bar-shell">
+                <div class="bar-fill accent" [style.width.%]="item.pct"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-inline">No targets configured yet.</div>
+      }
+    </div>
+
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Connector health table</div>
+          <div class="section-sub">
+            Target estate, queue pressure, and current failure exposure by connector type.
+          </div>
+        </div>
+      </div>
+
+      @if (connectorHealthTable().length) {
+        <div class="table-shell">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Connector type</th>
+                <th>Total</th>
+                <th>Active</th>
+                <th>Queued</th>
+                <th>Failed</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of connectorHealthTable(); track row.label) {
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.total }}</td>
+                  <td>{{ row.active }}</td>
+                  <td>{{ row.queued }}</td>
+                  <td>
+                    <span class="status-pill" [class]="row.failed > 0 ? 'bad' : 'ok'">
+                      {{ row.failed }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-inline">No connector estate data available yet.</div>
+      }
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Protocol throughput</div>
+          <div class="section-sub">Recent parsed flow by protocol.</div>
+        </div>
+      </div>
+
+      @if (protocolBreakdown().length) {
+        <div class="breakdown-list">
+          @for (item of protocolBreakdown(); track item.label) {
+            <div class="breakdown-item">
+              <div class="breakdown-meta">
+                <div class="item-title">{{ item.label }}</div>
+                <div class="item-sub">
+                  {{ item.count }} parsed{{ item.secondary ? ' · ' + item.secondary : '' }}
+                </div>
+              </div>
+              <div class="bar-shell">
+                <div class="bar-fill primary" [style.width.%]="item.pct"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-inline">No protocol activity available yet.</div>
+      }
+    </div>
+
+<div class="card section">
+      <div class="section-head compact">
+        <div>
+          <div class="section-title">Connection estate</div>
+          <div class="section-sub">Machine registration by transport.</div>
+        </div>
+      </div>
+
+      @if (connectionBreakdown().length) {
+        <div class="breakdown-list">
+          @for (item of connectionBreakdown(); track item.label) {
+            <div class="breakdown-item">
+              <div class="breakdown-meta">
+                <div class="item-title">{{ item.label }}</div>
+                <div class="item-sub">
+                  {{ item.count }} machine{{ item.count === 1 ? '' : 's' }}
+                </div>
+              </div>
+              <div class="bar-shell">
+                <div class="bar-fill info" [style.width.%]="item.pct"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-inline">No connection data available yet.</div>
+      }
+    </div>
+
+<div class="card section span-2">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Operational launchpad</div>
+          <div class="section-sub">
+            Open the detailed module best suited for investigation or action.
+          </div>
+        </div>
+      </div>
+
+      <div class="launch-grid">
+        <a class="launch-tile" routerLink="/app/live-monitor">
+          <mat-icon>monitor_heart</mat-icon>
+          <div>
+            <div class="item-title">Live Monitor</div>
+            <div class="item-sub">Runtime and activity operations</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/parsed-results">
+          <mat-icon>data_object</mat-icon>
+          <div>
+            <div class="item-title">Parsed Results</div>
+            <div class="item-sub">Protocol and parser inspection</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/normalized-results">
+          <mat-icon>science</mat-icon>
+          <div>
+            <div class="item-title">Normalized Results</div>
+            <div class="item-sub">Canonical business result review</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/pending-approvals">
+          <mat-icon>rule</mat-icon>
+          <div>
+            <div class="item-title">Pending Approvals</div>
+            <div class="item-sub">Governance work waiting for action</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/outbound-queue">
+          <mat-icon>outbox</mat-icon>
+          <div>
+            <div class="item-title">Outbound Queue</div>
+            <div class="item-sub">Queued and retryable deliveries</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/delivery-history">
+          <mat-icon>local_shipping</mat-icon>
+          <div>
+            <div class="item-title">Delivery History</div>
+            <div class="item-sub">Sent records and delivery outcomes</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/audit-logs">
+          <mat-icon>history</mat-icon>
+          <div>
+            <div class="item-title">Audit Logs</div>
+            <div class="item-sub">System and delivery accountability</div>
+          </div>
+        </a>
+
+        <a class="launch-tile" routerLink="/app/targets">
+          <mat-icon>hub</mat-icon>
+          <div>
+            <div class="item-title">Targets</div>
+            <div class="item-sub">Connector configuration and diagnostics</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

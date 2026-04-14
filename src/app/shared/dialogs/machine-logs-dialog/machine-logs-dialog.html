@@ -1,0 +1,210 @@
+<h2 mat-dialog-title class="dlg-header">
+    <div class="dlg-header__text">
+        <div class="dlg-header__title">Machine Logs Console</div>
+        <div class="dlg-header__subtitle">
+            {{ data.machine?.name }} · Terminal-style traffic and runtime history for operational review.
+        </div>
+    </div>
+
+    <div class="dlg-header__meta">
+        @if (lastRefreshed()) {
+        <span class="status-badge status-badge--neutral">
+            Refreshed {{ formatDateTime(lastRefreshed()) }}
+        </span>
+        }
+
+        <span class="status-badge status-badge--neutral"> {{ filteredLogs().length }} visible </span>
+
+        <button mat-icon-button aria-label="Close machine logs dialog" (click)="close()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="dialog-section context-section">
+        <div class="dialog-section__title">Machine Context</div>
+
+        <div class="context-grid">
+            <div class="kv">
+                <div class="k">Machine</div>
+                <div class="v">{{ data.machine?.name || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Protocol</div>
+                <div class="v">
+                    <span class="status-badge status-badge--info">
+                        {{ data.machine?.protocol || '—' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Connection Type</div>
+                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Machine ID</div>
+                <div class="v mono">{{ data.machine?.id || '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="terminal-toolbar card-frame">
+        <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search log stream</mat-label>
+            <input matInput [value]="search()" (input)="search.set($any($event.target).value)"
+                placeholder="Payload preview, protocol, direction, or event" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="toolbar-field">
+            <mat-label>Direction</mat-label>
+            <mat-select [value]="directionFilter()" (selectionChange)="directionFilter.set($event.value)">
+                <mat-option value="ALL">All</mat-option>
+                <mat-option value="inbound">Inbound</mat-option>
+                <mat-option value="outbound">Outbound</mat-option>
+                <mat-option value="system">System</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="toolbar-field">
+            <mat-label>Event</mat-label>
+            <mat-select [value]="eventFilter()" (selectionChange)="eventFilter.set($event.value)">
+                <mat-option value="ALL">All</mat-option>
+                <mat-option value="payload">Payload</mat-option>
+                <mat-option value="connected">Connected</mat-option>
+                <mat-option value="disconnected">Disconnected</mat-option>
+                <mat-option value="parse_success">Parse success</mat-option>
+                <mat-option value="parse_error">Parse error</mat-option>
+                <mat-option value="test">Test</mat-option>
+                <mat-option value="error">Error</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="toolbar-field narrow">
+            <mat-label>Limit</mat-label>
+            <mat-select [value]="limit()" (selectionChange)="setLimit($event.value)">
+                <mat-option [value]="30">30</mat-option>
+                <mat-option [value]="50">50</mat-option>
+                <mat-option [value]="100">100</mat-option>
+                <mat-option [value]="300">300</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <div class="toolbar-actions">
+            <button mat-stroked-button (click)="clearFilters()">
+                <mat-icon>filter_alt_off</mat-icon>
+                Clear filters
+            </button>
+            <button mat-stroked-button (click)="refresh()">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+            </button>
+            <button mat-stroked-button color="warn" (click)="clear()">
+                <mat-icon>delete_sweep</mat-icon>
+                Clear logs
+            </button>
+        </div>
+    </div>
+
+    <div class="terminal-layout">
+        <div class="terminal-stream card-frame terminal-panel">
+            <div class="panel-head">
+                <div>
+                    <div class="dialog-section__title">Log Stream</div>
+                    <div class="dialog-section__subtitle">
+                        Select an entry to inspect its payload and context.
+                    </div>
+                </div>
+            </div>
+
+            @if (loading()) {
+            <div class="terminal-state">Loading logs…</div>
+            } @else if (filteredLogs().length === 0) {
+            <div class="terminal-state">No log entries matched the current filters.</div>
+            } @else {
+            <div class="terminal-list">
+                @for (log of filteredLogs(); track log.id) {
+                <button type="button" class="terminal-line" [class.is-selected]="selectedLog()?.id === log.id"
+                    (click)="selectLog(log)">
+                    <div class="terminal-line__meta">
+                        <span class="log-time">{{ formatDateTime(log.created_at) }}</span>
+                        <span class="status-badge status-badge--neutral">{{ log.direction }}</span>
+                        <span class="status-badge" [class.status-badge--info]="
+                    log.event_type === 'payload' || log.event_type === 'test'
+                  " [class.status-badge--success]="
+                    log.event_type === 'connected' || log.event_type === 'parse_success'
+                  " [class.status-badge--error]="
+                    log.event_type === 'error' || log.event_type === 'parse_error'
+                  " [class.status-badge--neutral]="log.event_type === 'disconnected'">
+                            {{ log.event_type }}
+                        </span>
+                        <span class="status-badge status-badge--info">{{ log.protocol }}</span>
+                    </div>
+                    <div class="terminal-line__preview mono">
+                        {{ log.payload_preview || log.payload || '—' }}
+                    </div>
+                </button>
+                }
+            </div>
+            }
+        </div>
+
+        <div class="terminal-inspector card-frame terminal-panel">
+            <div class="panel-head">
+                <div>
+                    <div class="dialog-section__title">Selected Entry</div>
+                    <div class="dialog-section__subtitle">Read-only payload and transport context.</div>
+                </div>
+
+                @if (selectedLog()) {
+                <button mat-stroked-button (click)="copy(payloadText(selectedLog()))">
+                    <mat-icon>content_copy</mat-icon>
+                    Copy payload
+                </button>
+                }
+            </div>
+
+            @if (selectedLog(); as selected) {
+            <div class="inspector-meta">
+                <span class="status-badge status-badge--neutral">{{ selected.direction }}</span>
+                <span class="status-badge status-badge--info">{{ selected.transport }}</span>
+                <span class="status-badge status-badge--info">{{ selected.protocol }}</span>
+                <span class="status-badge" [class.status-badge--info]="
+              selected.event_type === 'payload' || selected.event_type === 'test'
+            " [class.status-badge--success]="
+              selected.event_type === 'connected' || selected.event_type === 'parse_success'
+            " [class.status-badge--error]="
+              selected.event_type === 'error' || selected.event_type === 'parse_error'
+            " [class.status-badge--neutral]="selected.event_type === 'disconnected'">
+                    {{ selected.event_type }}
+                </span>
+                <span class="status-badge status-badge--neutral">
+                    {{ relativeTime(selected.created_at) }}
+                </span>
+            </div>
+
+            <div class="inspector-grid">
+                <div><b>Timestamp:</b> {{ formatDateTime(selected.created_at) }}</div>
+                <div>
+                    <b>Log ID:</b> <span class="mono">{{ selected.id }}</span>
+                </div>
+                <div>
+                    <b>Machine ID:</b> <span class="mono">{{ selected.machine_id }}</span>
+                </div>
+                <div><b>Event:</b> {{ selected.event_type }}</div>
+            </div>
+
+            <div class="payload-shell mono">{{ payloadText(selected) }}</div>
+            } @else {
+            <div class="terminal-state">Select a log entry from the stream to inspect it here.</div>
+            }
+        </div>
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-button (click)="close()">Close</button>
+</div>

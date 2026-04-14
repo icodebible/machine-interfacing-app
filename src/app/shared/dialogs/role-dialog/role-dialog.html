@@ -1,0 +1,69 @@
+<h2 mat-dialog-title>{{ isCreate ? 'New Role' : 'Edit Role' }}</h2>
+
+<mat-dialog-content class="dialog-content">
+    <div class="helper-card">
+        <div class="helper-title">Role authoring</div>
+        <div class="helper-sub">
+            Define role identity, purpose, and the bundled authorities that will be assigned to users.
+        </div>
+        <ul class="helper-list">
+            <li>Roles keep permission management reusable and auditable.</li>
+            <li>Authorities are presented as structured selections rather than long sentences.</li>
+        </ul>
+    </div>
+
+    @if (!isCreate && isSystemRole) {
+    <div class="preset-banner">
+        <div class="preset-title">Protected system role</div>
+        <div class="preset-line">
+            SUPER_ADMIN remains protected so the platform always retains a recovery-capable role.
+        </div>
+    </div>
+    }
+
+    <mat-divider></mat-divider>
+
+    <form class="form-grid" [formGroup]="form">
+        <mat-form-field appearance="outline" class="field field-primary">
+            <mat-label>Role name</mat-label>
+            <input matInput formControlName="name" />
+            <mat-hint>Shown in Users, Audit, and accountability surfaces.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field field-primary">
+            <mat-label>Description</mat-label>
+            <input matInput formControlName="description" />
+            <mat-hint>Use a short operational description.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field full-width">
+            <mat-label>Authorities</mat-label>
+            <mat-select multiple formControlName="authority_codes" [disabled]="isSystemRole">
+                @for (code of data.catalog; track code) {
+                <mat-option [value]="code">{{ code }}</mat-option>
+                }
+            </mat-select>
+            <mat-hint>Authorities determine what users with this role can do.</mat-hint>
+        </mat-form-field>
+    </form>
+
+    <div class="selection-preview">
+        <div class="selection-title">Selected authorities</div>
+        <div class="tag-list">
+            @if (selectedAuthorities.length === 0) {
+            <span class="tag subtle">No authorities selected</span>
+            } @else {
+            @for (code of selectedAuthorities; track code) {
+            <span class="tag info">{{ code }}</span>
+            }
+            }
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()">
+        {{ isCreate ? 'Create role' : 'Save changes' }}
+    </button>
+</mat-dialog-actions>

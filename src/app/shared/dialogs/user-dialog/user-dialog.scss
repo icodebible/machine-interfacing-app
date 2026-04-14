@@ -1,0 +1,159 @@
+:host {
+    display: block;
+}
+
+:host,
+:host * {
+    box-sizing: border-box;
+}
+
+:host ::ng-deep .mat-mdc-dialog-surface {
+    max-width: min(920px, calc(100vw - 24px));
+    width: min(920px, calc(100vw - 24px));
+    overflow-x: hidden;
+}
+
+:host ::ng-deep .mat-mdc-dialog-content {
+    overflow-x: hidden;
+}
+
+:host ::ng-deep .mat-mdc-form-field {
+    min-width: 0;
+    width: 100%;
+}
+
+.dialog-content {
+    display: grid;
+    gap: 16px;
+    width: min(100%, 860px);
+    max-width: 100%;
+    min-width: 0;
+    padding-top: 8px;
+    overflow-x: clip;
+}
+
+.dialog-content>* {
+    min-width: 0;
+}
+
+.preset-banner,
+.helper-card,
+.selection-preview {
+    border-radius: 14px;
+    padding: 14px;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.preset-banner {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.helper-card,
+.selection-preview {
+    background: rgba(15, 23, 42, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.preset-title,
+.helper-title,
+.selection-title {
+    font-weight: 700;
+}
+
+.preset-line,
+.helper-sub {
+    font-size: 12px;
+    line-height: 1.45;
+    opacity: 0.82;
+    overflow-wrap: anywhere;
+}
+
+.helper-list {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    opacity: 0.82;
+}
+
+.helper-list li {
+    overflow-wrap: anywhere;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    min-width: 0;
+}
+
+.field {
+    min-width: 0;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.selection-preview {
+    overflow-x: hidden;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    border: 1px solid transparent;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.tag.info {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.22);
+    color: #1d4ed8;
+}
+
+.tag.subtle {
+    background: rgba(15, 23, 42, 0.05);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #475467;
+}
+
+.dialog-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+    :host ::ng-deep .mat-mdc-dialog-surface {
+        max-width: calc(100vw - 16px);
+        width: calc(100vw - 16px);
+    }
+
+    .dialog-content {
+        width: 100%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,117 @@
+<h2 mat-dialog-title class="dialog-title-row">
+  <div class="dialog-title-copy">
+    <div class="eyebrow">Field mapping</div>
+    <div class="title">{{ dialogTitle }}</div>
+    <div class="sub">{{ dialogSubtitle }}</div>
+  </div>
+
+  <button mat-icon-button type="button" (click)="cancel()" aria-label="Close mapping dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+  <div class="hero-facts">
+    <span class="chip">{{ selectedTargetType }}</span>
+    <span class="chip chip--accent">{{ selectedTransformKind | titlecase }}</span>
+    <span class="chip chip--muted">{{ isConstantTransform ? 'Source not required' : 'Source required' }}</span>
+  </div>
+
+  <div class="info-grid">
+    <section class="surface-block surface-block--helper">
+      <div class="section-title">Connector guidance</div>
+      <div class="section-copy">
+        Use destination names that match the outbound contract expected by the selected connector.
+      </div>
+
+      <div class="helper-sub">Suggested destinations</div>
+      <div class="examples-list">
+        @for (item of helper.destinationExamples; track item) {
+          <span class="example-chip mono">{{ item }}</span>
+        }
+      </div>
+
+      <div class="helper-list">
+        @for (line of helper.helperLines; track line) {
+          <div class="helper-line">{{ line }}</div>
+        }
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <div class="inline-note">
+        <mat-icon>info</mat-icon>
+        <span>{{ translationHint }}</span>
+      </div>
+    </section>
+
+    <section class="surface-block">
+      <div class="section-title">Rule definition</div>
+      <div class="section-copy">
+        Capture only the fields needed to define this rule. More advanced value translation can be configured later.
+      </div>
+
+      <form class="form-grid" [formGroup]="form">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Target type</mat-label>
+          <mat-select formControlName="target_type">
+            @for (item of targetTypes; track item) {
+              <mat-option [value]="item">{{ item }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Transform kind</mat-label>
+          <mat-select formControlName="transform_kind">
+            @for (item of transformKinds; track item) {
+              <mat-option [value]="item">{{ item }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+          <mat-label>Source field</mat-label>
+          <input matInput formControlName="source_field" placeholder="Example: result.value" />
+          <mat-hint>
+            Required for direct and lookup mappings. Leave empty only when using a constant.
+          </mat-hint>
+          @if (form.controls['source_field'].hasError('required') && form.controls['source_field'].touched) {
+            <mat-error>Source field is required for this transform kind.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+          <mat-label>Destination field</mat-label>
+          <input matInput formControlName="destination_field" placeholder="Example: payload.result.value" />
+          <mat-hint>Use a destination path that matches the selected connector style.</mat-hint>
+          @if (form.controls['destination_field'].hasError('required') && form.controls['destination_field'].touched) {
+            <mat-error>Destination field is required.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (isConstantTransform) {
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+            <mat-label>Constant value</mat-label>
+            <input matInput formControlName="constant_value" placeholder="Example: PROGRAM_ID" />
+            <mat-hint>Provide the exact value that should always be sent for this destination.</mat-hint>
+            @if (form.controls['constant_value'].hasError('required') && form.controls['constant_value'].touched) {
+              <mat-error>Constant value is required when using a constant transform.</mat-error>
+            }
+          </mat-form-field>
+        }
+
+        <div class="toggle-row full-width">
+          <mat-slide-toggle formControlName="enabled">Rule enabled</mat-slide-toggle>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">
+    {{ data.mode === 'create' ? 'Create rule' : 'Save changes' }}
+  </button>
+</div>
