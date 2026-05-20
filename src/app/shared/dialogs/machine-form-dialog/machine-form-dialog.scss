@@ -179,3 +179,23 @@ mat-form-field {
 :host ::ng-deep .mat-mdc-dialog-content {
   overflow-x: hidden !important;
 }
+
+.connection-helper {
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-left: 4px solid #2563eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.helper-title {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.helper-text {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}

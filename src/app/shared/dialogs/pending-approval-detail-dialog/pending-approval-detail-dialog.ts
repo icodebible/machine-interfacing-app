@@ -57,11 +57,9 @@ export class PendingApprovalDetailDialog {
 
   currentApprover() {
     const u: any = this.auth.user?.();
-    const display = u?.displayName || u?.name || [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
     const username = u?.username || u?.email || u?.id || 'Unknown approver';
     const roles = Array.isArray(u?.roles) ? u.roles.join(', ') : '';
-    const identity = display ? `${display} • ${username}` : username;
-    return roles ? `${identity} • ${roles}` : identity;
+    return roles ? `${username} • ${roles}` : username;
   }
 
   canAct() {
@@ -69,7 +67,9 @@ export class PendingApprovalDetailDialog {
   }
 
   canReevaluate() {
-    return ['PENDING_POLICY', 'POLICY_DISABLED'].includes(String(this.row()?.status ?? ''));
+    return ['PENDING_POLICY', 'POLICY_DISABLED', 'PENDING_APPROVAL'].includes(
+      String(this.row()?.status ?? ''),
+    );
   }
 
   actionBlockedMessage() {
@@ -80,44 +80,10 @@ export class PendingApprovalDetailDialog {
         ? 'Enable the matched approval policy before approving this result.'
         : row?.status === 'PENDING_POLICY'
           ? 'Configure and enable a matching policy with routing targets before approval can continue.'
-          : 'This result is not ready for approval yet.')
+          : row?.status === 'PENDING_APPROVAL'
+            ? 'Approval is pending. You can re-check the policy to refresh matched routing targets before taking action.'
+            : 'This result is not ready for approval yet.')
     );
-  }
-
-  reviewAlert() {
-    const row = this.row();
-    if (!row) return null;
-
-    if (row?.status === 'POLICY_DISABLED') {
-      return {
-        tone: 'bad',
-        title: 'Policy is disabled',
-        message: this.actionBlockedMessage(),
-      };
-    }
-
-    if (row?.status === 'PENDING_POLICY') {
-      return {
-        tone: 'warn',
-        title: 'Policy configuration required',
-        message: this.actionBlockedMessage(),
-      };
-    }
-
-    if (row?.last_error) {
-      return {
-        tone: 'warn',
-        title: 'Operational warning',
-        message: row.last_error,
-      };
-    }
-
-    return {
-      tone: 'info',
-      title: 'Ready for review',
-      message:
-        'Review the normalized result context, policy scope, and routing targets before deciding whether to approve or reject.',
-    };
   }
 
   async reevaluatePolicy() {
@@ -127,7 +93,7 @@ export class PendingApprovalDetailDialog {
     try {
       this.actionInProgress.set(true);
       await this.api.resultReevaluatePolicy(row.normalized_result_id);
-      this.ref.close({ changed: true, action: 'reevaluate' });
+      this.close(true);
     } finally {
       this.actionInProgress.set(false);
     }
@@ -182,29 +148,19 @@ export class PendingApprovalDetailDialog {
     }
   }
 
+  routeTargetList() {
+    return Array.isArray(this.row()?.route_targets) ? this.row()?.route_targets : [];
+  }
+
   routeTargetSummary() {
     const targets = this.routeTargetList();
     if (!targets.length) return 'No route targets configured';
     return targets.map((target: any) => target.name || target.id).join(', ');
   }
 
-  routeTargetList() {
-    return this.row()?.route_targets ?? [];
-  }
-
   resultValueSummary() {
     const row = this.row();
     return [row?.value, row?.units].filter(Boolean).join(' ') || 'Value not available';
-  }
-
-  patientSummary() {
-    const row = this.row();
-    return row?.patient_name || row?.patient_id || 'Patient information not available';
-  }
-
-  sampleOrderSummary() {
-    const row = this.row();
-    return row?.sample_id || row?.order_id || 'No sample or order reference';
   }
 
   prettyJson(value?: any) {
@@ -238,6 +194,9 @@ export class PendingApprovalDetailDialog {
         return 'bad';
       case 'PENDING_APPROVAL':
         return 'warn';
+      case 'PENDING_POLICY':
+      case 'POLICY_DISABLED':
+        return 'idle';
       default:
         return 'idle';
     }

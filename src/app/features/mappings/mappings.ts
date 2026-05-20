@@ -54,6 +54,18 @@ type MappingRow = {
   updated_at: string;
 };
 
+type TranslationRow = {
+  id: string;
+  source_value?: string | null;
+  destination_value?: string | null;
+  source?: string | null;
+  destination?: string | null;
+  from_value?: string | null;
+  to_value?: string | null;
+  enabled?: number | null;
+  updated_at?: string | null;
+};
+
 @Component({
   selector: 'app-mappings',
   standalone: true,
@@ -90,34 +102,103 @@ export class Mappings {
       id: 'dhis2-event',
       targetType: 'DHIS2',
       title: 'DHIS2 event starter',
-      description: 'Builds a configurable DHIS2 event payload using indexed array paths.',
-      useCase: 'Use when you need an event payload without hardcoding a DHIS2-specific adapter.',
+      description: 'Adds minimum event context and common result data values for DHIS2 delivery.',
+      useCase: 'Use when you need a fast baseline for event-based DHIS2 result submission.',
       rules: [
-        { source_field: '', destination_field: 'events[0].status', transform_kind: 'constant', constant_value: 'COMPLETED' },
-        { source_field: '', destination_field: 'events[0].program', transform_kind: 'constant', constant_value: 'PROGRAM_UID', note: 'Replace with the actual DHIS2 program uid.' },
-        { source_field: '', destination_field: 'events[0].programStage', transform_kind: 'constant', constant_value: 'PROGRAM_STAGE_UID', note: 'Replace with the actual program stage uid.' },
-        { source_field: '', destination_field: 'events[0].orgUnit', transform_kind: 'constant', constant_value: 'ORG_UNIT_UID', note: 'Replace with the correct org unit uid.' },
-        { source_field: 'patient.id', destination_field: 'events[0].trackedEntity', transform_kind: 'direct' },
-        { source_field: 'result.observedAt', destination_field: 'events[0].occurredAt', transform_kind: 'direct' },
-        { source_field: '', destination_field: 'events[0].dataValues[0].dataElement', transform_kind: 'constant', constant_value: 'DATA_ELEMENT_UID_RESULT_VALUE' },
-        { source_field: 'result.value', destination_field: 'events[0].dataValues[0].value', transform_kind: 'direct' },
+        {
+          source_field: '',
+          destination_field: 'event.program',
+          transform_kind: 'constant',
+          constant_value: 'PROGRAM_ID',
+          note: 'Replace with the actual DHIS2 program id.',
+        },
+        {
+          source_field: '',
+          destination_field: 'event.programStage',
+          transform_kind: 'constant',
+          constant_value: 'PROGRAM_STAGE_ID',
+          note: 'Replace with the actual program stage id.',
+        },
+        {
+          source_field: '',
+          destination_field: 'event.orgUnit',
+          transform_kind: 'constant',
+          constant_value: 'ORG_UNIT_UID',
+          note: 'Replace with the correct org unit uid.',
+        },
+        {
+          source_field: 'result.observedAt',
+          destination_field: 'event.eventDate',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.value',
+          destination_field: 'event.dataValues.resultValue',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.testCode',
+          destination_field: 'event.dataValues.testCode',
+          transform_kind: 'direct',
+        },
       ],
     },
     {
       id: 'dhis2-tracker',
       targetType: 'DHIS2',
       title: 'DHIS2 tracker starter',
-      description: 'Bootstraps a tracked entity payload with attributes, enrollment, and one event.',
-      useCase: 'Use when the receiver expects tracker-style payloads with trackedEntities, attributes, and enrollment/event nesting.',
+      description:
+        'Bootstraps tracked entity, attributes, enrollment, and event-oriented tracker payload mapping.',
+      useCase:
+        'Use when the receiver expects DHIS2 tracker-style payloads instead of a flat event body.',
       rules: [
-        { source_field: '', destination_field: 'trackedEntities[0].trackedEntityType', transform_kind: 'constant', constant_value: 'TRACKED_ENTITY_TYPE_UID', note: 'Replace with the target tracked entity type uid.' },
-        { source_field: '', destination_field: 'trackedEntities[0].orgUnit', transform_kind: 'constant', constant_value: 'ORG_UNIT_UID', note: 'Replace with the correct organisation unit uid.' },
-        { source_field: '', destination_field: 'trackedEntities[0].attributes[0].attribute', transform_kind: 'constant', constant_value: 'ATTRIBUTE_UID_PATIENT_ID' },
-        { source_field: 'patient.id', destination_field: 'trackedEntities[0].attributes[0].value', transform_kind: 'direct' },
-        { source_field: '', destination_field: 'trackedEntities[0].enrollments[0].program', transform_kind: 'constant', constant_value: 'PROGRAM_UID' },
-        { source_field: 'result.observedAt', destination_field: 'trackedEntities[0].enrollments[0].occurredAt', transform_kind: 'direct' },
-        { source_field: '', destination_field: 'trackedEntities[0].enrollments[0].events[0].programStage', transform_kind: 'constant', constant_value: 'PROGRAM_STAGE_UID' },
-        { source_field: 'result.value', destination_field: 'trackedEntities[0].enrollments[0].events[0].dataValues[0].value', transform_kind: 'direct' },
+        {
+          source_field: '',
+          destination_field: 'trackedEntities[0].trackedEntityType',
+          transform_kind: 'constant',
+          constant_value: 'TRACKED_ENTITY_TYPE_UID',
+          note: 'Replace with the target tracked entity type uid.',
+        },
+        {
+          source_field: '',
+          destination_field: 'trackedEntities[0].orgUnit',
+          transform_kind: 'constant',
+          constant_value: 'ORG_UNIT_UID',
+          note: 'Replace with the correct organisation unit uid.',
+        },
+        {
+          source_field: '',
+          destination_field: 'trackedEntities[0].attributes[0].attribute',
+          transform_kind: 'constant',
+          constant_value: 'ATTRIBUTE_UID_PATIENT_ID',
+        },
+        {
+          source_field: 'patient.identifier',
+          destination_field: 'trackedEntities[0].attributes[0].value',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: '',
+          destination_field: 'trackedEntities[0].enrollments[0].program',
+          transform_kind: 'constant',
+          constant_value: 'PROGRAM_UID',
+        },
+        {
+          source_field: 'result.observedAt',
+          destination_field: 'trackedEntities[0].enrollments[0].occurredAt',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: '',
+          destination_field: 'trackedEntities[0].enrollments[0].events[0].programStage',
+          transform_kind: 'constant',
+          constant_value: 'PROGRAM_STAGE_UID',
+        },
+        {
+          source_field: 'result.value',
+          destination_field: 'trackedEntities[0].enrollments[0].events[0].dataValues[0].value',
+          transform_kind: 'direct',
+        },
       ],
     },
     {
@@ -127,11 +208,29 @@ export class Mappings {
       description: 'Provides identifiers, encounter timing, and a minimal obs payload shape.',
       useCase: 'Use when an OpenMRS instance expects a small encounter and observation payload.',
       rules: [
-        { source_field: 'patient.id', destination_field: 'patient.identifier', transform_kind: 'direct' },
-        { source_field: 'result.observedAt', destination_field: 'encounter.encounterDatetime', transform_kind: 'direct' },
-        { source_field: 'result.code', destination_field: 'obs.concept', transform_kind: 'direct' },
+        {
+          source_field: 'patient.identifier',
+          destination_field: 'patient.identifier',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.observedAt',
+          destination_field: 'encounter.encounterDatetime',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.testCode',
+          destination_field: 'obs.concept',
+          transform_kind: 'direct',
+        },
         { source_field: 'result.value', destination_field: 'obs.value', transform_kind: 'direct' },
-        { source_field: '', destination_field: 'encounter.encounterType', transform_kind: 'constant', constant_value: 'LAB_RESULT', note: 'Replace with the OpenMRS encounter type you expect.' },
+        {
+          source_field: '',
+          destination_field: 'encounter.encounterType',
+          transform_kind: 'constant',
+          constant_value: 'LAB_RESULT',
+          note: 'Replace with the OpenMRS encounter type you expect.',
+        },
       ],
     },
     {
@@ -141,11 +240,31 @@ export class Mappings {
       description: 'Builds a specimen- and result-focused structure for LIS delivery.',
       useCase: 'Use when the receiving LIS expects accession-based result payloads.',
       rules: [
-        { source_field: 'patient.id', destination_field: 'patient.identifier', transform_kind: 'direct' },
-        { source_field: 'order.id', destination_field: 'specimen.accessionNumber', transform_kind: 'direct' },
-        { source_field: 'result.code', destination_field: 'result.testCode', transform_kind: 'direct' },
-        { source_field: 'result.value', destination_field: 'result.value', transform_kind: 'direct' },
-        { source_field: 'result.units', destination_field: 'result.units', transform_kind: 'direct' },
+        {
+          source_field: 'patient.identifier',
+          destination_field: 'patient.identifier',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'specimen.accessionNumber',
+          destination_field: 'specimen.accessionNumber',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.testCode',
+          destination_field: 'result.testCode',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.value',
+          destination_field: 'result.value',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.units',
+          destination_field: 'result.units',
+          transform_kind: 'direct',
+        },
       ],
     },
     {
@@ -155,25 +274,51 @@ export class Mappings {
       description: 'Provides a partner-friendly nested JSON shape for custom endpoints.',
       useCase: 'Use when a partner endpoint accepts a structured JSON payload over HTTP.',
       rules: [
-        { source_field: 'patient.id', destination_field: 'payload.patient.identifier', transform_kind: 'direct' },
-        { source_field: 'result.code', destination_field: 'payload.result.code', transform_kind: 'direct' },
-        { source_field: 'result.value', destination_field: 'payload.result.value', transform_kind: 'direct' },
-        { source_field: 'result.observedAt', destination_field: 'payload.result.observedAt', transform_kind: 'direct' },
-        { source_field: '', destination_field: 'payload.source', transform_kind: 'constant', constant_value: 'machine-interfacing', note: 'Use a stable source identifier agreed with the partner.' },
+        {
+          source_field: 'patient.identifier',
+          destination_field: 'payload.patient.identifier',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.testCode',
+          destination_field: 'payload.result.code',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.value',
+          destination_field: 'payload.result.value',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: 'result.observedAt',
+          destination_field: 'payload.result.observedAt',
+          transform_kind: 'direct',
+        },
+        {
+          source_field: '',
+          destination_field: 'payload.source',
+          transform_kind: 'constant',
+          constant_value: 'machine-interfacing',
+          note: 'Use a stable source identifier agreed with the partner.',
+        },
       ],
     },
   ];
 
   loading = signal(false);
   rows = signal<MappingRow[]>([]);
+  showStarterTemplates = signal(false);
   validation = signal<any | null>(null);
   selectedTargetType = signal<MappingTargetType | 'ALL'>('ALL');
-  selectedTemplateId = signal<string | null>('dhis2-event');
+  selectedTemplateId = signal<string>('dhis2-event');
   translationCountMap = signal<Record<string, number>>({});
+  translationMap = signal<Record<string, TranslationRow[]>>({});
+  expandedId = signal<string | null>(null);
   pageIndex = signal(0);
   pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50];
-  cols: string[] = ['target', 'source', 'destination', 'kind', 'valueMode', 'status', 'actions'];
+  cols: string[] = ['target', 'destination', 'transform', 'valueMode', 'status', 'actions'];
+  detailCols: string[] = ['expandedDetail'];
 
   readonly filteredRows = computed(() => {
     const type = this.selectedTargetType();
@@ -188,23 +333,44 @@ export class Mappings {
 
   readonly visibleTemplates = computed(() => {
     const type = this.selectedTargetType();
-    return type === 'ALL' ? this.templates : this.templates.filter((item) => item.targetType === type);
+    return type === 'ALL'
+      ? this.templates
+      : this.templates.filter((item) => item.targetType === type);
   });
 
   readonly selectedTemplate = computed(() => {
-    const preferred = this.selectedTemplateId();
     const visible = this.visibleTemplates();
-    return visible.find((item) => item.id === preferred) ?? visible[0] ?? null;
+    return visible.find((item) => item.id === this.selectedTemplateId()) ?? visible[0] ?? null;
   });
 
   readonly selectedTemplateSummary = computed(() => {
     const template = this.selectedTemplate();
     if (!template) return null;
-    const required = template.rules.filter((rule) => rule.transform_kind === 'constant' || !!rule.note);
+    const required = template.rules.filter(
+      (rule) => rule.transform_kind === 'constant' || !!rule.note,
+    );
     return {
       template,
       requiredCount: required.length,
       previewRules: template.rules.slice(0, 3),
+    };
+  });
+
+  readonly summary = computed(() => {
+    const rows = this.filteredRows();
+    const enabled = rows.filter((row) => Number(row.enabled) === 1).length;
+    const valueMapped = rows.filter((row) => Number(row.value_mapping_enabled ?? 0) === 1).length;
+    const strictFallback = rows.filter((row) => row.unmapped_behavior === 'ERROR').length;
+    const connectorFamilies = new Set(rows.map((row) => row.target_type)).size;
+    const totalValueMappings = rows.reduce((sum, row) => sum + this.translationCount(row.id), 0);
+
+    return {
+      total: rows.length,
+      enabled,
+      valueMapped,
+      totalValueMappings,
+      strictFallback,
+      connectorFamilies,
     };
   });
 
@@ -291,19 +457,16 @@ export class Mappings {
     });
 
     const changed = await firstValueFrom(ref.afterClosed());
-    if (changed) {
-      await this.refresh();
-    }
+    if (changed) await this.refresh();
   }
 
   async remove(row: MappingRow) {
-    if (!confirm(`Delete mapping "${row.source_field || 'constant'} → ${row.destination_field}"?`)) {
+    if (!confirm(`Delete mapping "${row.source_field || 'constant'} → ${row.destination_field}"?`))
       return;
-    }
-
     try {
       await this.api.mappingsDelete(row.id);
       this.snack.open('Mapping rule deleted', 'Close', { duration: 1800 });
+      if (this.expandedId() === row.id) this.expandedId.set(null);
       await this.refresh();
     } catch (e: any) {
       this.snack.open(e?.message ?? 'Failed to delete mapping rule', 'Close', { duration: 3500 });
@@ -311,7 +474,11 @@ export class Mappings {
   }
 
   async validate(type?: MappingTargetType) {
-    const targetType = type ?? (this.selectedTargetType() === 'ALL' ? this.selectedTemplate()?.targetType ?? 'DHIS2' : this.selectedTargetType());
+    const targetType =
+      type ??
+      (this.selectedTargetType() === 'ALL'
+        ? (this.selectedTemplate()?.targetType ?? 'DHIS2')
+        : this.selectedTargetType());
     try {
       const result = await this.api.mappingsValidate(targetType);
       this.validation.set(result);
@@ -332,12 +499,17 @@ export class Mappings {
 
   async applyTemplate(template: TemplateGroup) {
     const existingRows = this.rows().filter((row) => row.target_type === template.targetType);
-    const existingDestinations = new Set(existingRows.map((row) => String(row.destination_field ?? '').trim()).filter(Boolean));
-
-    const toCreate = template.rules.filter((rule) => !existingDestinations.has(String(rule.destination_field ?? '').trim()));
+    const existingDestinations = new Set(
+      existingRows.map((row) => String(row.destination_field ?? '').trim()).filter(Boolean),
+    );
+    const toCreate = template.rules.filter(
+      (rule) => !existingDestinations.has(String(rule.destination_field ?? '').trim()),
+    );
 
     if (toCreate.length === 0) {
-      this.snack.open(`${template.title} is already present. No new rules were added.`, 'Close', { duration: 2600 });
+      this.snack.open(`${template.title} is already present. No new rules were added.`, 'Close', {
+        duration: 2600,
+      });
       return;
     }
 
@@ -349,7 +521,7 @@ export class Mappings {
           source_field: rule.transform_kind === 'constant' ? '' : rule.source_field,
           destination_field: rule.destination_field,
           transform_kind: rule.transform_kind,
-          constant_value: rule.transform_kind === 'constant' ? rule.constant_value ?? '' : null,
+          constant_value: rule.transform_kind === 'constant' ? (rule.constant_value ?? '') : null,
           enabled: rule.enabled ?? 1,
         });
       }
@@ -358,10 +530,16 @@ export class Mappings {
       this.selectedTargetType.set(template.targetType);
       this.selectedTemplateId.set(template.id);
       this.pageIndex.set(0);
-      this.snack.open(`Added ${toCreate.length} starter rule${toCreate.length === 1 ? '' : 's'} from ${template.title}.`, 'Close', { duration: 2800 });
+      this.snack.open(
+        `Added ${toCreate.length} starter rule${toCreate.length === 1 ? '' : 's'} for ${template.targetType}.`,
+        'Close',
+        { duration: 2800 },
+      );
       await this.validate(template.targetType);
     } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to apply starter template', 'Close', { duration: 3500 });
+      this.snack.open(e?.message ?? 'Failed to apply starter template', 'Close', {
+        duration: 3500,
+      });
     } finally {
       this.loading.set(false);
     }
@@ -370,14 +548,7 @@ export class Mappings {
   setTargetType(type: MappingTargetType | 'ALL') {
     this.selectedTargetType.set(type);
     this.pageIndex.set(0);
-    if (type === 'ALL') {
-      this.validation.set(null);
-      return;
-    }
-    const firstForType = this.templates.find((item) => item.targetType === type);
-    if (firstForType) {
-      this.selectedTemplateId.set(firstForType.id);
-    }
+    if (type === 'ALL') this.validation.set(null);
     this.ensureValidPage();
   }
 
@@ -385,11 +556,12 @@ export class Mappings {
     this.selectedTemplateId.set(template.id);
   }
 
-  focusTemplate(template: TemplateGroup) {
-    this.selectedTargetType.set(template.targetType);
-    this.selectedTemplateId.set(template.id);
-    this.pageIndex.set(0);
-    this.ensureValidPage();
+  toggleStarterTemplates() {
+    this.showStarterTemplates.update((value) => !value);
+  }
+
+  toggleExpanded(row: MappingRow) {
+    this.expandedId.update((current) => (current === row.id ? null : row.id));
   }
 
   onPageChange(event: PageEvent) {
@@ -399,6 +571,41 @@ export class Mappings {
 
   helperCount(type: MappingTargetType) {
     return this.rows().filter((row) => row.target_type === type).length;
+  }
+
+  transformPreviewLabel(row: MappingRow) {
+    if (row.transform_kind === 'constant') return row.constant_value || 'Constant value';
+    if (row.transform_kind === 'lookup') return `Lookup from ${row.source_field || 'source field'}`;
+    return row.source_field || 'Direct mapping';
+  }
+
+  rowSummaryNotes(row: MappingRow) {
+    const notes: Array<{ kind: 'info' | 'warn'; text: string }> = [];
+    if (row.value_mapping_enabled === 1) {
+      notes.push({
+        kind: 'info',
+        text: `${this.translationCount(row.id)} value translation${this.translationCount(row.id) === 1 ? '' : 's'} configured.`,
+      });
+    } else {
+      notes.push({ kind: 'info', text: 'Value translation is not enabled for this field.' });
+    }
+    if (row.unmapped_behavior === 'ERROR') {
+      notes.push({
+        kind: 'warn',
+        text: 'Unmapped values are configured to stop delivery until translated.',
+      });
+    } else if (row.unmapped_behavior === 'DEFAULT_VALUE') {
+      notes.push({
+        kind: 'info',
+        text: `Fallback default value: ${row.default_destination_value || 'not set'}`,
+      });
+    } else {
+      notes.push({
+        kind: 'info',
+        text: `Fallback behavior: ${this.unmappedBehaviorLabel(row.unmapped_behavior)}`,
+      });
+    }
+    return notes;
   }
 
   valueModeLabel(row: MappingRow): string {
@@ -434,21 +641,161 @@ export class Mappings {
     }
   }
 
+  transformKindLabel(kind: TransformKind): string {
+    switch (kind) {
+      case 'constant':
+        return 'Constant';
+      case 'lookup':
+        return 'Lookup';
+      case 'direct':
+      default:
+        return 'Direct';
+    }
+  }
+
+  transformKindTone(kind: TransformKind): 'direct' | 'constant' | 'lookup' {
+    return kind;
+  }
+
+  translationRows(mappingRuleId: string): TranslationRow[] {
+    return this.translationMap()[mappingRuleId] ?? [];
+  }
+
+  translationPairsPreview(row: MappingRow, limit = 3): string[] {
+    return this.translationRows(row.id)
+      .map(
+        (item) =>
+          `${this.translationSourceValue(item) || '—'} → ${this.translationDestinationValue(item) || '—'}`,
+      )
+      .slice(0, limit);
+  }
+
+  remainingTranslationCount(row: MappingRow, limit = 3): number {
+    return Math.max(0, this.translationCount(row.id) - limit);
+  }
+
+  hasTranslations(row: MappingRow): boolean {
+    return this.translationCount(row.id) > 0;
+  }
+
+  translationSourceValue(item: TranslationRow): string {
+    return String(item.source_value ?? item.source ?? item.from_value ?? '').trim() || '—';
+  }
+
+  translationDestinationValue(item: TranslationRow): string {
+    return String(item.destination_value ?? item.destination ?? item.to_value ?? '').trim() || '—';
+  }
+
+  mappingReadiness(row: MappingRow): {
+    label: string;
+    tone: 'ok' | 'warn' | 'idle';
+    description: string;
+  } {
+    const translationEnabled = Number(row.value_mapping_enabled ?? 0) === 1;
+    const count = this.translationCount(row.id);
+
+    if (row.enabled !== 1) {
+      return {
+        label: 'Inactive',
+        tone: 'idle',
+        description:
+          'This rule is currently disabled and will not participate in transformation output.',
+      };
+    }
+
+    if (translationEnabled && row.unmapped_behavior === 'ERROR') {
+      return {
+        label: 'Strict',
+        tone: 'warn',
+        description:
+          count > 0
+            ? 'Unmapped incoming values will stop delivery until they are translated explicitly.'
+            : 'Value translation is enabled in strict mode, but no mapping values are configured yet.',
+      };
+    }
+
+    if (translationEnabled && count > 0) {
+      return {
+        label: 'Ready',
+        tone: 'ok',
+        description: `This rule includes ${count} value mapping${count === 1 ? '' : 's'} and a defined fallback strategy.`,
+      };
+    }
+
+    return {
+      label: 'Flexible',
+      tone: 'idle',
+      description:
+        'This rule relies on direct passthrough or fallback handling instead of explicit translation pairs.',
+    };
+  }
+
+  validationHealthTone(): 'ok' | 'warn' | 'idle' {
+    const validation = this.validation();
+    if (!validation) return 'idle';
+    return validation.ok ? 'ok' : 'warn';
+  }
+
+  validationHealthLabel(): string {
+    const validation = this.validation();
+    if (!validation) return 'Not validated';
+    return validation.ok ? 'Ready for use' : 'Needs attention';
+  }
+
+  validationHighlights() {
+    const validation = this.validation();
+    const summary = validation?.summary ?? {};
+    return [
+      {
+        label: 'Readiness',
+        value: this.validationHealthLabel(),
+        sub: validation?.message ?? 'Run validation to review connector-specific rule integrity.',
+        tone: this.validationHealthTone(),
+      },
+      {
+        label: 'Enabled rules',
+        value: String(summary.enabledRules ?? 0),
+        sub: 'Rules currently participating in transform output.',
+        tone: 'ok' as const,
+      },
+      {
+        label: 'Duplicate destinations',
+        value: String(summary.duplicateDestinations ?? 0),
+        sub: 'Multiple rules targeting the same destination path.',
+        tone: (summary.duplicateDestinations ?? 0) > 0 ? ('warn' as const) : ('ok' as const),
+      },
+      {
+        label: 'Unsupported kinds',
+        value: String(summary.unsupportedKinds ?? 0),
+        sub: 'Transform kinds not supported by the current target handler.',
+        tone: (summary.unsupportedKinds ?? 0) > 0 ? ('warn' as const) : ('ok' as const),
+      },
+    ];
+  }
+
+  trackById = (_index: number, row: MappingRow) => row.id;
+
   private async refreshTranslationCounts(rows: MappingRow[]) {
     const settled = await Promise.allSettled(
-      rows.map(async (row) => ({
-        id: row.id,
-        count: (await this.api.mappingValueTranslationsList(row.id)).length,
-      })),
+      rows.map(async (row) => {
+        const translations = ((await this.api.mappingValueTranslationsList(row.id)) ??
+          []) as TranslationRow[];
+        return { id: row.id, count: translations.length, translations };
+      }),
     );
 
-    const map: Record<string, number> = {};
+    const countMap: Record<string, number> = {};
+    const translationsMap: Record<string, TranslationRow[]> = {};
+
     for (const item of settled) {
       if (item.status === 'fulfilled') {
-        map[item.value.id] = item.value.count;
+        countMap[item.value.id] = item.value.count;
+        translationsMap[item.value.id] = item.value.translations;
       }
     }
-    this.translationCountMap.set(map);
+
+    this.translationCountMap.set(countMap);
+    this.translationMap.set(translationsMap);
   }
 
   private ensureValidPage() {

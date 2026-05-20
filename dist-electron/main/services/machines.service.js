@@ -27,7 +27,7 @@ class MachinesService {
             id, lab_id,
             name, code, model, brand, version, manufacturer,
             connection_type,
-            host, port,
+            host, port, tcp_mode,
             serial_port, baud_rate, data_bits, stop_bits, parity,
             ftp_host, ftp_port, ftp_user, ftp_password, ftp_remote_dir,
             watch_dir, watch_pattern,
@@ -37,7 +37,7 @@ class MachinesService {
             created_by_user_id, created_by_username,
             updated_by_user_id, updated_by_username
         ) VALUES (
-            ?, ?,
+            ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
             ?,
             ?, ?,
@@ -50,7 +50,7 @@ class MachinesService {
             ?, ?,
             ?, ?
         )
-        `).run(id, dto.lab_id, dto.name, dto.code ?? null, dto.model ?? null, dto.brand ?? null, dto.version ?? null, dto.manufacturer ?? null, dto.connection_type, dto.host ?? null, dto.port ?? null, dto.serial_port ?? null, dto.baud_rate ?? null, dto.data_bits ?? null, dto.stop_bits ?? null, dto.parity ?? null, dto.ftp_host ?? null, dto.ftp_port ?? null, dto.ftp_user ?? null, dto.ftp_password ?? null, dto.ftp_remote_dir ?? null, dto.watch_dir ?? null, dto.watch_pattern ?? null, dto.protocol, dto.is_active ?? 1, dto.auto_connect ?? 0, ts, ts, actor?.id ?? null, actor?.username ?? null, actor?.id ?? null, actor?.username ?? null);
+        `).run(id, dto.lab_id, dto.name, dto.code ?? null, dto.model ?? null, dto.brand ?? null, dto.version ?? null, dto.manufacturer ?? null, dto.connection_type, dto.host ?? null, dto.port ?? null, dto.tcp_mode ?? 'SERVER', dto.serial_port ?? null, dto.baud_rate ?? null, dto.data_bits ?? null, dto.stop_bits ?? null, dto.parity ?? null, dto.ftp_host ?? null, dto.ftp_port ?? null, dto.ftp_user ?? null, dto.ftp_password ?? null, dto.ftp_remote_dir ?? null, dto.watch_dir ?? null, dto.watch_pattern ?? null, dto.protocol, dto.is_active ?? 1, dto.auto_connect ?? 0, ts, ts, actor?.id ?? null, actor?.username ?? null, actor?.id ?? null, actor?.username ?? null);
         (0, auditLog_1.logEvent)({
             level: 'info',
             source: 'APP',
@@ -78,6 +78,7 @@ class MachinesService {
             protocol = COALESCE(?, protocol),
             host = COALESCE(?, host),
             port = COALESCE(?, port),
+            tcp_mode = COALESCE(?, tcp_mode),
             serial_port = COALESCE(?, serial_port),
             baud_rate = COALESCE(?, baud_rate),
             data_bits = COALESCE(?, data_bits),
@@ -97,7 +98,7 @@ class MachinesService {
             updated_by_username = ?
         WHERE id = ?
     `)
-            .run(dto.lab_id ?? null, dto.name ?? null, dto.code ?? null, dto.brand ?? null, dto.model ?? null, dto.version ?? null, dto.manufacturer ?? null, dto.connection_type ?? null, dto.protocol ?? null, dto.host ?? null, dto.port ?? null, dto.serial_port ?? null, dto.baud_rate ?? null, dto.data_bits ?? null, dto.stop_bits ?? null, dto.parity ?? null, dto.ftp_host ?? null, dto.ftp_port ?? null, dto.ftp_user ?? null, dto.ftp_password ?? null, dto.ftp_remote_dir ?? null, dto.auto_connect ?? null, dto.watch_dir ?? null, dto.watch_pattern ?? null, dto.is_active ?? null, ts, actor?.id ?? null, actor?.username ?? null, id);
+            .run(dto.lab_id ?? null, dto.name ?? null, dto.code ?? null, dto.brand ?? null, dto.model ?? null, dto.version ?? null, dto.manufacturer ?? null, dto.connection_type ?? null, dto.protocol ?? null, dto.host ?? null, dto.port ?? null, dto.tcp_mode ?? null, dto.serial_port ?? null, dto.baud_rate ?? null, dto.data_bits ?? null, dto.stop_bits ?? null, dto.parity ?? null, dto.ftp_host ?? null, dto.ftp_port ?? null, dto.ftp_user ?? null, dto.ftp_password ?? null, dto.ftp_remote_dir ?? null, dto.auto_connect ?? null, dto.watch_dir ?? null, dto.watch_pattern ?? null, dto.is_active ?? null, ts, actor?.id ?? null, actor?.username ?? null, id);
         if (res.changes !== 1)
             throw new Error(`Machine update failed (id=${id})`);
         (0, auditLog_1.logEvent)({
@@ -156,7 +157,7 @@ class MachinesService {
                 }
                 return {
                     ok: true,
-                    message: `TCP configuration looks valid (${machine.host}:${machine.port})`,
+                    message: `${machine.tcp_mode === 'CLIENT' ? 'TCP client will connect to' : 'TCP server will listen on'} ${machine.host}:${machine.port}`,
                 };
             case 'SERIAL':
                 if (!machine.serial_port) {

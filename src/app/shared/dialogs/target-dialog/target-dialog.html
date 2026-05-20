@@ -1,70 +1,380 @@
-<h2 mat-dialog-title>{{ data.mode === 'create' ? 'New Target' : 'Edit Target' }}</h2>
+<h2 mat-dialog-title class="dialog-title">{{ dialogTitle() }}</h2>
+<div class="dialog-subtitle">{{ dialogSubtitle() }}</div>
+
+@if (isBusy()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
 
 <mat-dialog-content class="dialog-content">
-    @if (data.mode === 'create' && data.presetLabel) {
-    <div class="preset-banner">
-        <div class="preset-title">Starter loaded: {{ data.presetLabel }}</div>
-        @for (note of data.presetNotes ?? []; track note) {
-        <div class="preset-line">- {{ note }}</div>
-        }
-    </div>
-    }
+    
+  <!-- @if (data.presetLabel) {
+    <section class="banner-card">
+      <div>
+        <div class="banner-title">{{ data.presetLabel }}</div>
+        <div class="banner-sub">A starter template was applied to help you move faster while keeping the configuration fully editable.</div>
+      </div>
 
-    @if (data.mode === 'create' && data.recommendedOperationalDefaults) {
-    <div class="helper-card">
-        <div class="helper-title">Recommended operational defaults</div>
-        <div class="helper-line">- Request timeout: {{ data.recommendedOperationalDefaults.requestTimeoutMs }} ms</div>
-        <div class="helper-line">- Auto retry: {{ data.recommendedOperationalDefaults.autoRetry }}</div>
-        <div class="helper-line">- Max attempts: {{ data.recommendedOperationalDefaults.maxAttempts }}</div>
-        <div class="helper-line">- Backoff: {{ data.recommendedOperationalDefaults.backoffStrategy }}</div>
-        <div class="helper-line">- Base delay: {{ data.recommendedOperationalDefaults.baseDelayMs }} ms</div>
-        <div class="helper-line">- Delay cap: {{ data.recommendedOperationalDefaults.maxDelayMs }} ms</div>
-        <div class="helper-sub">These are applied later in the connector-specific target configuration and retry workflow.</div>
-    </div>
-    }
-
-    <div class="helper-card">
-        <div class="helper-title">{{ helper.label }}</div>
-        <div class="helper-sub">
-            Example base URL: <span class="mono">{{ helper.exampleUrl }}</span>
+      @if (data.presetNotes?.length) {
+        <div class="banner-notes">
+          @for (note of data.presetNotes; track note) {
+            <div class="banner-note">{{ note }}</div>
+          }
         </div>
-        @for (line of helper.helperLines; track line) {
-        <div class="helper-line">- {{ line }}</div>
+      }
+    </section>
+  } -->
+
+  <section class="summary-strip">
+    @for (item of summaryCards(); track item.label) {
+      <article class="summary-card">
+        <div class="summary-label">{{ item.label }}</div>
+        <div class="summary-value">{{ item.value }}</div>
+        <div class="summary-note">{{ item.note }}</div>
+      </article>
+    }
+  </section>
+
+  <section class="section-switcher" aria-label="Target workspace sections">
+    <button
+      type="button"
+      class="section-switch"
+      [class.active]="activeSection() === 'overview'"
+      (click)="setActiveSection('overview')"
+    >
+      <mat-icon>dashboard_customize</mat-icon>
+      Overview
+    </button>
+
+    <button
+      type="button"
+      class="section-switch"
+      [class.active]="activeSection() === 'security'"
+      (click)="setActiveSection('security')"
+    >
+      <mat-icon>shield</mat-icon>
+      Security &amp; test
+    </button>
+
+    <button
+      type="button"
+      class="section-switch"
+      [class.active]="activeSection() === 'preview'"
+      (click)="setActiveSection('preview')"
+    >
+      <mat-icon>preview</mat-icon>
+      Preview
+    </button>
+  </section>
+
+  @if (activeSection() === 'overview') {
+    <section class="section-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Overview</div>
+          <div class="section-sub">Core target identity and outbound delivery behavior.</div>
+        </div>
+      </div>
+
+      <form class="form-grid" [formGroup]="form">
+        <mat-form-field appearance="outline" class="span-6">
+          <mat-label>Target name</mat-label>
+          <input matInput formControlName="name" placeholder="DHIS2 Production" />
+          <mat-error>Target name is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-3">
+          <mat-label>Target type</mat-label>
+          <mat-select formControlName="type">
+            <mat-option value="DHIS2">DHIS2</mat-option>
+            <mat-option value="OPENMRS">OpenMRS</mat-option>
+            <mat-option value="LIS">LIS</mat-option>
+            <mat-option value="CUSTOM_HTTP">Custom HTTP</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="toggle-card span-3">
+          <div>
+            <div class="toggle-title">Enabled</div>
+            <div class="toggle-sub">Allow this target to receive routed queue items.</div>
+          </div>
+          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+        </div>
+
+        <mat-form-field appearance="outline" class="span-6">
+          <mat-label>Base URL</mat-label>
+          <input matInput formControlName="base_url" placeholder="https://example.org/api" />
+          <mat-error>Base URL is required.</mat-error>
+        </mat-form-field>
+
+        <article class="helper-card span-6">
+          <div class="helper-title">Configuration guidance for {{ selectedType() }}</div>
+          <div class="helper-summary">{{ helper().summary }}</div>
+          <ul class="helper-list">
+            @for (note of helper().guidance; track note) {
+              <li>{{ note }}</li>
+            }
+          </ul>
+        </article>
+
+        <section class="settings-card span-6">
+          <div class="settings-head">
+            <div>
+              <div class="settings-title">Delivery controls</div>
+              <div class="settings-sub">Recommended operational defaults that keep delivery stable in production.</div>
+            </div>
+          </div>
+
+          <div class="nested-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Request timeout (ms)</mat-label>
+              <input matInput type="number" formControlName="request_timeout_ms" />
+            </mat-form-field>
+
+            <div class="toggle-card compact">
+              <div>
+                <div class="toggle-title">Auto retry</div>
+                <div class="toggle-sub">Retry transient delivery failures.</div>
+              </div>
+              <mat-slide-toggle formControlName="auto_retry_enabled"></mat-slide-toggle>
+            </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Max retry attempts</mat-label>
+              <input matInput type="number" formControlName="max_retry_attempts" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Backoff strategy</mat-label>
+              <mat-select formControlName="retry_backoff_strategy">
+                <mat-option value="FIXED">Fixed</mat-option>
+                <mat-option value="LINEAR">Linear</mat-option>
+                <mat-option value="EXPONENTIAL">Exponential</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Initial retry delay (ms)</mat-label>
+              <input matInput type="number" formControlName="initial_retry_delay_ms" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Max retry delay (ms)</mat-label>
+              <input matInput type="number" formControlName="max_retry_delay_ms" />
+            </mat-form-field>
+          </div>
+        </section>
+      </form>
+    </section>
+  }
+
+  @if (activeSection() === 'security') {
+    <section class="section-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Security &amp; connection test</div>
+          <div class="section-sub">Manage authentication, transport trust, and run a targeted connectivity check.</div>
+        </div>
+      </div>
+
+      @if (!isPersisted()) {
+        <div class="notice-card warning">
+          Save the target first to unlock security storage and connection testing.
+        </div>
+      }
+
+      <div class="form-grid security-grid">
+        <mat-form-field appearance="outline" class="span-3">
+          <mat-label>Authentication type</mat-label>
+          <mat-select [value]="authType()" (selectionChange)="authType.set($event.value)">
+            <mat-option value="none">None</mat-option>
+            <mat-option value="bearer">Bearer token</mat-option>
+            <mat-option value="basic">Basic auth</mat-option>
+            <mat-option value="api_key">API key header</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="toggle-card span-3">
+          <div>
+            <div class="toggle-title">Allow insecure TLS</div>
+            <div class="toggle-sub">Use only for controlled testing or non-production endpoints.</div>
+          </div>
+          <mat-slide-toggle [checked]="allowInsecureTls()" (change)="allowInsecureTls.set($event.checked)"></mat-slide-toggle>
+        </div>
+
+        @if (authType() === 'basic') {
+          <mat-form-field appearance="outline" class="span-3">
+            <mat-label>Username</mat-label>
+            <input matInput [value]="username()" (input)="username.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-3">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" [value]="password()" (input)="password.set($any($event.target).value)" />
+          </mat-form-field>
         }
-    </div>
 
-    <mat-divider></mat-divider>
+        @if (authType() === 'bearer') {
+          <mat-form-field appearance="outline" class="span-6">
+            <mat-label>Bearer token</mat-label>
+            <textarea matInput rows="4" [value]="token()" (input)="token.set($any($event.target).value)"></textarea>
+          </mat-form-field>
+        }
 
-    <form class="form-grid" [formGroup]="form">
-        <mat-form-field appearance="outline">
-            <mat-label>Target name</mat-label>
-            <input matInput formControlName="name" />
-            <mat-hint>Human-readable name used in queue, history, and diagnostics.</mat-hint>
+        @if (authType() === 'api_key') {
+          <mat-form-field appearance="outline" class="span-3">
+            <mat-label>Header name</mat-label>
+            <input matInput [value]="apiKeyName()" (input)="apiKeyName.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-3">
+            <mat-label>Header value</mat-label>
+            <input matInput type="password" [value]="apiKeyValue()" (input)="apiKeyValue.set($any($event.target).value)" />
+          </mat-form-field>
+        }
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <section class="test-card">
+        <div class="test-head">
+          <div>
+            <div class="settings-title">Connection diagnostics</div>
+            <div class="settings-sub">Run a focused health check against the target with the current saved settings.</div>
+          </div>
+        </div>
+
+        @if (diagnostics()) {
+          <div class="diagnostic-summary" [class.ok]="diagnostics()?.ok" [class.bad]="!diagnostics()?.ok">
+            <div class="diagnostic-title">{{ diagnostics()?.ok ? 'Connection check passed' : 'Connection check returned issues' }}</div>
+            <div class="diagnostic-sub">{{ diagnostics()?.message || 'Review the details below.' }}</div>
+          </div>
+
+          <div class="diagnostic-grid">
+            <div>
+              <strong>Status code</strong>
+              <div class="diagnostic-meta">{{ diagnostics()?.statusCode ?? '—' }}</div>
+            </div>
+            <div>
+              <strong>Response time</strong>
+              <div class="diagnostic-meta">{{ diagnostics()?.durationMs ?? '—' }} ms</div>
+            </div>
+            <div class="span-2">
+              <strong>Details</strong>
+              <pre class="code-block">{{ formatJson(diagnostics()) }}</pre>
+            </div>
+          </div>
+        } @else {
+          <div class="notice-card">No connection test has been run in this session yet.</div>
+        }
+      </section>
+    </section>
+  }
+
+  @if (activeSection() === 'preview') {
+    <section class="section-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Transformation preview</div>
+          <div class="section-sub">Preview the final mapped outbound payload before results are routed to this target.</div>
+        </div>
+      </div>
+
+      @if (!isPersisted()) {
+        <div class="notice-card warning">
+          Save the target first to enable preview generation.
+        </div>
+      }
+
+      <div class="preview-controls">
+        <mat-form-field appearance="outline" class="preview-id-field">
+          <mat-label>Normalized result id</mat-label>
+          <input matInput [value]="normalizedResultId()" (input)="normalizedResultId.set($any($event.target).value)" placeholder="Enter normalized result id" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
-            <mat-label>Target type</mat-label>
-            <mat-select formControlName="type">
-                @for (item of targetTypes; track item) {
-                <mat-option [value]="item">{{ item }}</mat-option>
+        <div class="preview-meta-card">
+          <div class="mini-label">Saved target</div>
+          <div class="mini-value">{{ currentRow()?.name || 'Not yet saved' }}</div>
+          <div class="preview-meta-sub">{{ currentRow()?.base_url || 'Save the target to continue.' }}</div>
+        </div>
+      </div>
+
+      @if (preview()) {
+        <div class="preview-result-grid">
+          <section class="result-card">
+            <div class="settings-title">Preview summary</div>
+            <div class="summary-grid-mini">
+              <div>
+                <strong>Target type</strong>
+                <div class="diagnostic-meta">{{ preview()?.targetType }}</div>
+              </div>
+              <div>
+                <strong>Preview name</strong>
+                <div class="diagnostic-meta">{{ preview()?.previewName }}</div>
+              </div>
+              <div>
+                <strong>Normalized result id</strong>
+                <div class="diagnostic-meta">{{ preview()?.normalizedResultId }}</div>
+              </div>
+              <div>
+                <strong>Target id</strong>
+                <div class="diagnostic-meta">{{ preview()?.targetId }}</div>
+              </div>
+            </div>
+          </section>
+
+          @if (preview()?.warnings?.length) {
+            <section class="result-card warning-card">
+              <div class="settings-title">Warnings</div>
+              <ul class="helper-list">
+                @for (warning of preview()?.warnings || []; track warning) {
+                  <li>{{ warning }}</li>
                 }
-            </mat-select>
-            <mat-hint>Connector behavior, validation, and mapping guidance depend on this type.</mat-hint>
-        </mat-form-field>
+              </ul>
+            </section>
+          }
 
-        <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Base URL</mat-label>
-            <input matInput formControlName="base_url" />
-            <mat-hint>Secrets are managed separately from this form.</mat-hint>
-        </mat-form-field>
-
-        <mat-slide-toggle formControlName="enabled">Enabled</mat-slide-toggle>
-    </form>
+          <section class="result-card span-2">
+            <div class="settings-title">Generated payload</div>
+            <pre class="code-block">{{ formatJson(preview()?.payload) }}</pre>
+          </section>
+        </div>
+      } @else {
+        <div class="notice-card">Run preview to inspect the final outbound JSON generated by the current target and mapping configuration.</div>
+      }
+    </section>
+  }
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="cancel()">Cancel</button>
-    <button mat-flat-button color="primary" type="button" (click)="save()">
-        {{ data.mode === 'create' ? 'Create target' : 'Save changes' }}
-    </button>
+<mat-dialog-actions class="dialog-actions">
+  <button mat-button type="button" (click)="close()">Close</button>
+
+  <div class="action-group">
+    @if (activeSection() === 'overview') {
+      <button mat-stroked-button type="button" (click)="setActiveSection('security')" [disabled]="!isPersisted()">Security &amp; test</button>
+      <button mat-flat-button color="primary" type="button" (click)="saveTarget()" [disabled]="savingTarget()">
+        <mat-icon>save</mat-icon>
+        {{ isPersisted() ? 'Save target' : 'Create target' }}
+      </button>
+    }
+
+    @if (activeSection() === 'security') {
+      <button mat-stroked-button type="button" (click)="setActiveSection('overview')">Overview</button>
+      <button mat-stroked-button type="button" (click)="saveSecurity()" [disabled]="!isPersisted() || savingSecrets() || loadingSecrets()">
+        <mat-icon>key</mat-icon>
+        Save security
+      </button>
+      <button mat-flat-button color="primary" type="button" (click)="testConnection()" [disabled]="!isPersisted() || testingConnection()">
+        <mat-icon>health_and_safety</mat-icon>
+        Test connection
+      </button>
+    }
+
+    @if (activeSection() === 'preview') {
+      <button mat-stroked-button type="button" (click)="setActiveSection('security')">Security &amp; test</button>
+      <button mat-flat-button color="primary" type="button" (click)="generatePreview()" [disabled]="!isPersisted() || generatingPreview()">
+        <mat-icon>preview</mat-icon>
+        Run preview
+      </button>
+    }
+  </div>
 </mat-dialog-actions>

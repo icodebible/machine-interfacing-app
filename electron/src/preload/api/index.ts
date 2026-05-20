@@ -4,6 +4,8 @@ import type { AppAPI } from './types';
 import { RUNTIME_EVENT_CHANNEL } from '../../main/runtime/runtime-event-bus';
 
 export const api: AppAPI = {
+    // preload index.ts
+    copyToClipboard: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.COPY_TO_CLIPBOARD, text),
     // Base
     getAppVersion: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_VERSION),
     ping: (msg) => ipcRenderer.invoke(IPC_CHANNELS.APP_PING, msg),

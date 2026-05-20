@@ -4,10 +4,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { firstValueFrom } from 'rxjs';
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { ApprovalPolicyDialog } from '../../shared/dialogs/approval-policy-dialog/approval-policy-dialog';
@@ -46,17 +46,18 @@ export class ApprovalPolicies {
   pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50];
 
-  readonly summary = computed(() => {
+  summary = computed(() => {
     const rows = this.rows();
     return {
       total: rows.length,
       enabled: rows.filter((row: any) => row.enabled === 1).length,
       requiresApproval: rows.filter((row: any) => row.requires_approval === 1).length,
       global: rows.filter((row: any) => !row.applies_to_lab_id && !row.applies_to_machine_id).length,
+      withRouteTargets: rows.filter((row: any) => this.routeTargetIds(row).length > 0).length,
     };
   });
 
-  readonly pagedRows = computed(() => {
+  pagedRows = computed(() => {
     const start = this.pageIndex() * this.pageSize();
     return this.rows().slice(start, start + this.pageSize());
   });
@@ -233,52 +234,35 @@ export class ApprovalPolicies {
     return parts.length ? parts.join(' • ') : 'Global';
   }
 
-  routingLabel(row: any) {
-    const targetIds = Array.isArray(row?.route_target_ids)
-      ? row.route_target_ids
-      : row?.applies_to_target_id
-        ? [row.applies_to_target_id]
-        : [];
-    if (!targetIds.length) return 'No routing targets configured';
-
-    const labels = targetIds.map((id: string) => this.findTarget(id)?.name || id);
-    return labels.join(', ');
-  }
-
-  routingCount(row: any) {
-    const targetIds = Array.isArray(row?.route_target_ids)
-      ? row.route_target_ids
-      : row?.applies_to_target_id
-        ? [row.applies_to_target_id]
-        : [];
-    return targetIds.filter(Boolean).length;
-  }
-
   scopeKind(row: any) {
     return row?.applies_to_lab_id || row?.applies_to_machine_id ? 'scoped' : 'global';
   }
 
-  policyNotes(row: any) {
-    const notes: Array<{ kind: 'info' | 'warn'; text: string }> = [];
-    if (row?.requires_approval === 1 && this.routingCount(row) === 0) {
-      notes.push({
-        kind: 'warn',
-        text: 'Approval is required, but no routing targets are configured yet. Approved results will remain held until targets are added.',
-      });
-    }
-    if (row?.requires_approval === 0 && this.routingCount(row) === 0) {
-      notes.push({
-        kind: 'warn',
-        text: 'Auto-route is allowed, but there are no routing targets configured, so matching results will still be held.',
-      });
-    }
-    if (!notes.length) {
-      notes.push({
-        kind: 'info',
-        text: 'This policy has a valid approval/routing structure for the current scope.',
-      });
-    }
-    return notes;
+  routeTargetIds(row: any): string[] {
+    const ids = Array.isArray(row?.route_target_ids)
+      ? row.route_target_ids
+      : row?.applies_to_target_id
+        ? [row.applies_to_target_id]
+        : [];
+
+    return Array.from(
+      new Set(
+        ids
+          .map((value: unknown) => String(value ?? '').trim())
+          .filter((value: string) => value.length > 0),
+      ),
+    );
+  }
+
+  routeTargets(row: any) {
+    const ids = this.routeTargetIds(row);
+    return ids.map((id) => this.findTarget(id) ?? { id, name: id }).filter(Boolean);
+  }
+
+  routeTargetSummary(row: any) {
+    const targets = this.routeTargets(row);
+    if (!targets.length) return 'No route targets configured';
+    return targets.map((target: any) => target.name || target.id).join(', ');
   }
 
   statusClass(enabled?: number | null) {

@@ -23,7 +23,8 @@ export class PlatformApiService {
 
     // ✅ Clipboard helper
     copy(text: string) {
-        return window.platform.copyToClipboard(text);
+        // return window.platform.copyToClipboard(text);
+        return this.api.copyToClipboard(text);
     }
 
     usersList() {

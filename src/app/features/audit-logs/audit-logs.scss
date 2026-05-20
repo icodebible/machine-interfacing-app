@@ -389,3 +389,51 @@
         grid-template-columns: 1fr;
     }
 }
+
+.filters-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.filters-sub,
+.summary-sub,
+.card-meta {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.summary-grid--delivery .summary-card.total .value,
+.summary-grid--system .summary-card.total .value {
+  color: #2c6692;
+}
+
+.summary-card.info-tone .value {
+  color: #155eef;
+}
+
+.card-head-inline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.callout.warn {
+  background: rgba(180, 83, 9, 0.08);
+  border-color: rgba(180, 83, 9, 0.18);
+}
+
+@media (max-width: 1360px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

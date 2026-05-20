@@ -1,282 +1,522 @@
 <div class="content">
-    <div class="page-toolbar">
-        <div class="title-wrap">
-            <div class="title">Transform Mappings</div>
-            <div class="sub">
-                Define, validate, and maintain connector-specific mapping rules. Starter templates support both event and tracker-style structures without hardcoded payload adapters.
-            </div>
-        </div>
-
-        <div class="toolbar-actions">
-            <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
-                Refresh
-            </button>
-
-            <button mat-stroked-button (click)="validate()" [disabled]="selectedTargetType() === 'ALL' && !selectedTemplate()">
-                <mat-icon>rule</mat-icon>
-                Validate Selected
-            </button>
-
-            <button mat-flat-button color="primary"
-                (click)="openCreate(selectedTargetType() === 'ALL' ? undefined : selectedTargetType())">
-                <mat-icon>add</mat-icon>
-                New Rule
-            </button>
-        </div>
+  <div class="page-toolbar mappings-toolbar">
+    <div class="title-wrap mappings-title-wrap">
+      <div class="title">Transform Mappings</div>
+      <div class="sub">
+        Define, validate, and maintain connector-specific mapping rules. Starter templates support
+        both event and tracker-style structures without hardcoded payload adapters.
+      </div>
     </div>
 
-    <div class="filter-panel card">
-        <div class="panel-head">
-            <div>
-                <div class="section-title">Connector filter</div>
-                <div class="section-sub">
-                    Choose a connector family to focus starter help, validation, rules, and value translation.
-                </div>
-            </div>
+    <div class="toolbar-actions mappings-toolbar-actions">
+      <button mat-stroked-button type="button" (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="validate()"
+        [disabled]="selectedTargetType() === 'ALL' && !selectedTemplate()"
+      >
+        <mat-icon>rule</mat-icon>
+        Validate Selected
+      </button>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="openCreate(selectedTargetType() === 'ALL' ? undefined : selectedTargetType())"
+      >
+        <mat-icon>add</mat-icon>
+        New Rule
+      </button>
+    </div>
+  </div>
+
+  <section class="summary-grid" aria-label="Mappings summary">
+    <article class="summary-card primary">
+      <div class="summary-label">Rules in view</div>
+      <div class="summary-value">{{ summary().total }}</div>
+      <div class="summary-sub">Mapping rules for the current connector scope</div>
+    </article>
+
+    <article class="summary-card success">
+      <div class="summary-label">Enabled</div>
+      <div class="summary-value">{{ summary().enabled }}</div>
+      <div class="summary-sub">Rules currently active in transformation output</div>
+    </article>
+
+    <article class="summary-card accent">
+      <div class="summary-label">Value-mapped fields</div>
+      <div class="summary-value">{{ summary().valueMapped }}</div>
+      <div class="summary-sub">Rules using explicit source-to-destination translation</div>
+    </article>
+
+    <article class="summary-card info">
+      <div class="summary-label">Value maps</div>
+      <div class="summary-value">{{ summary().totalValueMappings }}</div>
+      <div class="summary-sub">Configured translation pairs across the current view</div>
+    </article>
+
+    <article class="summary-card warning">
+      <div class="summary-label">Strict fallback</div>
+      <div class="summary-value">{{ summary().strictFallback }}</div>
+      <div class="summary-sub">Rules that stop delivery when incoming values are unmapped</div>
+    </article>
+  </section>
+
+  <section class="starter-panel card">
+    <div class="panel-head starter-panel__head starter-panel__head--toggle">
+      <div>
+        <div class="section-title">Starter templates</div>
+        <div class="section-sub">
+          Open the template workspace only when needed, then filter by connector family and apply
+          the baseline that matches your payload contract.
+        </div>
+      </div>
+
+      <div class="template-toggle-actions">
+        <span class="status-pill info">{{ visibleTemplates().length }} visible</span>
+        <button mat-button type="button" (click)="toggleStarterTemplates()">
+          {{ showStarterTemplates() ? 'Collapse templates' : 'Open templates' }}
+        </button>
+      </div>
+    </div>
+
+    @if (showStarterTemplates()) {
+      <div class="starter-filter-wrap">
+        <div>
+          <div class="section-title">Connector filter</div>
+          <div class="section-sub">
+            Filter starter templates and mapping rules inside the template workspace instead of
+            showing this section by default.
+          </div>
         </div>
 
         <div class="filter-row">
-            @for (type of targetTypes; track type) {
-            <button mat-stroked-button [class.active-filter]="selectedTargetType() === type"
-                (click)="setTargetType(type)">
-                {{ type }}
-                @if (type !== 'ALL') {
+          @for (type of targetTypes; track type) {
+            <button
+              mat-stroked-button
+              [class.active-filter]="selectedTargetType() === type"
+              (click)="setTargetType(type)"
+            >
+              {{ type }}
+              @if (type !== 'ALL') {
                 <span class="filter-count">{{ helperCount(type) }}</span>
-                }
+              }
             </button>
-            }
+          }
         </div>
-    </div>
+      </div>
 
-    <div class="starter-panel card">
-        <div class="panel-head">
-            <div>
-                <div class="section-title">Starter templates</div>
-                <div class="section-sub">
-                    Use these to bootstrap connector rules quickly, then continue in the rule table below.
+      <div class="starter-strip">
+        @for (template of visibleTemplates(); track template.id) {
+          <div
+            class="starter-chip-card"
+            [class.active]="selectedTemplate()!.id === template.id"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="'Select ' + template.title"
+            (click)="selectTemplate(template)"
+            (keydown.enter)="selectTemplate(template)"
+            (keydown.space)="selectTemplate(template); $event.preventDefault()"
+          >
+            <div class="starter-chip-card__top">
+              <div>
+                <div class="starter-chip-card__title">{{ template.title }}</div>
+                <div class="starter-chip-card__meta">
+                  {{ template.rules.length }} rules · {{ template.targetType }}
                 </div>
+              </div>
+              <div class="template-chip">{{ template.targetType }}</div>
             </div>
 
-            @if (selectedTemplateSummary(); as summary) {
-            <button mat-flat-button color="primary" (click)="applySelectedTemplate()">
+            <div class="starter-chip-card__description">{{ template.description }}</div>
+
+            <div class="starter-chip-card__actions single-row-actions">
+              <button
+                mat-button
+                color="primary"
+                type="button"
+                (click)="
+                  selectTemplate(template); applyTemplate(template); $event.stopPropagation()
+                "
+              >
                 <mat-icon>playlist_add_check</mat-icon>
-                Apply {{ summary.template.title }}
-            </button>
-            }
-        </div>
-
-        <div class="starter-strip">
-            @for (template of visibleTemplates(); track template.id) {
-            <div class="starter-chip-card" [class.active]="selectedTemplate()!.id === template.id">
-                <div class="starter-chip-card__top">
-                    <div>
-                        <div class="starter-chip-card__title">{{ template.title }}</div>
-                        <div class="starter-chip-card__meta">
-                            {{ template.rules.length }} rules · {{ template.targetType }}
-                        </div>
-                    </div>
-                    <div class="template-chip">{{ template.targetType }}</div>
-                </div>
-
-                <div class="starter-chip-card__actions">
-                    <button mat-button (click)="focusTemplate(template)">
-                        <mat-icon>filter_alt</mat-icon>
-                        Focus
-                    </button>
-                    <button mat-button (click)="selectTemplate(template)">
-                        <mat-icon>done</mat-icon>
-                        Select
-                    </button>
-                    <button mat-button (click)="openTemplateInfo(template)">
-                        <mat-icon>info</mat-icon>
-                        More info
-                    </button>
-                </div>
+                Apply
+              </button>
+              <button
+                mat-button
+                type="button"
+                (click)="openTemplateInfo(template); $event.stopPropagation()"
+              >
+                <mat-icon>info</mat-icon>
+                More info
+              </button>
             </div>
-            }
-        </div>
-
-        @if (selectedTemplateSummary(); as summary) {
-        <div class="starter-focus">
-            <div class="starter-focus__copy">
-                <div class="starter-focus__title">{{ summary.template.title }}</div>
-                <div class="starter-focus__sub">{{ summary.template.description }}</div>
-                <div class="starter-focus__facts">
-                    <span class="info-pill">{{ summary.template.rules.length }} starter rules</span>
-                    <span class="info-pill">{{ summary.requiredCount }} values require review</span>
-                </div>
-            </div>
-
-            <div class="starter-focus__preview">
-                @for (rule of summary.previewRules; track rule.destination_field) {
-                <div class="starter-preview-row">
-                    <span class="mono">{{ rule.destination_field }}</span>
-                    <span class="muted">
-                        ←
-                        {{
-                        rule.transform_kind === 'constant'
-                        ? (rule.constant_value || 'constant')
-                        : rule.source_field
-                        }}
-                    </span>
-                </div>
-                }
-            </div>
-
-            <div class="starter-focus__actions">
-                <button mat-stroked-button (click)="openTemplateInfo(summary.template)">
-                    <mat-icon>visibility</mat-icon>
-                    View full template
-                </button>
-                <button mat-flat-button color="primary" (click)="applySelectedTemplate()">
-                    <mat-icon>playlist_add_check</mat-icon>
-                    Apply starter
-                </button>
-            </div>
-        </div>
+          </div>
         }
-    </div>
+      </div>
 
-    @if (validation()) {
-    <div class="validation-panel card">
-        <div class="panel-head">
+      @if (validation()) {
+        <div class="validation-panel validation-panel--embedded">
+          <div class="panel-head">
             <div>
-                <div class="section-title">Validation summary</div>
-                <div class="section-sub">Rule integrity and readiness for the current connector selection.</div>
+              <div class="section-title">Validation summary</div>
+              <div class="section-sub">
+                Rule integrity and readiness for the current connector selection.
+              </div>
             </div>
-            <div class="validation-state" [class.ok]="validation()?.ok" [class.warn]="!validation()?.ok">
-                {{ validation()?.message }}
+            <div
+              class="validation-state"
+              [class.ok]="validation()?.ok"
+              [class.warn]="!validation()?.ok"
+            >
+              {{ validation()?.message }}
             </div>
-        </div>
+          </div>
 
-        @if (validation()?.summary) {
-        <div class="validation-summary-grid">
-            <div><b>Enabled rules:</b> {{ validation()?.summary?.enabledRules ?? 0 }}</div>
-            <div><b>Duplicate destinations:</b> {{ validation()?.summary?.duplicateDestinations ?? 0 }}</div>
-            <div><b>Unsupported kinds:</b> {{ validation()?.summary?.unsupportedKinds ?? 0 }}</div>
-        </div>
-        }
-
-        @if (validation()?.errors?.length) {
-        <div class="validation-block error-block">
-            <div><b>Errors</b></div>
-            @for (item of validation()?.errors; track item) {
-            <div>- {{ item }}</div>
+          <div class="validation-summary-grid validation-summary-grid--cards">
+            @for (item of validationHighlights(); track item.label) {
+              <article
+                class="validation-metric-card"
+                [class.ok]="item.tone === 'ok'"
+                [class.warn]="item.tone === 'warn'"
+                [class.idle]="item.tone === 'idle'"
+              >
+                <div class="validation-metric-label">{{ item.label }}</div>
+                <div class="validation-metric-value">{{ item.value }}</div>
+                <div class="validation-metric-sub">{{ item.sub }}</div>
+              </article>
             }
-        </div>
-        }
+          </div>
 
-        @if (validation()?.warnings?.length) {
-        <div class="validation-block warning-block">
-            <div><b>Warnings</b></div>
-            @for (item of validation()?.warnings; track item) {
-            <div>- {{ item }}</div>
-            }
-        </div>
-        }
+          @if (validation()?.errors?.length) {
+            <div class="validation-block error-block">
+              <div><b>Errors</b></div>
+              @for (item of validation()?.errors; track item) {
+                <div>- {{ item }}</div>
+              }
+            </div>
+          }
 
-        @if (validation()?.recommendations?.length) {
-        <div class="validation-block recommendation-block">
-            <div><b>Recommendations</b></div>
-            @for (item of validation()?.recommendations; track item) {
-            <div>- {{ item }}</div>
-            }
+          @if (validation()?.warnings?.length) {
+            <div class="validation-block warning-block">
+              <div><b>Warnings</b></div>
+              @for (item of validation()?.warnings; track item) {
+                <div>- {{ item }}</div>
+              }
+            </div>
+          }
+
+          @if (validation()?.recommendations?.length) {
+            <div class="validation-block recommendation-block">
+              <div><b>Recommendations</b></div>
+              @for (item of validation()?.recommendations; track item) {
+                <div>- {{ item }}</div>
+              }
+            </div>
+          }
         </div>
-        }
-    </div>
+      }
     }
+  </section>
 
-    @if (loading()) {
+  @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-    }
+  }
 
-    <div class="card table-card">
-        <div class="panel-head">
-            <div>
-                <div class="section-title">Mapping rules</div>
-                <div class="section-sub">
-                    This is the primary workspace for rule maintenance. Field mapping defines structure;
-                    value translation optionally standardizes allowed values for each mapped field.
-                </div>
-            </div>
-            <div class="table-meta">{{ filteredRows().length }} rule{{ filteredRows().length === 1 ? '' : 's' }}</div>
+  <div class="card table-card">
+    <div class="panel-head">
+      <div>
+        <div class="section-title">Mapping rules</div>
+        <div class="section-sub">
+          This is the primary workspace for rule maintenance. Click a row to expand important
+          mapping details and translation readiness below it.
         </div>
-
-        <mat-divider></mat-divider>
-
-        <table mat-table [dataSource]="pagedRows()" class="table">
-            <ng-container matColumnDef="target">
-                <th mat-header-cell *matHeaderCellDef>Target Type</th>
-                <td mat-cell *matCellDef="let row">{{ row.target_type }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="source">
-                <th mat-header-cell *matHeaderCellDef>Source Field</th>
-                <td mat-cell *matCellDef="let row">{{ row.source_field || '—' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="destination">
-                <th mat-header-cell *matHeaderCellDef>Destination Field</th>
-                <td mat-cell *matCellDef="let row">
-                    <span class="mono">{{ row.destination_field }}</span>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="kind">
-                <th mat-header-cell *matHeaderCellDef>Transform</th>
-                <td mat-cell *matCellDef="let row">{{ row.transform_kind }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="valueMode">
-                <th mat-header-cell *matHeaderCellDef>Value Translation</th>
-                <td mat-cell *matCellDef="let row">
-                    <span class="status-pill" [class]="valueModeTone(row)">{{ valueModeLabel(row) }}</span>
-                    <div class="cell-sub muted">
-                        Fallback: {{ unmappedBehaviorLabel(row.unmapped_behavior) }}
-                    </div>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let row">
-                    <span class="status-dot" [class.ok]="row.enabled === 1" [class.bad]="row.enabled !== 1"></span>
-                    <span class="muted">{{ row.enabled === 1 ? 'Enabled' : 'Disabled' }}</span>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
-                <td mat-cell *matCellDef="let row" class="actions-col">
-                    <div class="actions-bar">
-                        <button mat-icon-button matTooltip="Edit field mapping" aria-label="Edit field mapping"
-                            (click)="openEdit(row)">
-                            <mat-icon>edit</mat-icon>
-                        </button>
-
-                        <button mat-icon-button matTooltip="Configure value translation"
-                            aria-label="Configure value translation" (click)="openValueTranslations(row)">
-                            <mat-icon>swap_horiz</mat-icon>
-                        </button>
-
-                        <button mat-icon-button color="warn" matTooltip="Delete mapping rule"
-                            aria-label="Delete mapping rule" (click)="remove(row)">
-                            <mat-icon>delete</mat-icon>
-                        </button>
-                    </div>
-                </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols"></tr>
-        </table>
-
-        @if (filteredRows().length === 0 && !loading()) {
-        <div class="empty">No mapping rules found for the current filter.</div>
-        } @else {
-        <mat-paginator [length]="filteredRows().length" [pageIndex]="pageIndex()" [pageSize]="pageSize()"
-            [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons></mat-paginator>
-        }
+      </div>
+      <div class="table-meta">
+        {{ filteredRows().length }} rule{{ filteredRows().length === 1 ? '' : 's' }}
+      </div>
     </div>
+
+    <mat-divider></mat-divider>
+
+    <table mat-table [dataSource]="pagedRows()" class="table" multiTemplateDataRows>
+      <ng-container matColumnDef="target">
+        <th mat-header-cell *matHeaderCellDef>Rule</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-main-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="expander"
+              matTooltip="Expand quick details"
+              [attr.aria-label]="
+                expandedId() === row.id ? 'Collapse mapping row' : 'Expand mapping row'
+              "
+              (click)="toggleExpanded(row); $event.stopPropagation()"
+            >
+              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+
+            <div>
+              <div class="cell-title">{{ row.target_type }}</div>
+              <div class="cell-sub">{{ row.source_field || 'Constant / derived value' }}</div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="destination">
+        <th mat-header-cell *matHeaderCellDef>Destination Field</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">
+            <span class="mono">{{ row.destination_field }}</span>
+          </div>
+          <div class="cell-sub">{{ transformPreviewLabel(row) }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="transform">
+        <th mat-header-cell *matHeaderCellDef>Transform</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="transform-cell-stack">
+            <span
+              class="status-pill transform-pill"
+              [ngClass]="transformKindTone(row.transform_kind)"
+            >
+              {{ transformKindLabel(row.transform_kind) }}
+            </span>
+            @if (row.transform_kind === 'constant') {
+              <span class="status-pill subtle-pill">Fixed output</span>
+            } @else if (row.transform_kind === 'lookup') {
+              <span class="status-pill subtle-pill">Translated input</span>
+            } @else {
+              <span class="status-pill subtle-pill">Source aligned</span>
+            }
+          </div>
+          <!-- <div class="cell-sub">{{ row.constant_value || 'Source-driven value' }}</div> -->
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="valueMode">
+        <th mat-header-cell *matHeaderCellDef>Value Translation</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="transform-cell-stack">
+            <span class="status-pill" [ngClass]="valueModeTone(row)">{{
+              valueModeLabel(row)
+            }}</span>
+            <span class="status-pill info" *ngIf="hasTranslations(row)"
+              >{{ translationCount(row.id) }} configured</span
+            >
+          </div>
+          <div class="cell-sub muted">
+            Fallback: {{ unmappedBehaviorLabel(row.unmapped_behavior) }}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span
+            class="status-dot"
+            [class.ok]="row.enabled === 1"
+            [class.bad]="row.enabled !== 1"
+          ></span>
+          <span class="muted">{{ row.enabled === 1 ? 'Enabled' : 'Disabled' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-col">
+          <div class="actions-bar">
+            <button
+              mat-icon-button
+              matTooltip="Edit field mapping"
+              aria-label="Edit field mapping"
+              (click)="openEdit(row); $event.stopPropagation()"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              matTooltip="Configure value translation"
+              aria-label="Configure value translation"
+              (click)="openValueTranslations(row); $event.stopPropagation()"
+            >
+              <mat-icon>swap_horiz</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              color="warn"
+              matTooltip="Delete mapping rule"
+              aria-label="Delete mapping rule"
+              (click)="remove(row); $event.stopPropagation()"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+          @if (expandedId() === row.id) {
+            <div class="row-expansion-shell mapping-expansion-shell">
+              <div class="expansion-grid mapping-expansion-grid">
+                <div class="expansion-card emphasis">
+                  <div class="expansion-label">Mapping summary</div>
+                  <div class="expansion-value mono">{{ row.destination_field }}</div>
+                  <div class="expansion-meta">{{ transformPreviewLabel(row) }}</div>
+                  <div class="summary-chip-row">
+                    <span
+                      class="status-pill transform-pill"
+                      [ngClass]="transformKindTone(row.transform_kind)"
+                      >{{ transformKindLabel(row.transform_kind) }}</span
+                    >
+                    <span class="status-pill" [ngClass]="valueModeTone(row)">{{
+                      valueModeLabel(row)
+                    }}</span>
+                    @if (hasTranslations(row)) {
+                      <span class="status-pill info"
+                        >{{ translationCount(row.id) }} value mapping{{
+                          translationCount(row.id) === 1 ? '' : 's'
+                        }}</span
+                      >
+                    }
+                  </div>
+                </div>
+
+                <div class="expansion-card">
+                  <div class="expansion-label">Rule context</div>
+                  <div class="quick-grid">
+                    <div><b>Target type:</b> {{ row.target_type }}</div>
+                    <div>
+                      <b>Source field:</b> {{ row.source_field || 'Constant / derived value' }}
+                    </div>
+                    <div><b>Fallback:</b> {{ unmappedBehaviorLabel(row.unmapped_behavior) }}</div>
+                    <div><b>Updated:</b> {{ row.updated_at }}</div>
+                  </div>
+                  <div class="inline-key-metrics">
+                    <div class="metric-chip">
+                      <span class="metric-chip__label">Translation pairs</span>
+                      <span class="metric-chip__value">{{ translationCount(row.id) }}</span>
+                    </div>
+                    <div class="metric-chip">
+                      <span class="metric-chip__label">Default</span>
+                      <span class="metric-chip__value metric-chip__value--text">{{
+                        row.default_destination_value || '—'
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="expansion-card">
+                  <div class="expansion-label">Validation readiness</div>
+                  <div
+                    class="readiness-card"
+                    [class.ok]="mappingReadiness(row).tone === 'ok'"
+                    [class.warn]="mappingReadiness(row).tone === 'warn'"
+                    [class.idle]="mappingReadiness(row).tone === 'idle'"
+                  >
+                    <div class="readiness-card__label">{{ mappingReadiness(row).label }}</div>
+                    <div class="readiness-card__sub">{{ mappingReadiness(row).description }}</div>
+                  </div>
+                  <div class="note-list compact-note-list">
+                    @for (note of rowSummaryNotes(row); track note.text) {
+                      <div
+                        class="context-note"
+                        [class.warn]="note.kind === 'warn'"
+                        [class.info]="note.kind === 'info'"
+                      >
+                        {{ note.text }}
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="expansion-card span-2">
+                  <div class="section-head-inline">
+                    <div>
+                      <div class="expansion-label">Value mapping details</div>
+                      <div class="cell-sub">
+                        All configured source-to-destination translation pairs for this field are
+                        shown here when present.
+                      </div>
+                    </div>
+                    <div class="translation-summary-inline">
+                      <span class="status-pill info">{{ translationCount(row.id) }} total</span>
+                      <span class="status-pill subtle-pill"
+                        >{{ unmappedBehaviorLabel(row.unmapped_behavior) }} fallback</span
+                      >
+                    </div>
+                  </div>
+
+                  @if (hasTranslations(row)) {
+                    <div class="translation-table">
+                      <div class="translation-table__head">
+                        <div>Source value</div>
+                        <div>Destination value</div>
+                      </div>
+                      @for (item of translationRows(row.id); track item.id) {
+                        <div class="translation-table__row">
+                          <div class="translation-cell mono">
+                            {{ translationSourceValue(item) }}
+                          </div>
+                          <div class="translation-cell mono">
+                            {{ translationDestinationValue(item) }}
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="empty-state-inline">
+                      No explicit value mappings are configured for this field yet. Incoming values
+                      will follow the current fallback strategy.
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: cols; trackBy: trackById"
+        class="row-clickable main-row"
+        [class.row-selected]="expandedId() === row.id"
+        (click)="toggleExpanded(row)"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: detailCols; trackBy: trackById"
+        class="detail-row"
+        [class.detail-row-open]="expandedId() === row.id"
+      ></tr>
+    </table>
+
+    @if (filteredRows().length === 0 && !loading()) {
+      <div class="empty">No mapping rules found for the current filter.</div>
+    } @else {
+      <mat-paginator
+        [length]="filteredRows().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  </div>
 </div>

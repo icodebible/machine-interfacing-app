@@ -1,23 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { firstValueFrom } from 'rxjs';
 
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { TargetDialog } from '../../shared/dialogs/target-dialog/target-dialog';
 
 type TargetType = 'DHIS2' | 'OPENMRS' | 'LIS' | 'CUSTOM_HTTP';
+type DialogSection = 'overview' | 'security' | 'preview';
 
 type TargetStarter = {
   type: TargetType;
@@ -28,12 +25,35 @@ type TargetStarter = {
   metadataNotes: string[];
   operationalDefaults: {
     requestTimeoutMs: number;
-    autoRetry: string;
+    autoRetry: boolean;
     maxAttempts: number;
-    backoffStrategy: string;
+    backoffStrategy: 'FIXED' | 'LINEAR' | 'EXPONENTIAL';
     baseDelayMs: number;
     maxDelayMs: number;
   };
+};
+
+type TargetRow = {
+  id: string;
+  type: TargetType;
+  name: string;
+  base_url: string;
+  enabled: number;
+  auto_retry_enabled?: number | null;
+  max_retry_attempts?: number | null;
+  retry_backoff_strategy?: string | null;
+  initial_retry_delay_ms?: number | null;
+  max_retry_delay_ms?: number | null;
+  request_timeout_ms?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by_username?: string | null;
+  updated_by_username?: string | null;
+};
+
+type TargetDialogResult = {
+  changed?: boolean;
+  focusId?: string | null;
 };
 
 @Component({
@@ -41,40 +61,45 @@ type TargetStarter = {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     MatButtonModule,
     MatDialogModule,
     MatDividerModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
     MatProgressBarModule,
-    MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
+    MatTooltipModule,
   ],
   templateUrl: './targets.html',
   styleUrl: './targets.scss',
 })
 export class Targets {
-  private api = inject(PlatformApiService);
-  private snack = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private readonly api = inject(PlatformApiService);
+  private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+
+  readonly cols = ['target', 'delivery', 'status', 'actions'];
+  readonly detailCols = ['expandedDetail'];
+
+  readonly loading = signal(false);
+  readonly rows = signal<TargetRow[]>([]);
+  readonly expandedId = signal<string | null>(null);
+  readonly showStarters = signal(false);
 
   readonly starters: TargetStarter[] = [
     {
       type: 'DHIS2',
       label: 'DHIS2 target',
-      description: 'Tracker / Event API connector with event-oriented mapping defaults.',
+      description: 'Tracker and event API connector for DHIS2-bound payloads and mapped outbound JSON.',
       defaultName: 'DHIS2 Production',
       defaultBaseUrl: 'https://dhis2.example.org/api',
       metadataNotes: [
-        'Use the root API URL instead of a specific endpoint when possible.',
-        'Keep program, stage, and org unit assumptions in mappings instead of embedding them in the URL.',
+        'Use the root API URL instead of a deeply nested endpoint path.',
+        'Keep program, stage, and org unit shaping in mappings instead of embedding them in the URL.',
       ],
       operationalDefaults: {
         requestTimeoutMs: 15000,
-        autoRetry: 'Enabled',
+        autoRetry: true,
         maxAttempts: 3,
         backoffStrategy: 'EXPONENTIAL',
         baseDelayMs: 1500,
@@ -84,16 +109,16 @@ export class Targets {
     {
       type: 'OPENMRS',
       label: 'OpenMRS target',
-      description: 'Clinical result delivery into OpenMRS REST endpoints.',
+      description: 'Clinical result delivery into OpenMRS REST endpoints with mapping-driven payload shaping.',
       defaultName: 'OpenMRS Staging',
       defaultBaseUrl: 'https://openmrs.example.org/ws/rest/v1',
       metadataNotes: [
-        'Keep encounter and observation shaping in mappings rather than baking it into the URL.',
-        'Save credentials under connector security instead of embedding them in the endpoint.',
+        'Keep encounter and observation shaping in mappings rather than baking it into the endpoint URL.',
+        'Store credentials in connector security, not in the endpoint value.',
       ],
       operationalDefaults: {
         requestTimeoutMs: 20000,
-        autoRetry: 'Enabled',
+        autoRetry: true,
         maxAttempts: 3,
         backoffStrategy: 'EXPONENTIAL',
         baseDelayMs: 2000,
@@ -103,16 +128,16 @@ export class Targets {
     {
       type: 'LIS',
       label: 'LIS target',
-      description: 'Laboratory system endpoint using result and specimen-oriented payloads.',
+      description: 'Result and specimen-oriented delivery for laboratory systems with stable inbound contracts.',
       defaultName: 'LIS Inbound',
       defaultBaseUrl: 'https://lis.example.org/api',
       metadataNotes: [
-        'Pair this starter with the LIS mapping template so result and specimen fields are ready.',
+        'Pair this starter with the LIS mapping template so specimen and result fields are aligned.',
         'Confirm accession number, result code, and result value mapping before live send.',
       ],
       operationalDefaults: {
         requestTimeoutMs: 12000,
-        autoRetry: 'Enabled',
+        autoRetry: true,
         maxAttempts: 5,
         backoffStrategy: 'LINEAR',
         baseDelayMs: 1000,
@@ -122,318 +147,214 @@ export class Targets {
     {
       type: 'CUSTOM_HTTP',
       label: 'Custom HTTP target',
-      description: 'Generic JSON connector for partner APIs with a stable contract.',
+      description: 'Generic HTTP JSON endpoint for partner systems and custom payload contracts.',
       defaultName: 'Partner Endpoint',
       defaultBaseUrl: 'https://partner.example.org/inbound/results',
       metadataNotes: [
-        'Use this starter when the remote API is not DHIS2, OpenMRS, or LIS-specific.',
-        'Keep the partner contract in mappings and validate it with the connector harness before go-live.',
+        'Use mappings to shape the exact outbound body expected by the receiving system.',
+        'Keep partner-specific authentication material in the security section.',
       ],
       operationalDefaults: {
         requestTimeoutMs: 10000,
-        autoRetry: 'Disabled by default',
-        maxAttempts: 1,
-        backoffStrategy: 'FIXED',
+        autoRetry: true,
+        maxAttempts: 4,
+        backoffStrategy: 'EXPONENTIAL',
         baseDelayMs: 1000,
-        maxDelayMs: 1000,
+        maxDelayMs: 20000,
       },
     },
   ];
 
-  loading = signal(false);
-  rows = signal<any[]>([]);
-  selected = signal<any | null>(null);
+  readonly summary = computed(() => {
+    const rows = this.rows();
+    const enabled = rows.filter((row) => Number(row.enabled) === 1).length;
+    const disabled = rows.length - enabled;
+    const retryReady = rows.filter((row) => Number(row.auto_retry_enabled ?? 1) === 1).length;
+    const configuredTypes = new Set(rows.map((row) => row.type)).size;
 
-  preview = signal<any | null>(null);
-  previewLoading = signal(false);
-  normalizedResultId = '';
-
-  secretLoading = signal(false);
-  savingSecrets = signal(false);
-  testing = signal(false);
-  diagnostics = signal<string | null>(null);
-  diagnosticsDetails = signal<any | null>(null);
-
-  showToken = signal(false);
-  showPassword = signal(false);
-  showApiKeyValue = signal(false);
-
-  authType: 'none' | 'bearer' | 'basic' | 'api_key' = 'none';
-  username = '';
-  password = '';
-  token = '';
-  apiKeyName = '';
-  apiKeyValue = '';
-  allowInsecureTls = false;
-
-  cols: string[] = ['target', 'type', 'status', 'updated', 'actions'];
+    return {
+      total: rows.length,
+      enabled,
+      disabled,
+      configuredTypes,
+      retryReady,
+    };
+  });
 
   constructor() {
-    this.refresh();
-  }
-
-  starterFor(type?: string | null) {
-    return this.starters.find((item) => item.type === type) ?? null;
-  }
-
-  selectedStarter() {
-    return this.starterFor(this.selected()?.type ?? null);
+    void this.refresh();
   }
 
   async refresh() {
+    this.loading.set(true);
     try {
-      this.loading.set(true);
       const rows = await this.api.targetsList();
-      this.rows.set(rows ?? []);
-
-      const current = this.selected();
-      if (current) {
-        const still = (rows ?? []).find((r: any) => r.id === current.id) ?? null;
-        this.selected.set(still);
-      }
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to load targets', 'Close', {
-        duration: 3500,
-      });
+      this.rows.set((rows ?? []) as TargetRow[]);
+    } catch (error: any) {
+      this.snack.open(error?.message || 'Failed to load targets.', 'Close', { duration: 3500 });
     } finally {
       this.loading.set(false);
     }
   }
 
-  async openCreate(type?: TargetType) {
-    const starter = type ? this.starterFor(type) : null;
+  toggleStarters() {
+    this.showStarters.update((value) => !value);
+  }
 
+  openCreate(starter?: TargetStarter) {
     const ref = this.dialog.open(TargetDialog, {
-      width: 'min(820px, 96vw)',
+      width: '980px',
       maxWidth: '96vw',
       autoFocus: false,
-      restoreFocus: true,
       data: {
         mode: 'create',
+        startSection: 'overview',
         defaults: starter
           ? {
-            type: starter.type,
             name: starter.defaultName,
+            type: starter.type,
             base_url: starter.defaultBaseUrl,
             enabled: 1,
           }
           : undefined,
+        recommendedOperationalDefaults: starter?.operationalDefaults,
         presetLabel: starter?.label,
-        presetNotes: starter?.metadataNotes ?? [],
-        recommendedOperationalDefaults: starter?.operationalDefaults ?? null,
+        presetNotes: starter?.metadataNotes,
       },
     });
 
-    const result = await firstValueFrom(ref.afterClosed());
-    if (!result) return;
+    void firstValueFrom(ref.afterClosed()).then(async (result: TargetDialogResult | undefined) => {
+      if (!result?.changed) {
+        return;
+      }
 
-    try {
-      await this.api.targetsCreate(result);
-      this.snack.open(
-        starter ? `${starter.label} created from recommended defaults` : 'Target created',
-        'Close',
-        { duration: 2200 },
-      );
       await this.refresh();
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to create target', 'Close', {
-        duration: 3500,
-      });
-    }
+
+      if (result.focusId) {
+        this.expandedId.set(result.focusId);
+      }
+    });
   }
 
-  async openEdit(row: any) {
+  openWorkspace(row: TargetRow, startSection: DialogSection = 'overview') {
     const ref = this.dialog.open(TargetDialog, {
-      width: 'min(820px, 96vw)',
+      width: '980px',
       maxWidth: '96vw',
       autoFocus: false,
-      restoreFocus: true,
-      data: { mode: 'edit', row },
+      data: {
+        mode: 'edit',
+        row,
+        startSection,
+      },
     });
 
-    const result = await firstValueFrom(ref.afterClosed());
-    if (!result) return;
+    void firstValueFrom(ref.afterClosed()).then(async (result: TargetDialogResult | undefined) => {
+      if (!result?.changed) {
+        return;
+      }
 
-    try {
-      await this.api.targetsUpdate(row.id, result);
-      this.snack.open('Target updated', 'Close', { duration: 1800 });
       await this.refresh();
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to update target', 'Close', {
-        duration: 3500,
-      });
-    }
+
+      if (result.focusId) {
+        this.expandedId.set(result.focusId);
+      }
+    });
   }
 
-  async remove(row: any) {
-    if (!confirm(`Delete target "${row.name}"?`)) return;
+  async remove(row: TargetRow) {
+    const ok = confirm(`Delete target "${row.name}"? This will not remove historical queue or audit records already created.`);
+    if (!ok) {
+      return;
+    }
 
     try {
       await this.api.targetsDelete(row.id);
+      this.snack.open('Target removed.', 'Close', { duration: 2500 });
 
-      if (this.selected()?.id === row.id) {
-        this.selected.set(null);
-        this.preview.set(null);
-        this.diagnostics.set(null);
-        this.diagnosticsDetails.set(null);
+      if (this.expandedId() === row.id) {
+        this.expandedId.set(null);
       }
 
-      this.snack.open('Target deleted', 'Close', { duration: 1800 });
       await this.refresh();
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to delete target', 'Close', {
-        duration: 3500,
-      });
+    } catch (error: any) {
+      this.snack.open(error?.message || 'Failed to delete target.', 'Close', { duration: 3500 });
     }
   }
 
-  async selectRow(row: any) {
-    this.selected.set(row);
-    this.preview.set(null);
-    this.diagnostics.set(null);
-    this.diagnosticsDetails.set(null);
-    await this.loadSecrets(row.id);
+  toggleExpanded(row: TargetRow) {
+    this.expandedId.update((current) => (current === row.id ? null : row.id));
   }
 
-  async loadSecrets(targetId: string) {
-    try {
-      this.secretLoading.set(true);
-      const secret = await this.api.targetSecretsGet(targetId);
-
-      this.authType = secret?.authType ?? 'none';
-      this.username = secret?.username ?? '';
-      this.password = secret?.password ?? '';
-      this.token = secret?.token ?? '';
-      this.apiKeyName = secret?.apiKeyName ?? '';
-      this.apiKeyValue = secret?.apiKeyValue ?? '';
-      this.allowInsecureTls = !!secret?.allowInsecureTls;
-
-      this.showToken.set(false);
-      this.showPassword.set(false);
-      this.showApiKeyValue.set(false);
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to load connector secrets', 'Close', {
-        duration: 3500,
-      });
-    } finally {
-      this.secretLoading.set(false);
-    }
+  statusClass(enabled: number) {
+    return Number(enabled) === 1 ? 'ok' : 'bad';
   }
 
-  async saveSecrets() {
-    const target = this.selected();
-    if (!target?.id) {
-      this.snack.open('Select a target first.', 'Close', { duration: 2200 });
-      return;
+  formatRetry(row: TargetRow) {
+    if (Number(row.auto_retry_enabled ?? 1) !== 1) {
+      return 'Retry disabled';
     }
 
-    try {
-      this.savingSecrets.set(true);
-
-      await this.api.targetSecretsSave(target.id, {
-        authType: this.authType,
-        username: this.username || null,
-        password: this.password || null,
-        token: this.token || null,
-        apiKeyName: this.apiKeyName || null,
-        apiKeyValue: this.apiKeyValue || null,
-        allowInsecureTls: this.allowInsecureTls,
-      });
-
-      this.snack.open('Connector secrets saved', 'Close', { duration: 1800 });
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to save connector secrets', 'Close', {
-        duration: 3500,
-      });
-    } finally {
-      this.savingSecrets.set(false);
-    }
+    const attempts = row.max_retry_attempts ?? 0;
+    const strategy = row.retry_backoff_strategy || 'EXPONENTIAL';
+    return `${attempts} attempts · ${strategy}`;
   }
 
-  async testConnection() {
-    const target = this.selected();
-    if (!target?.id) {
-      this.snack.open('Select a target first.', 'Close', { duration: 2200 });
-      return;
-    }
-
-    try {
-      this.testing.set(true);
-      this.diagnostics.set(null);
-      this.diagnosticsDetails.set(null);
-
-      const result = await this.api.targetsTest(target.id);
-      this.diagnostics.set(
-        result?.message ?? (result?.ok ? 'Connection successful' : 'Connection failed'),
-      );
-      this.diagnosticsDetails.set(result?.details ?? null);
-
-      this.snack.open(result?.ok ? 'Connection successful' : 'Connection failed', 'Close', {
-        duration: 2200,
-      });
-    } catch (e: any) {
-      this.diagnostics.set(e?.message ?? 'Connection failed');
-      this.diagnosticsDetails.set(null);
-      this.snack.open(e?.message ?? 'Connection test failed', 'Close', {
-        duration: 3500,
-      });
-    } finally {
-      this.testing.set(false);
-    }
+  formatTimeout(row: TargetRow) {
+    const timeout = row.request_timeout_ms ?? 15000;
+    return `${timeout.toLocaleString()} ms timeout`;
   }
 
-  async previewTransform() {
-    const target = this.selected();
-    if (!target?.id) {
-      this.snack.open('Select a target first.', 'Close', { duration: 2200 });
-      return;
+  formatBackoff(row: TargetRow) {
+    if (Number(row.auto_retry_enabled ?? 1) !== 1) {
+      return 'No retry backoff applied';
     }
 
-    if (!this.normalizedResultId.trim()) {
-      this.snack.open('Enter a normalized result ID.', 'Close', { duration: 2200 });
-      return;
-    }
-
-    try {
-      this.previewLoading.set(true);
-      const result = await this.api.targetTransformPreview(
-        target.id,
-        this.normalizedResultId.trim(),
-      );
-      this.preview.set(result);
-    } catch (e: any) {
-      this.snack.open(e?.message ?? 'Failed to generate preview', 'Close', {
-        duration: 3500,
-      });
-    } finally {
-      this.previewLoading.set(false);
-    }
+    const initial = row.initial_retry_delay_ms ?? 0;
+    const max = row.max_retry_delay_ms ?? 0;
+    return `${initial.toLocaleString()} → ${max.toLocaleString()} ms`;
   }
 
   formatDateTime(value?: string | null) {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-
-    return new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(d);
-  }
-
-  prettyJson(value: any) {
-    try {
-      return JSON.stringify(value ?? {}, null, 2);
-    } catch {
-      return String(value);
+    if (!value) {
+      return '—';
     }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString();
   }
 
-  statusClass(enabled?: number | null) {
-    return enabled === 1 ? 'ok' : 'bad';
+  relativeTime(value?: string | null) {
+    if (!value) {
+      return '—';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.round(diffMs / 60000);
+
+    if (minutes < 1) {
+      return 'Just now';
+    }
+    if (minutes < 60) {
+      return `${minutes} min ago`;
+    }
+
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) {
+      return `${hours} hr ago`;
+    }
+
+    const days = Math.round(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
   }
+
+  trackById = (_index: number, row: TargetRow) => row.id;
 }

@@ -1,489 +1,304 @@
-<!-- <div class="content">
-    <div class="page-toolbar">
-        <div class="title-wrap">
-            <h2>Delivery History</h2>
-            <div class="sub">
-                Filter, review, and report connector delivery events across queue and delivery history.
-            </div>
-        </div>
-
-        <div class="toolbar-actions">
-            <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
-                Refresh
-            </button>
-        </div>
-    </div>
-
-    @if (loading()) {
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-    }
-
-    <div class="card">
-        <div class="filter-grid">
-            <mat-form-field appearance="outline">
-                <mat-label>Queue ID</mat-label>
-                <input matInput [(ngModel)]="queueId" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>Target ID</mat-label>
-                <input matInput [(ngModel)]="targetId" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>Operation</mat-label>
-                <mat-select [(ngModel)]="operation">
-                    <mat-option value="">All</mat-option>
-                    <mat-option value="SEND_NOW">SEND_NOW</mat-option>
-                    <mat-option value="RETRY_WORKER">RETRY_WORKER</mat-option>
-                    <mat-option value="HARNESS">HARNESS</mat-option>
-                </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>Status</mat-label>
-                <mat-select [(ngModel)]="status">
-                    <mat-option value="">All</mat-option>
-                    <mat-option value="STARTED">STARTED</mat-option>
-                    <mat-option value="DELIVERED">DELIVERED</mat-option>
-                    <mat-option value="FAILED">FAILED</mat-option>
-                </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>From date</mat-label>
-                <input matInput type="date" [(ngModel)]="fromDate" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>To date</mat-label>
-                <input matInput type="date" [(ngModel)]="toDate" />
-            </mat-form-field>
-        </div>
-
-        <div class="toolbar-actions padded">
-            <button mat-flat-button color="primary" (click)="applyFilters()">Apply Filters</button>
-            <button mat-stroked-button (click)="clearFilters()">Clear</button>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <div class="summary-row">
-            <div class="summary-card">
-                <div class="summary-label">Total events</div>
-                <div class="summary-value">{{ summary().total }}</div>
-            </div>
-            <div class="summary-card good">
-                <div class="summary-label">Delivered</div>
-                <div class="summary-value">{{ summary().delivered }}</div>
-            </div>
-            <div class="summary-card warn">
-                <div class="summary-label">Started</div>
-                <div class="summary-value">{{ summary().started }}</div>
-            </div>
-            <div class="summary-card bad">
-                <div class="summary-label">Failed</div>
-                <div class="summary-value">{{ summary().failed }}</div>
-            </div>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <table mat-table [dataSource]="auditRows()" class="table">
-            <ng-container matColumnDef="created">
-                <th mat-header-cell *matHeaderCellDef>Created</th>
-                <td mat-cell *matCellDef="let row">{{ formatDateTime(row.created_at) }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let row">
-                    <span class="status-dot" [class]="statusClass(row.status)"></span>
-                    <span class="muted">{{ row.status }}</span>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="operation">
-                <th mat-header-cell *matHeaderCellDef>Operation</th>
-                <td mat-cell *matCellDef="let row">{{ row.operation }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="target">
-                <th mat-header-cell *matHeaderCellDef>Target</th>
-                <td mat-cell *matCellDef="let row">
-                    <div class="cell-title">{{ row.target_name || row.target_id }}</div>
-                    <div class="cell-sub">{{ row.target_type || '—' }}</div>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="queue">
-                <th mat-header-cell *matHeaderCellDef>Queue</th>
-                <td mat-cell *matCellDef="let row">{{ row.queue_id }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="attempt">
-                <th mat-header-cell *matHeaderCellDef>Attempt</th>
-                <td mat-cell *matCellDef="let row">{{ row.attempt_no }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="http">
-                <th mat-header-cell *matHeaderCellDef>HTTP</th>
-                <td mat-cell *matCellDef="let row">{{ row.http_status ?? '—' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
-                <td mat-cell *matCellDef="let row" class="actions-col">
-                    <button mat-icon-button (click)="selectAuditRow(row)">
-                        <mat-icon>info</mat-icon>
-                    </button>
-                    <button mat-icon-button color="primary" (click)="previewFromAudit(row)">
-                        <mat-icon>visibility</mat-icon>
-                    </button>
-                </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable"
-                [class.row-selected]="selectedAudit()?.id === row.id" (click)="selectAuditRow(row)"></tr>
-        </table>
-
-        @if (auditRows().length === 0 && !loading()) {
-        <div class="empty">No delivery audit events matched the current filters.</div>
-        }
-
-        @if (selectedAudit()) {
-        <mat-divider></mat-divider>
-
-        @if (previewLoading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-        }
-
-        <div class="detail-panel">
-            <div class="detail-head">
-                <div>
-                    <div class="panel-title">
-                        {{ selectedAudit()?.target_name || selectedAudit()?.target_id }}
-                    </div>
-                    <div class="meta">Queue ID: {{ selectedAudit()?.queue_id }}</div>
-                </div>
-
-                <div class="chip-row">
-                    <div class="status-chip" [class]="statusClass(selectedAudit()?.status)">
-                        {{ selectedAudit()?.status }}
-                    </div>
-                    <button mat-stroked-button color="primary" (click)="previewFromAudit(selectedAudit())">
-                        <mat-icon>visibility</mat-icon>
-                        Preview delivered payload
-                    </button>
-                </div>
-            </div>
-
-            <div class="summary-grid">
-                <div><b>Operation:</b> {{ selectedAudit()?.operation }}</div>
-                <div><b>Attempt:</b> {{ selectedAudit()?.attempt_no }}</div>
-                <div><b>HTTP status:</b> {{ selectedAudit()?.http_status ?? '—' }}</div>
-                <div><b>Correlation ID:</b> {{ selectedAudit()?.correlation_id || '—' }}</div>
-                <div><b>Duration:</b> {{ selectedAudit()?.duration_ms ?? '—' }} ms</div>
-                <div><b>Recorded:</b> {{ formatDateTime(selectedAudit()?.created_at) }}</div>
-            </div>
-
-            @for (alert of auditAlerts(selectedAudit()); track alert.text) {
-            <div [class]="
-              alert.kind === 'bad'
-                ? 'error-box'
-                : alert.kind === 'warn'
-                  ? 'warning-box'
-                  : 'info-box'
-            ">
-                {{ alert.text }}
-            </div>
-            }
-
-            @if (selectedAudit()?.error_message) {
-            <div class="section-title">Error</div>
-            <div class="error-box">{{ selectedAudit()?.error_message }}</div>
-            }
-
-            @if (queuePreview()) {
-            <div class="section-title">{{ queuePreview()?.previewName }}</div>
-
-            @if (queuePreview()?.warnings?.length) {
-            <div class="warning-box">
-                <div><b>Preview warnings</b></div>
-                @for (w of queuePreview()?.warnings; track w) {
-                <div>- {{ w }}</div>
-                }
-            </div>
-            }
-
-            <div class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</div>
-            }
-
-            @if (deliveredRecordForSelected()) {
-            <div class="section-title">Delivered Queue Record</div>
-            <div class="payload mono">
-                {{ prettyJson(deliveredRecordForSelected()?.payload_json) }}
-            </div>
-            }
-        </div>
-        }
-    </div>
-</div> -->
-
-
 <div class="content">
-    <div class="page-toolbar">
-        <div class="title-wrap">
-            <h2>Delivery History</h2>
-            <div class="sub">
-                Filter, review, and report connector delivery events across queue and delivery history.
-            </div>
-        </div>
-
-        <div class="toolbar-actions">
-            <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
-                Refresh
-            </button>
-        </div>
+  <div class="page-toolbar">
+    <div class="title-wrap">
+      <h2>Delivery History</h2>
+      <div class="sub">
+        Filter, review, and report connector delivery events across queue and delivery history.
+      </div>
     </div>
 
-    @if (loading()) {
+    <div class="toolbar-actions">
+      <button mat-stroked-button type="button" (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+
+      <button mat-stroked-button type="button" (click)="toggleFilters()">
+        <mat-icon>{{ showFilters() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        {{ showFilters() ? 'Hide filters' : 'Open filters' }}
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-    }
+  }
 
-    <div class="card">
-        <div class="filter-grid">
-            <mat-form-field appearance="outline">
-                <mat-label>Queue ID</mat-label>
-                <input matInput [(ngModel)]="queueId" />
-            </mat-form-field>
+  <section class="summary-grid" aria-label="Delivery history summary">
+    <article class="summary-card primary">
+      <div class="summary-label">Total events</div>
+      <div class="summary-value">{{ summary().total }}</div>
+      <div class="summary-sub">Audit events in the current review scope</div>
+    </article>
 
-            <mat-form-field appearance="outline">
-                <mat-label>Target ID</mat-label>
-                <input matInput [(ngModel)]="targetId" />
-            </mat-form-field>
+    <article class="summary-card success">
+      <div class="summary-label">Delivered</div>
+      <div class="summary-value">{{ summary().delivered }}</div>
+      <div class="summary-sub">Confirmed outbound deliveries</div>
+    </article>
 
-            <mat-form-field appearance="outline">
-                <mat-label>Operation</mat-label>
-                <mat-select [(ngModel)]="operation">
-                    <mat-option value="">All</mat-option>
-                    <mat-option value="SEND_NOW">SEND_NOW</mat-option>
-                    <mat-option value="RETRY_WORKER">RETRY_WORKER</mat-option>
-                    <mat-option value="HARNESS">HARNESS</mat-option>
-                </mat-select>
-            </mat-form-field>
+    <article class="summary-card warning">
+      <div class="summary-label">Started</div>
+      <div class="summary-value">{{ summary().started }}</div>
+      <div class="summary-sub">Attempts without a final outcome in this row</div>
+    </article>
 
-            <mat-form-field appearance="outline">
-                <mat-label>Status</mat-label>
-                <mat-select [(ngModel)]="status">
-                    <mat-option value="">All</mat-option>
-                    <mat-option value="STARTED">STARTED</mat-option>
-                    <mat-option value="DELIVERED">DELIVERED</mat-option>
-                    <mat-option value="FAILED">FAILED</mat-option>
-                </mat-select>
-            </mat-form-field>
+    <article class="summary-card danger">
+      <div class="summary-label">Failed</div>
+      <div class="summary-value">{{ summary().failed }}</div>
+      <div class="summary-sub">Attempts that ended with an error</div>
+    </article>
+  </section>
 
-            <mat-form-field appearance="outline">
-                <mat-label>From date</mat-label>
-                <input matInput type="date" [(ngModel)]="fromDate" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-                <mat-label>To date</mat-label>
-                <input matInput type="date" [(ngModel)]="toDate" />
-            </mat-form-field>
+  @if (showFilters()) {
+    <section class="card filters-panel">
+      <div class="panel-head panel-head--compact">
+        <div>
+          <div class="section-title">Filter workspace</div>
+          <div class="meta">Narrow the delivery audit table only when you need a more specific operational view.</div>
         </div>
+      </div>
 
-        <div class="toolbar-actions padded">
-            <button mat-flat-button color="primary" (click)="applyFilters()">Apply Filters</button>
-            <button mat-stroked-button (click)="clearFilters()">Clear</button>
-        </div>
+      <div class="filter-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Queue ID</mat-label>
+          <input matInput [(ngModel)]="queueId" (ngModelChange)="applyFilters()" />
+        </mat-form-field>
 
-        <mat-divider></mat-divider>
+        <mat-form-field appearance="outline">
+          <mat-label>Target ID</mat-label>
+          <input matInput [(ngModel)]="targetId" (ngModelChange)="applyFilters()" />
+        </mat-form-field>
 
-        <div class="summary-row">
-            <div class="summary-card">
-                <div class="summary-label">Total events</div>
-                <div class="summary-value">{{ summary().total }}</div>
-            </div>
-            <div class="summary-card good">
-                <div class="summary-label">Delivered</div>
-                <div class="summary-value">{{ summary().delivered }}</div>
-            </div>
-            <div class="summary-card warn">
-                <div class="summary-label">Started</div>
-                <div class="summary-value">{{ summary().started }}</div>
-            </div>
-            <div class="summary-card bad">
-                <div class="summary-label">Failed</div>
-                <div class="summary-value">{{ summary().failed }}</div>
-            </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Operation</mat-label>
+          <mat-select [(ngModel)]="operation" (ngModelChange)="applyFilters()">
+            <mat-option value="">All</mat-option>
+            <mat-option value="SEND_NOW">SEND_NOW</mat-option>
+            <mat-option value="RETRY_WORKER">RETRY_WORKER</mat-option>
+            <mat-option value="HARNESS">HARNESS</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-        <mat-divider></mat-divider>
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+            <mat-option value="">All</mat-option>
+            <mat-option value="STARTED">STARTED</mat-option>
+            <mat-option value="DELIVERED">DELIVERED</mat-option>
+            <mat-option value="FAILED">FAILED</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-        <table mat-table [dataSource]="auditRows()" class="table">
-            <ng-container matColumnDef="created">
-                <th mat-header-cell *matHeaderCellDef>Created</th>
-                <td mat-cell *matCellDef="let row">{{ formatDateTime(row.created_at) }}</td>
-            </ng-container>
+        <mat-form-field appearance="outline">
+          <mat-label>From date</mat-label>
+          <input matInput type="date" [(ngModel)]="fromDate" (ngModelChange)="applyFilters()" />
+        </mat-form-field>
 
-            <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let row">
-                    <span class="status-dot" [class]="statusClass(row.status)"></span>
-                    <span class="muted">{{ row.status }}</span>
-                </td>
-            </ng-container>
+        <mat-form-field appearance="outline">
+          <mat-label>To date</mat-label>
+          <input matInput type="date" [(ngModel)]="toDate" (ngModelChange)="applyFilters()" />
+        </mat-form-field>
+      </div>
 
-            <ng-container matColumnDef="operation">
-                <th mat-header-cell *matHeaderCellDef>Operation</th>
-                <td mat-cell *matCellDef="let row">{{ row.operation }}</td>
-            </ng-container>
+      <div class="toolbar-actions padded">
+        <button mat-stroked-button type="button" (click)="clearFilters()">Clear</button>
+      </div>
+    </section>
+  }
 
-            <ng-container matColumnDef="target">
-                <th mat-header-cell *matHeaderCellDef>Target</th>
-                <td mat-cell *matCellDef="let row">
-                    <div class="cell-title">{{ row.target_name || row.target_id }}</div>
-                    <div class="cell-sub">{{ row.target_type || '—' }}</div>
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="queue">
-                <th mat-header-cell *matHeaderCellDef>Queue</th>
-                <td mat-cell *matCellDef="let row">{{ row.queue_id }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="attempt">
-                <th mat-header-cell *matHeaderCellDef>Attempt</th>
-                <td mat-cell *matCellDef="let row">{{ row.attempt_no }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="http">
-                <th mat-header-cell *matHeaderCellDef>HTTP</th>
-                <td mat-cell *matCellDef="let row">{{ row.http_status ?? '—' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
-                <td mat-cell *matCellDef="let row" class="actions-col">
-                    <button mat-icon-button (click)="selectAuditRow(row)">
-                        <mat-icon>info</mat-icon>
-                    </button>
-                    <button mat-icon-button color="primary" (click)="previewFromAudit(row)">
-                        <mat-icon>visibility</mat-icon>
-                    </button>
-                </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable"
-                [class.row-selected]="selectedAudit()?.id === row.id" (click)="selectAuditRow(row)"></tr>
-        </table>
-
-        @if (auditRows().length === 0 && !loading()) {
-        <div class="empty">No delivery audit events matched the current filters.</div>
-        }
-
-        @if (selectedAudit()) {
-        <mat-divider></mat-divider>
-
-        @if (previewLoading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-        }
-
-        <div class="detail-panel">
-            <div class="detail-head">
-                <div>
-                    <div class="panel-title">
-                        {{ selectedAudit()?.target_name || selectedAudit()?.target_id }}
-                    </div>
-                    <div class="meta">Queue ID: {{ selectedAudit()?.queue_id }}</div>
-                </div>
-
-                <div class="chip-row">
-                    <div class="status-chip" [class]="statusClass(selectedAudit()?.status)">
-                        {{ selectedAudit()?.status }}
-                    </div>
-                    <button mat-stroked-button color="primary" (click)="previewFromAudit(selectedAudit())">
-                        <mat-icon>visibility</mat-icon>
-                        Preview delivered payload
-                    </button>
-                </div>
-            </div>
-
-            <div class="summary-grid">
-                <div><b>Operation:</b> {{ selectedAudit()?.operation }}</div>
-                <div><b>Attempt:</b> {{ selectedAudit()?.attempt_no }}</div>
-                <div><b>HTTP status:</b> {{ selectedAudit()?.http_status ?? '—' }}</div>
-                <div><b>Correlation ID:</b> {{ selectedAudit()?.correlation_id || '—' }}</div>
-                <div><b>Duration:</b> {{ selectedAudit()?.duration_ms ?? '—' }} ms</div>
-                <div><b>Recorded:</b> {{ formatDateTime(selectedAudit()?.created_at) }}</div>
-            </div>
-
-            @for (alert of auditAlerts(selectedAudit()); track alert.text) {
-            <div [class]="
-              alert.kind === 'bad'
-                ? 'error-box'
-                : alert.kind === 'warn'
-                  ? 'warning-box'
-                  : 'info-box'
-            ">
-                {{ alert.text }}
-            </div>
-            }
-
-            @if (selectedAudit()?.error_message) {
-            <div class="section-title">Error</div>
-            <div class="error-box">{{ selectedAudit()?.error_message }}</div>
-            }
-
-            @if (queuePreview()) {
-            <div class="section-title">{{ queuePreview()?.previewName }}</div>
-            <div class="summary-grid">
-                <div><b>Payload source:</b> {{ queuePreview()?.payloadSource || '—' }}</div>
-                <div><b>Rules:</b> {{ queuePreview()?.summary?.ruleCount ?? '—' }}</div>
-                <div><b>Applied:</b> {{ queuePreview()?.summary?.appliedCount ?? '—' }}</div>
-                <div><b>Skipped:</b> {{ queuePreview()?.summary?.skippedCount ?? '—' }}</div>
-                <div><b>Translated:</b> {{ queuePreview()?.summary?.translatedCount ?? '—' }}</div>
-            </div>
-
-            @if (queuePreview()?.errors?.length) {
-            <div class="error-box">
-                <div><b>Preview errors</b></div>
-                @for (e of queuePreview()?.errors; track e) {
-                <div>- {{ e }}</div>
-                }
-            </div>
-            }
-
-            @if (queuePreview()?.warnings?.length) {
-            <div class="warning-box">
-                <div><b>Preview warnings</b></div>
-                @for (w of queuePreview()?.warnings; track w) {
-                <div>- {{ w }}</div>
-                }
-            </div>
-            }
-
-            <div class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</div>
-
-            @if (queuePreview()?.sourceDocument) {
-            <div class="section-title">Canonical source document</div>
-            <div class="payload mono">{{ prettyJson(queuePreview()?.sourceDocument) }}</div>
-            }
-            }
-
-            @if (deliveredRecordForSelected()) {
-            <div class="section-title">Delivered Queue Record</div>
-            <div class="payload mono">
-                {{ prettyJson(deliveredRecordForSelected()?.payload_json) }}
-            </div>
-            }
-        </div>
-        }
+  <section class="card table-card">
+    <div class="panel-head">
+      <div>
+        <div class="section-title">Delivery audit events</div>
+        <div class="meta">Use the expand icon for a quick summary, then open the detail workspace for deeper review.</div>
+      </div>
+      <div class="table-meta">{{ filteredAuditRows().length }} event{{ filteredAuditRows().length === 1 ? '' : 's' }}</div>
     </div>
+
+    <mat-divider></mat-divider>
+
+    <table mat-table [dataSource]="pagedAuditRows()" class="table" multiTemplateDataRows>
+      <ng-container matColumnDef="delivery">
+        <th mat-header-cell *matHeaderCellDef>Delivery Event</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-main-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="expander"
+              matTooltip="Expand delivery summary"
+              [attr.aria-label]="expandedId() === row.id ? 'Collapse delivery row' : 'Expand delivery row'"
+              (click)="toggleExpanded(row); $event.stopPropagation()"
+            >
+              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+
+            <div>
+              <div class="cell-title">{{ row.target_name || row.target_id || 'Unknown target' }}</div>
+              <div class="cell-sub">{{ formatDateTime(row.created_at) }}</div>
+              <div class="meta">Queue ID: {{ row.queue_id || '—' }}</div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="status-line">
+            <span class="status-dot" [class]="statusClass(row.status)"></span>
+            <span class="status-pill" [class]="statusClass(row.status)">{{ row.status || '—' }}</span>
+          </div>
+          <div class="meta">{{ statusSummaryLabel(row) }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="operation">
+        <th mat-header-cell *matHeaderCellDef>Operation</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.operation || '—' }}</div>
+          <div class="meta">Correlation: {{ row.correlation_id || '—' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="target">
+        <th mat-header-cell *matHeaderCellDef>Target</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.target_type || '—' }}</div>
+          <div class="cell-sub">{{ row.target_id || '—' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="queue">
+        <th mat-header-cell *matHeaderCellDef>Queue</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title mono">{{ row.queue_id || '—' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="attempt">
+        <th mat-header-cell *matHeaderCellDef>Attempt</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.attempt_no ?? '—' }}</div>
+          <div class="meta">{{ row.duration_ms ?? '—' }} ms</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="http">
+        <th mat-header-cell *matHeaderCellDef>HTTP</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ row.http_status ?? '—' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-col">
+          <div class="row-actions">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Open detailed delivery workspace"
+              aria-label="Open detailed delivery workspace"
+              (click)="openDetail(row); $event.stopPropagation()"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+          @if (expandedId() === row.id) {
+            <div class="expansion-content">
+              @if (previewLoadingId() === row.id) {
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+              }
+
+              <div class="expansion-grid compact-expansion-grid">
+                <section class="expansion-card emphasis">
+                  <div class="expansion-label">Delivery summary</div>
+                  <div class="expansion-value">{{ row.target_name || row.target_id || 'Unknown target' }}</div>
+                  <div class="expansion-meta">{{ row.operation || '—' }} · {{ formatDateTime(row.created_at) }}</div>
+                  <div class="summary-chip-row">
+                    <span class="status-pill" [class]="statusClass(row.status)">{{ row.status || '—' }}</span>
+                    <span class="status-pill subtle-pill">Attempt {{ row.attempt_no ?? '—' }}</span>
+                    <span class="status-pill subtle-pill">HTTP {{ row.http_status ?? '—' }}</span>
+                  </div>
+                </section>
+
+                <section class="expansion-card">
+                  <div class="expansion-label">Operational context</div>
+                  <div class="quick-grid compact-quick-grid">
+                    <div><b>Queue ID:</b> <span class="mono">{{ row.queue_id || '—' }}</span></div>
+                    <div><b>Target type:</b> {{ row.target_type || '—' }}</div>
+                    <div><b>Duration:</b> {{ row.duration_ms ?? '—' }} ms</div>
+                    <div><b>Payload source:</b> {{ compactSummary(row).payloadSource }}</div>
+                  </div>
+                </section>
+
+                <section class="expansion-card span-2">
+                  <div class="section-head-inline">
+                    <div>
+                      <div class="expansion-label">Readiness snapshot</div>
+                      <div class="expansion-meta">A compact operational summary for quick table review.</div>
+                    </div>
+                    <button mat-stroked-button type="button" color="primary" (click)="openDetail(row); $event.stopPropagation()">
+                      <mat-icon>open_in_new</mat-icon>
+                      Open details
+                    </button>
+                  </div>
+
+                  <div class="preview-summary-grid compact-preview-summary-grid">
+                    <div><b>Rules:</b> {{ compactSummary(row).rules }}</div>
+                    <div><b>Translated:</b> {{ compactSummary(row).translated }}</div>
+                    <div><b>Snapshot:</b> {{ compactSummary(row).deliveredSnapshot }}</div>
+                    <div><b>Correlation ID:</b> <span class="mono">{{ row.correlation_id || '—' }}</span></div>
+                  </div>
+
+                  <div class="note-list compact-note-list">
+                    @for (alert of auditAlerts(row).slice(0, 2); track alert.text) {
+                      <div
+                        class="context-note"
+                        [class.info]="alert.kind === 'info'"
+                        [class.warn]="alert.kind === 'warn'"
+                        [class.bad]="alert.kind === 'bad'"
+                      >
+                        {{ alert.text }}
+                      </div>
+                    }
+                  </div>
+                </section>
+              </div>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: cols; trackBy: trackById"
+        class="row-clickable main-row"
+        [class.row-selected]="expandedId() === row.id"
+        (click)="toggleExpanded(row)"
+      ></tr>
+      <tr mat-row *matRowDef="let row; columns: detailCols; trackBy: trackById" class="detail-row"></tr>
+    </table>
+
+    @if (filteredAuditRows().length === 0 && !loading()) {
+      <div class="empty">No delivery audit events matched the current filters.</div>
+    } @else {
+      <mat-paginator
+        [length]="filteredAuditRows().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  </section>
 </div>

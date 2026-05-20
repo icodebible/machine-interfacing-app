@@ -12,6 +12,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { NormalizedResultDetailDialog } from '../../shared/dialogs/normalized-result-detail-dialog/normalized-result-detail-dialog';
@@ -68,6 +69,7 @@ interface NormalizedResultViewRow {
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
+    MatTooltipModule,
   ],
   templateUrl: './normalized-results.html',
   styleUrl: './normalized-results.scss',
@@ -81,16 +83,17 @@ export class NormalizedResults {
   rows = signal<NormalizedResultViewRow[]>([]);
   targets = signal<any[]>([]);
   expandedRowId = signal<string | null>(null);
+  showFilters = signal(false);
 
-  searchTerm = '';
-  protocolFilter: 'ALL' | NormalizedResultViewRow['protocol'] = 'ALL';
-  workflowFilter: 'ALL' | WorkflowState = 'ALL';
+  searchTerm = signal('');
+  protocolFilter = signal<'ALL' | NormalizedResultViewRow['protocol']>('ALL');
+  workflowFilter = signal<'ALL' | WorkflowState>('ALL');
 
   cols: string[] = ['result', 'clinical', 'workflow', 'observed', 'actions'];
   detailCols: string[] = ['expandedDetail'];
 
   filteredRows = computed(() => {
-    const term = this.searchTerm.trim().toLowerCase();
+    const term = this.searchTerm().trim().toLowerCase();
 
     return this.rows().filter((row) => {
       const matchesTerm =
@@ -107,11 +110,21 @@ export class NormalizedResults {
           row.testCode ?? '',
           row.testName ?? '',
           row.summary ?? '',
+          row.value ?? '',
+          row.units ?? '',
+          row.referenceRange ?? '',
+          row.abnormalFlag ?? '',
+          row.queueTargetName ?? '',
+          row.deliveryStatus ?? '',
+          row.sourceMessageType ?? '',
+          row.dataJson ?? '',
         ].some((value) => value.toLowerCase().includes(term));
 
-      const matchesProtocol = this.protocolFilter === 'ALL' || row.protocol === this.protocolFilter;
+      const protocolFilter = this.protocolFilter();
+      const workflowFilter = this.workflowFilter();
+      const matchesProtocol = protocolFilter === 'ALL' || row.protocol === protocolFilter;
       const matchesWorkflow =
-        this.workflowFilter === 'ALL' || row.workflowState === this.workflowFilter;
+        workflowFilter === 'ALL' || row.workflowState === workflowFilter;
 
       return matchesTerm && matchesProtocol && matchesWorkflow;
     });
@@ -120,34 +133,50 @@ export class NormalizedResults {
   summaryCards = computed(() => {
     const rows = this.filteredRows();
     return [
-      { label: 'Total results', value: rows.length, tone: 'idle' },
+      { label: 'Total results', value: rows.length, tone: 'accent-neutral' },
       {
         label: 'Pending approval',
         value: rows.filter((row) => row.workflowState === 'PENDING_APPROVAL').length,
-        tone: 'warn',
+        tone: 'accent-warn',
       },
       {
         label: 'In queue / sending',
         value: rows.filter(
           (row) => row.workflowState === 'QUEUED' || row.workflowState === 'SENDING',
         ).length,
-        tone: 'warn',
+        tone: 'accent-info',
       },
       {
         label: 'Delivered',
         value: rows.filter((row) => row.workflowState === 'DELIVERED').length,
-        tone: 'ok',
+        tone: 'accent-good',
       },
       {
         label: 'Failed delivery',
         value: rows.filter((row) => row.workflowState === 'FAILED_DELIVERY').length,
-        tone: 'bad',
+        tone: 'accent-bad',
       },
     ];
   });
 
   constructor() {
     this.refresh();
+  }
+
+  toggleFilters() {
+    this.showFilters.set(!this.showFilters());
+  }
+
+  setSearchTerm(value: string) {
+    this.searchTerm.set(value ?? '');
+  }
+
+  setProtocolFilter(value: 'ALL' | NormalizedResultViewRow['protocol']) {
+    this.protocolFilter.set(value ?? 'ALL');
+  }
+
+  setWorkflowFilter(value: 'ALL' | WorkflowState) {
+    this.workflowFilter.set(value ?? 'ALL');
   }
 
   async refresh() {

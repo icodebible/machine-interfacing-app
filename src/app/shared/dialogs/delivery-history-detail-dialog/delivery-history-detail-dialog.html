@@ -1,0 +1,153 @@
+<h2 mat-dialog-title class="dialog-title">Delivery event workspace</h2>
+<div class="dialog-subtitle">Review the selected audit event, operational context, alerts, and the full delivered payload in one focused workspace.</div>
+
+<mat-dialog-content class="dialog-content">
+  <section class="summary-strip">
+    @for (item of summaryCards(); track item.label) {
+      <article class="summary-card">
+        <div class="summary-label">{{ item.label }}</div>
+        <div class="summary-value">{{ item.value }}</div>
+        <div class="summary-note">{{ item.note }}</div>
+      </article>
+    }
+  </section>
+
+  <section class="section-panel">
+    <div class="panel-head">
+      <div>
+        <div class="section-title">Delivery overview</div>
+        <div class="section-sub">Operational identity and event context for the selected delivery record.</div>
+      </div>
+    </div>
+
+    <div class="summary-grid-mini">
+      <div>
+        <strong>Target</strong>
+        <div class="meta">{{ data.row?.target_name || data.row?.target_id || 'Unknown target' }}</div>
+      </div>
+      <div>
+        <strong>Target type</strong>
+        <div class="meta">{{ data.row?.target_type || '—' }}</div>
+      </div>
+      <div>
+        <strong>Queue ID</strong>
+        <div class="meta mono">{{ data.row?.queue_id || '—' }}</div>
+      </div>
+      <div>
+        <strong>Correlation ID</strong>
+        <div class="meta mono">{{ data.row?.correlation_id || '—' }}</div>
+      </div>
+      <div>
+        <strong>Recorded</strong>
+        <div class="meta">{{ formatDateTime(data.row?.created_at) }}</div>
+      </div>
+      <div>
+        <strong>Duration</strong>
+        <div class="meta">{{ data.row?.duration_ms ?? '—' }} ms</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-panel">
+    <div class="panel-head">
+      <div>
+        <div class="section-title">Operational alerts</div>
+        <div class="section-sub">Highlights that help reviewers understand the delivery outcome quickly.</div>
+      </div>
+    </div>
+
+    <div class="note-list">
+      @for (alert of alerts(); track alert.text) {
+        <div class="context-note" [class.info]="alert.kind === 'info'" [class.warn]="alert.kind === 'warn'" [class.bad]="alert.kind === 'bad'">
+          {{ alert.text }}
+        </div>
+      }
+    </div>
+
+    @if (data.row?.error_message) {
+      <div class="section-title secondary-title">Recorded error</div>
+      <div class="error-box">{{ data.row?.error_message }}</div>
+    }
+  </section>
+
+  @if (data.preview) {
+    <section class="section-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Transformation preview</div>
+          <div class="section-sub">The preview that represents the routed payload shape for this delivery history event.</div>
+        </div>
+      </div>
+
+      <div class="summary-grid-mini">
+        <div>
+          <strong>Preview name</strong>
+          <div class="meta">{{ data.preview?.previewName || '—' }}</div>
+        </div>
+        <div>
+          <strong>Payload source</strong>
+          <div class="meta">{{ data.preview?.payloadSource || '—' }}</div>
+        </div>
+        <div>
+          <strong>Rules</strong>
+          <div class="meta">{{ data.preview?.summary?.ruleCount ?? '—' }}</div>
+        </div>
+        <div>
+          <strong>Applied</strong>
+          <div class="meta">{{ data.preview?.summary?.appliedCount ?? '—' }}</div>
+        </div>
+        <div>
+          <strong>Skipped</strong>
+          <div class="meta">{{ data.preview?.summary?.skippedCount ?? '—' }}</div>
+        </div>
+        <div>
+          <strong>Translated</strong>
+          <div class="meta">{{ data.preview?.summary?.translatedCount ?? '—' }}</div>
+        </div>
+      </div>
+
+      @if (data.preview?.errors?.length) {
+        <div class="error-box">
+          <div><b>Preview errors</b></div>
+          @for (item of data.preview?.errors; track item) {
+            <div>- {{ item }}</div>
+          }
+        </div>
+      }
+
+      @if (data.preview?.warnings?.length) {
+        <div class="warning-box">
+          <div><b>Preview warnings</b></div>
+          @for (item of data.preview?.warnings; track item) {
+            <div>- {{ item }}</div>
+          }
+        </div>
+      }
+
+      <div class="section-title secondary-title">Generated payload</div>
+      <pre class="payload mono">{{ prettyJson(data.preview?.payload) }}</pre>
+
+      @if (data.preview?.sourceDocument) {
+        <div class="section-title secondary-title">Canonical source document</div>
+        <pre class="payload mono">{{ prettyJson(data.preview?.sourceDocument) }}</pre>
+      }
+    </section>
+  }
+
+  @if (data.deliveredRecord) {
+    <section class="section-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Delivered queue snapshot</div>
+          <div class="section-sub">Stored payload content captured from the delivered queue record.</div>
+        </div>
+      </div>
+
+      <pre class="payload mono">{{ prettyJson(data.deliveredRecord?.payload_json) }}</pre>
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions class="dialog-actions">
+  <button mat-button mat-dialog-close type="button">Close</button>
+</mat-dialog-actions>

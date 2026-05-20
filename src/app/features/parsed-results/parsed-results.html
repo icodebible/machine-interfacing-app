@@ -3,13 +3,16 @@
         <div class="title-block">
             <h2>Parsed Results</h2>
             <div class="sub">
-                Inspect parser output before normalization. This page is intended for protocol
-                troubleshooting, parser verification, and traceability from machine traffic to structured
-                parse output.
+                Inspect parser output before normalization. This page is intended for protocol troubleshooting,
+                parser verification, and traceability from machine traffic to structured parse output.
             </div>
         </div>
 
         <div class="toolbar-actions">
+            <button mat-stroked-button (click)="toggleFilters()">
+                <mat-icon>{{ showFilters() ? 'filter_list_off' : 'filter_list' }}</mat-icon>
+                {{ showFilters() ? 'Hide filters' : 'Show filters' }}
+            </button>
             <button mat-stroked-button (click)="refresh()">
                 <mat-icon>refresh</mat-icon>
                 Refresh
@@ -17,16 +20,17 @@
         </div>
     </div>
 
+    @if (showFilters()) {
     <div class="filters-card">
         <div class="filters-grid">
             <mat-form-field appearance="outline">
                 <mat-label>Search</mat-label>
-                <input matInput [(ngModel)]="searchTerm" placeholder="Machine, patient, sample, order, or message" />
+                <input matInput [ngModel]="searchTerm()" (ngModelChange)="setSearchTerm($event)" placeholder="Machine, patient, sample, order, or message" />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
                 <mat-label>Protocol</mat-label>
-                <mat-select [(ngModel)]="protocolFilter">
+                <mat-select [ngModel]="protocolFilter()" (ngModelChange)="setProtocolFilter($event)">
                     <mat-option value="ALL">All</mat-option>
                     <mat-option value="ASTM">ASTM</mat-option>
                     <mat-option value="HL7">HL7</mat-option>
@@ -36,7 +40,7 @@
 
             <mat-form-field appearance="outline">
                 <mat-label>Parse Status</mat-label>
-                <mat-select [(ngModel)]="statusFilter">
+                <mat-select [ngModel]="statusFilter()" (ngModelChange)="setStatusFilter($event)">
                     <mat-option value="ALL">All</mat-option>
                     <mat-option value="PARSED">Parsed</mat-option>
                     <mat-option value="WARNING">Warning</mat-option>
@@ -45,31 +49,45 @@
             </mat-form-field>
         </div>
     </div>
-
-    <div class="summary-strip">
-        @for (card of summaryCards(); track card.label) {
-        <div class="summary-card" [class]="'summary-card ' + card.tone">
-            <div class="summary-label">{{ card.label }}</div>
-            <div class="summary-value">{{ card.value }}</div>
-        </div>
-        }
-    </div>
+    }
 
     @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
 
     <div class="card">
+        <div class="summary-row">
+            @for (card of summaryCards(); track card.label) {
+            <div class="summary-card" [class]="'summary-card ' + card.tone">
+                <div class="summary-label">{{ card.label }}</div>
+                <div class="summary-value">{{ card.value }}</div>
+            </div>
+            }
+        </div>
+
         <mat-divider></mat-divider>
 
-        <table mat-table [dataSource]="filteredRows()" class="table" multiTemplateDataRows>
+        <table mat-table [dataSource]="filteredRows()" class="table results-table" multiTemplateDataRows>
             <ng-container matColumnDef="message">
                 <th mat-header-cell *matHeaderCellDef>Message</th>
                 <td mat-cell *matCellDef="let row">
-                    <div class="cell-title">{{ row.id }}</div>
-                    <div class="cell-sub">{{ row.machineName }} · {{ row.labName }}</div>
-                    <div class="cell-sub muted">
-                        Patient: {{ row.patientId || '—' }} · Sample: {{ row.sampleId || '—' }}
+                    <div class="row-main-cell">
+                        <button
+                            mat-icon-button
+                            class="expander"
+                            [attr.aria-label]="isExpanded(row) ? 'Collapse parsed result row' : 'Expand parsed result row'"
+                            (click)="toggleRow(row, $event)"
+                        >
+                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+
+                        <div>
+                            <div class="cell-title">{{ row.id }}</div>
+                            <div class="cell-sub">{{ row.machineName }} · {{ row.labName }}</div>
+                            <div class="cell-sub muted">
+                                Patient: {{ row.patientId || '—' }} · Sample: {{ row.sampleId || '—' }}
+                            </div>
+                        </div>
                     </div>
                 </td>
             </ng-container>
@@ -105,25 +123,30 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
                 <td mat-cell *matCellDef="let row" class="actions-col">
-                    <div class="row-actions">
-                        <button mat-icon-button (click)="toggleRow(row, $event)">
-                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
-                        </button>
-                        <button mat-icon-button color="primary" (click)="openInspector(row, $event)">
-                            <mat-icon>open_in_new</mat-icon>
-                        </button>
-                    </div>
+                    <button mat-icon-button matTooltip="Open detailed view" (click)="openInspector(row, $event)">
+                        <mat-icon>open_in_new</mat-icon>
+                    </button>
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="expandedDetail">
                 <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
                     @if (isExpanded(row)) {
-                    <div class="row-detail">
-                        <div class="row-detail-grid">
-                            <div class="detail-card">
-                                <div class="section-title">Traceability</div>
-                                <div class="mini-grid">
+                    <div class="row-expansion-shell">
+                        <div class="expansion-grid">
+                            <div class="expansion-card emphasis">
+                                <div class="expansion-label">Parser state</div>
+                                <div class="expansion-value">{{ row.parseStatus }}</div>
+                                <div class="expansion-meta">
+                                    {{ row.protocol }}
+                                    <span class="dot">•</span>
+                                    {{ formatDateTime(row.createdAt) }}
+                                </div>
+                            </div>
+
+                            <div class="expansion-card">
+                                <div class="expansion-label">Traceability</div>
+                                <div class="quick-grid">
                                     <div><b>Patient:</b> {{ row.patientId || '—' }}</div>
                                     <div><b>Sample:</b> {{ row.sampleId || '—' }}</div>
                                     <div><b>Order:</b> {{ row.orderId || '—' }}</div>
@@ -133,8 +156,8 @@
                                 </div>
                             </div>
 
-                            <div class="detail-card">
-                                <div class="section-title">Parser assessment</div>
+                            <div class="expansion-card">
+                                <div class="expansion-label">Parser assessment</div>
                                 <div class="inline-status-row">
                                     <span class="status-pill" [class]="statusClass(row.parseStatus)">
                                         {{ row.parseStatus }}
@@ -142,13 +165,13 @@
                                     <span class="metric-chip warn">Warnings: {{ row.warningCount }}</span>
                                     <span class="metric-chip bad">Errors: {{ row.errorCount }}</span>
                                 </div>
-                                <div class="inline-summary">
+                                <div class="expansion-meta summary-copy">
                                     {{ row.summary || 'No parser summary available.' }}
                                 </div>
                             </div>
                         </div>
 
-                        <div class="inline-actions">
+                        <div class="expansion-actions">
                             <button mat-stroked-button color="primary" (click)="openInspector(row, $event)">
                                 <mat-icon>visibility</mat-icon>
                                 Open full inspection
@@ -160,10 +183,10 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable" [class.row-expanded]="isExpanded(row)"
+            <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable main-row" [class.row-selected]="isExpanded(row)"
                 (click)="toggleRow(row)"></tr>
             <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"
-                [class.detail-row-visible]="isExpanded(row)"></tr>
+                [class.detail-row-open]="isExpanded(row)"></tr>
         </table>
 
         @if (filteredRows().length === 0 && !loading()) {

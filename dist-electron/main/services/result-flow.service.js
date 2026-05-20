@@ -10,8 +10,20 @@ class ResultFlowService {
     approvals = new approval_policy_service_1.ApprovalPolicyService();
     queue = new outbound_queue_service_1.OutboundQueueService();
     advanceAfterNormalization(normalizedResultId) {
+        const db = (0, db_1.getDb)();
         const actor = (0, actor_context_service_1.getCurrentActorStamp)();
-        const row = this.getResultRoutingContext(normalizedResultId);
+        const row = db
+            .prepare(`
+          SELECT nr.id, nr.machine_id, m.lab_id
+          FROM normalized_lab_results nr
+          LEFT JOIN machines m ON m.id = nr.machine_id
+          WHERE nr.id = ?
+          LIMIT 1
+        `)
+            .get(normalizedResultId);
+        if (!row) {
+            throw new Error('Normalized result not found for workflow advancement.');
+        }
         const resolution = this.approvals.resolvePolicyContextForResult({
             labId: row.lab_id ?? null,
             machineId: row.machine_id,
@@ -26,7 +38,7 @@ class ResultFlowService {
                 queued_at: null,
                 routed_at: null,
                 failed_at: null,
-                last_error: 'No matching approval policy was found for this result. Configure and enable a policy, then re-check policy from Pending Approvals.',
+                last_error: 'No matching approval policy was found for this result. Configure and enable a policy, then re-check the policy from Pending Approvals.',
                 updated_at: nowIso(),
                 created_by_user_id: actor.userId,
                 created_by_username: actor.username,
@@ -37,20 +49,19 @@ class ResultFlowService {
         }
         const policy = resolution.policy;
         const routeTargetIds = resolution.routeTargetIds;
-        const requiredApprovals = Number(policy.requires_approval ?? 0) === 1
-            ? Math.max(1, Number(policy.min_approvals ?? 1))
-            : 0;
         if (resolution.matchStatus === 'DISABLED_MATCH') {
             this.upsertWorkflow(normalizedResultId, {
                 status: 'POLICY_DISABLED',
                 approval_policy_id: policy.id,
-                approval_required: requiredApprovals > 0 ? 1 : 0,
-                approval_count_required: requiredApprovals,
+                approval_required: Number(policy.requires_approval ?? 0) === 1 ? 1 : 0,
+                approval_count_required: Number(policy.requires_approval ?? 0) === 1
+                    ? Math.max(1, Number(policy.min_approvals ?? 1))
+                    : 0,
                 approval_count_received: 0,
                 queued_at: null,
                 routed_at: null,
                 failed_at: null,
-                last_error: 'A matching approval policy exists but is disabled. Enable the policy, then re-check policy from Pending Approvals.',
+                last_error: 'A matching approval policy exists but is disabled. Enable the policy, then re-check the policy from Pending Approvals.',
                 updated_at: nowIso(),
                 created_by_user_id: actor.userId,
                 created_by_username: actor.username,
@@ -59,19 +70,19 @@ class ResultFlowService {
             });
             return { status: 'POLICY_DISABLED', queuedCount: 0 };
         }
-        if (requiredApprovals > 0) {
+        if (Number(policy.requires_approval ?? 0) === 1) {
             this.upsertWorkflow(normalizedResultId, {
                 status: 'PENDING_APPROVAL',
                 approval_policy_id: policy.id,
                 approval_required: 1,
-                approval_count_required: requiredApprovals,
+                approval_count_required: Math.max(1, Number(policy.min_approvals ?? 1)),
                 approval_count_received: 0,
                 queued_at: null,
                 routed_at: null,
                 failed_at: null,
                 last_error: routeTargetIds.length
                     ? null
-                    : 'Approval is required, but this policy does not yet define any routing targets. Configure routing targets before final release.',
+                    : 'Approval is required. Configure the policy target before final routing can proceed.',
                 updated_at: nowIso(),
                 created_by_user_id: actor.userId,
                 created_by_username: actor.username,
@@ -90,7 +101,7 @@ class ResultFlowService {
                 queued_at: null,
                 routed_at: null,
                 failed_at: null,
-                last_error: 'Auto-route is allowed, but no routing targets are configured on the matched policy. Update the policy, then re-check it from Pending Approvals.',
+                last_error: 'Auto-route is allowed, but no target is configured on the matched policy. Update the policy, then re-check it from Pending Approvals.',
                 updated_at: nowIso(),
                 created_by_user_id: actor.userId,
                 created_by_username: actor.username,
@@ -99,8 +110,8 @@ class ResultFlowService {
             });
             return { status: 'PENDING_POLICY', queuedCount: 0 };
         }
-        const queueResult = this.queueTargets(normalizedResultId, routeTargetIds);
-        if (queueResult.queuedCount > 0) {
+        const queuedCount = this.queueTargets(normalizedResultId, routeTargetIds);
+        if (queuedCount > 0) {
             this.upsertWorkflow(normalizedResultId, {
                 status: 'QUEUED',
                 approval_policy_id: policy.id,
@@ -110,16 +121,14 @@ class ResultFlowService {
                 queued_at: nowIso(),
                 routed_at: null,
                 failed_at: null,
-                last_error: queueResult.errors.length
-                    ? `Queued to ${queueResult.queuedCount} target(s), but ${queueResult.errors.length} target(s) failed pre-queue validation: ${queueResult.errors.join(' | ')}`
-                    : null,
+                last_error: null,
                 updated_at: nowIso(),
                 created_by_user_id: actor.userId,
                 created_by_username: actor.username,
                 updated_by_user_id: actor.userId,
                 updated_by_username: actor.username,
             });
-            return { status: 'QUEUED', queuedCount: queueResult.queuedCount };
+            return { status: 'QUEUED', queuedCount };
         }
         this.upsertWorkflow(normalizedResultId, {
             status: 'PENDING_POLICY',
@@ -130,9 +139,7 @@ class ResultFlowService {
             queued_at: null,
             routed_at: null,
             failed_at: null,
-            last_error: queueResult.errors.length
-                ? `The matched policy could not queue to any configured targets: ${queueResult.errors.join(' | ')}`
-                : 'The matched policy did not have any enabled routing targets available for queueing.',
+            last_error: 'The configured policy target is not currently enabled for queueing.',
             updated_at: nowIso(),
             created_by_user_id: actor.userId,
             created_by_username: actor.username,
@@ -155,170 +162,50 @@ class ResultFlowService {
     }
     queueApprovedResult(normalizedResultId, policyId) {
         const actor = (0, actor_context_service_1.getCurrentActorStamp)();
-        const workflow = this.getWorkflow(normalizedResultId);
-        if (!workflow)
-            throw new Error('Workflow record not found');
-        const policy = this.approvals.getById(policyId);
-        if (!policy) {
-            this.upsertWorkflow(normalizedResultId, {
-                status: 'PENDING_POLICY',
-                approval_policy_id: null,
-                approval_required: 1,
-                approval_count_required: Number(workflow.approval_count_required ?? 0),
-                approval_count_received: Number(workflow.approval_count_received ?? 0),
-                queued_at: null,
-                routed_at: null,
-                failed_at: null,
-                last_error: 'The linked approval policy could not be found. Routing is paused until policy configuration is restored.',
-                updated_at: nowIso(),
-                updated_by_user_id: actor.userId,
-                updated_by_username: actor.username,
-            });
-            return { queuedCount: 0, enabledTargetCount: 0, errors: ['policy not found'] };
-        }
-        const required = Math.max(1, Number(workflow.approval_count_required ?? policy.min_approvals ?? 1));
-        const received = Math.max(Number(workflow.approval_count_received ?? 0), required);
-        if (policy.enabled !== 1) {
-            this.upsertWorkflow(normalizedResultId, {
-                status: 'POLICY_DISABLED',
-                approval_policy_id: policy.id,
-                approval_required: 1,
-                approval_count_required: required,
-                approval_count_received: received,
-                queued_at: null,
-                routed_at: null,
-                failed_at: null,
-                last_error: 'The approval policy was disabled before routing could continue. Re-enable it to resume processing.',
-                updated_at: nowIso(),
-                updated_by_user_id: actor.userId,
-                updated_by_username: actor.username,
-            });
-            return { queuedCount: 0, enabledTargetCount: 0, errors: ['policy disabled'] };
-        }
-        const routeTargetIds = this.getPolicyRouteTargetIds(policy.id, policy);
-        if (!routeTargetIds.length) {
-            this.upsertWorkflow(normalizedResultId, {
-                status: 'PENDING_POLICY',
-                approval_policy_id: policy.id,
-                approval_required: 1,
-                approval_count_required: required,
-                approval_count_received: received,
-                queued_at: null,
-                routed_at: null,
-                failed_at: null,
-                last_error: 'Approval completed, but no routing targets are configured for this policy. Add targets and re-check policy from Pending Approvals.',
-                updated_at: nowIso(),
-                updated_by_user_id: actor.userId,
-                updated_by_username: actor.username,
-            });
-            return { queuedCount: 0, enabledTargetCount: 0, errors: ['no routing targets configured'] };
-        }
-        const queueResult = this.queueTargets(normalizedResultId, routeTargetIds);
-        if (queueResult.queuedCount > 0) {
-            this.upsertWorkflow(normalizedResultId, {
-                status: 'QUEUED',
-                approval_policy_id: policy.id,
-                approval_required: 1,
-                approval_count_required: required,
-                approval_count_received: received,
-                queued_at: nowIso(),
-                routed_at: null,
-                failed_at: null,
-                last_error: queueResult.errors.length > 0
-                    ? `Queued to ${queueResult.queuedCount} target(s), but ${queueResult.errors.length} target(s) failed pre-queue validation: ${queueResult.errors.join(' | ')}`
-                    : null,
-                updated_at: nowIso(),
-                updated_by_user_id: actor.userId,
-                updated_by_username: actor.username,
-            });
-            return queueResult;
-        }
+        const workflow = (0, db_1.getDb)()
+            .prepare(`
+          SELECT approval_count_required, approval_count_received
+          FROM result_workflow_status
+          WHERE normalized_result_id = ?
+          LIMIT 1
+        `)
+            .get(normalizedResultId);
+        const targetIds = this.approvals.listPolicyTargetIds(policyId);
+        const queuedCount = this.queueTargets(normalizedResultId, targetIds);
         this.upsertWorkflow(normalizedResultId, {
-            status: 'PENDING_POLICY',
-            approval_policy_id: policy.id,
+            status: queuedCount > 0 ? 'QUEUED' : 'APPROVED',
+            approval_policy_id: policyId,
             approval_required: 1,
-            approval_count_required: required,
-            approval_count_received: received,
-            queued_at: null,
+            approval_count_required: Number(workflow?.approval_count_required ?? 1),
+            approval_count_received: Number(workflow?.approval_count_received ?? 1),
+            queued_at: queuedCount > 0 ? nowIso() : null,
             routed_at: null,
             failed_at: null,
-            last_error: queueResult.errors.length > 0
-                ? `Approval completed, but queueing failed for all configured targets: ${queueResult.errors.join(' | ')}`
-                : 'Approval completed, but none of the policy routing targets are currently enabled for queueing.',
+            last_error: queuedCount > 0
+                ? null
+                : 'Approval completed, but the policy has no enabled routing targets configured. Update the policy targets and re-check when needed.',
             updated_at: nowIso(),
             updated_by_user_id: actor.userId,
             updated_by_username: actor.username,
         });
-        return queueResult;
-    }
-    getPolicyRouteTargetIds(policyId, policy) {
-        const db = (0, db_1.getDb)();
-        const linkedRows = db
-            .prepare(`
-          SELECT target_id
-          FROM approval_policy_targets
-          WHERE policy_id = ?
-          ORDER BY target_id ASC
-        `)
-            .all(policyId);
-        if (linkedRows.length > 0) {
-            return Array.from(new Set(linkedRows
-                .map((row) => String(row.target_id ?? '').trim())
-                .filter(Boolean)));
-        }
-        const fallbackTargetId = String(policy?.applies_to_target_id ?? '').trim();
-        return fallbackTargetId ? [fallbackTargetId] : [];
+        return queuedCount;
     }
     queueTargets(normalizedResultId, targetIds) {
         const db = (0, db_1.getDb)();
         const uniqueIds = Array.from(new Set((targetIds ?? []).filter(Boolean)));
-        if (!uniqueIds.length) {
-            return { queuedCount: 0, enabledTargetCount: 0, errors: [] };
-        }
+        if (!uniqueIds.length)
+            return 0;
         const placeholders = uniqueIds.map(() => '?').join(', ');
         const targets = db
-            .prepare(`SELECT id, name FROM targets WHERE enabled = 1 AND id IN (${placeholders}) ORDER BY type ASC, name ASC`)
+            .prepare(`SELECT id FROM targets WHERE enabled = 1 AND id IN (${placeholders}) ORDER BY type ASC, name ASC`)
             .all(...uniqueIds);
-        const enabledTargetCount = targets.length;
-        const errors = [];
         let queuedCount = 0;
         for (const target of targets) {
-            try {
-                const queued = this.queue.enqueueNormalizedResult(normalizedResultId, target.id);
-                if (queued)
-                    queuedCount += 1;
-            }
-            catch (error) {
-                errors.push(`${target.name || target.id}: ${error?.message ?? 'Queueing failed'}`);
-            }
+            const queued = this.queue.enqueueNormalizedResult(normalizedResultId, target.id);
+            if (queued)
+                queuedCount += 1;
         }
-        const missingTargetIds = uniqueIds.filter((targetId) => !targets.some((target) => target.id === targetId));
-        for (const targetId of missingTargetIds) {
-            errors.push(`${targetId}: target is disabled or not found`);
-        }
-        return { queuedCount, enabledTargetCount, errors };
-    }
-    getWorkflow(normalizedResultId) {
-        const db = (0, db_1.getDb)();
-        return db
-            .prepare(`SELECT * FROM result_workflow_status WHERE normalized_result_id = ? LIMIT 1`)
-            .get(normalizedResultId);
-    }
-    getResultRoutingContext(normalizedResultId) {
-        const db = (0, db_1.getDb)();
-        const row = db
-            .prepare(`
-          SELECT nr.id, nr.machine_id, m.lab_id
-          FROM normalized_lab_results nr
-          LEFT JOIN machines m ON m.id = nr.machine_id
-          WHERE nr.id = ?
-          LIMIT 1
-        `)
-            .get(normalizedResultId);
-        if (!row) {
-            throw new Error('Normalized result not found for workflow advancement.');
-        }
-        return row;
+        return queuedCount;
     }
     upsertWorkflow(normalizedResultId, patch) {
         const db = (0, db_1.getDb)();

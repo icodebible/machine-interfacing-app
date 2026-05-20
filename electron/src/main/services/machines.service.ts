@@ -19,6 +19,7 @@ export type MachineDto = {
 
     host?: string | null;
     port?: number | null;
+    tcp_mode?: 'SERVER' | 'CLIENT' | null;
 
     serial_port?: string | null;
     baud_rate?: number | null;
@@ -65,7 +66,7 @@ export class MachinesService {
             id, lab_id,
             name, code, model, brand, version, manufacturer,
             connection_type,
-            host, port,
+            host, port, tcp_mode,
             serial_port, baud_rate, data_bits, stop_bits, parity,
             ftp_host, ftp_port, ftp_user, ftp_password, ftp_remote_dir,
             watch_dir, watch_pattern,
@@ -75,7 +76,7 @@ export class MachinesService {
             created_by_user_id, created_by_username,
             updated_by_user_id, updated_by_username
         ) VALUES (
-            ?, ?,
+            ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
             ?,
             ?, ?,
@@ -101,6 +102,7 @@ export class MachinesService {
             dto.connection_type,
             dto.host ?? null,
             dto.port ?? null,
+            dto.tcp_mode ?? 'SERVER',
             dto.serial_port ?? null,
             dto.baud_rate ?? null,
             dto.data_bits ?? null,
@@ -154,6 +156,7 @@ export class MachinesService {
             protocol = COALESCE(?, protocol),
             host = COALESCE(?, host),
             port = COALESCE(?, port),
+            tcp_mode = COALESCE(?, tcp_mode),
             serial_port = COALESCE(?, serial_port),
             baud_rate = COALESCE(?, baud_rate),
             data_bits = COALESCE(?, data_bits),
@@ -186,6 +189,7 @@ export class MachinesService {
                 dto.protocol ?? null,
                 dto.host ?? null,
                 dto.port ?? null,
+                dto.tcp_mode ?? null,
                 dto.serial_port ?? null,
                 dto.baud_rate ?? null,
                 dto.data_bits ?? null,
@@ -269,7 +273,7 @@ export class MachinesService {
 
                 return {
                     ok: true,
-                    message: `TCP configuration looks valid (${machine.host}:${machine.port})`,
+                    message: `${machine.tcp_mode === 'CLIENT' ? 'TCP client will connect to' : 'TCP server will listen on'} ${machine.host}:${machine.port}`,
                 };
 
             case 'SERIAL':

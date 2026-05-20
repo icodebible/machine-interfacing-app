@@ -183,7 +183,7 @@ export class ResultApprovalService {
         ).run(nextCount, nowIso(), actor.userId, actor.username, dto.normalizedResultId);
 
         if (nextCount >= required) {
-            const queueResult = this.flow.queueApprovedResult(dto.normalizedResultId, dto.policyId);
+            const queueResult: any = this.flow.queueApprovedResult(dto.normalizedResultId, dto.policyId);
             return {
                 ok: true,
                 finalApprovalReached: true,
@@ -305,7 +305,9 @@ export class ResultApprovalService {
             throw new Error('Result is not awaiting approval');
         }
         if (String(workflow.approval_policy_id ?? '') !== String(policyId ?? '')) {
-            throw new Error('The approval policy for this result no longer matches the submitted action. Refresh and try again.');
+            throw new Error(
+                'The approval policy for this result no longer matches the submitted action. Refresh and try again.',
+            );
         }
         return workflow;
     }

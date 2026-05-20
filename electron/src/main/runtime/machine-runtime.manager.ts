@@ -16,7 +16,6 @@ const nowIso = () => new Date().toISOString();
 export class MachineRuntimeManager {
     private machinesService = new MachinesService();
 
-    private tcp = new TcpMachineService();
     private serial = new SerialMachineService();
 
     private states = new Map<string, MachineRuntimeState>();
@@ -223,10 +222,15 @@ export class MachineRuntimeManager {
                         throw new Error('Missing host/port');
                     }
 
-                    this.tcp.connect(
+                    const tcpSession = new TcpMachineService();
+                    const tcpMode = machine.tcp_mode === 'CLIENT' ? 'CLIENT' : 'SERVER';
+                    const listenHost = tcpMode === 'SERVER' ? (machine.host || '0.0.0.0') : machine.host;
+
+                    tcpSession.start(
                         {
-                            host: machine.host,
+                            host: listenHost,
                             port: Number(machine.port),
+                            mode: tcpMode,
                         },
                         (msg: any) => {
                             const text =
@@ -244,7 +248,20 @@ export class MachineRuntimeManager {
                                 meta: {
                                     transport: machine.connection_type,
                                     protocol: machine.protocol,
+                                    tcpMode,
+                                    remoteAddress: msg.remoteAddress ?? null,
+                                    remotePort: msg.remotePort ?? null,
                                 },
+                            });
+
+                            this.trafficLogs.create({
+                                machine_id: machineId,
+                                direction: 'inbound',
+                                transport: machine.connection_type,
+                                protocol: machine.protocol,
+                                event_type: 'payload',
+                                payload: text,
+                                payload_preview: text.slice(0, 300),
                             });
 
                             const parser = this.parsers.get(machine.protocol);
@@ -270,30 +287,45 @@ export class MachineRuntimeManager {
                                     payloadPreview: parsed.summary || text.slice(0, 160),
                                     updatedAt: new Date().toISOString(),
                                 });
+                            } else {
+                                this.events.emit({
+                                    type: 'traffic',
+                                    machineId,
+                                    direction: 'inbound',
+                                    payloadPreview: text.slice(0, 160),
+                                    updatedAt: new Date().toISOString(),
+                                });
                             }
-
-                            this.trafficLogs.create({
-                                machine_id: machineId,
-                                direction: 'inbound',
-                                transport: machine.connection_type,
-                                protocol: machine.protocol,
-                                event_type: 'payload',
-                                payload: text,
-                                payload_preview: text.slice(0, 300),
-                            });
 
                             this.setState(machineId, {
                                 status: 'connected',
                                 message: `Received ${text.length} chars`,
                             });
                         },
+                        (evt: any) => {
+                            if (evt.status === 'error') {
+                                this.setState(machineId, {
+                                    status: 'error',
+                                    message: evt.message,
+                                });
+                                return;
+                            }
+
+                            this.setState(machineId, {
+                                status: 'connected',
+                                message: evt.message,
+                                startedAt: this.getState(machineId).startedAt ?? nowIso(),
+                            });
+                        },
                     );
 
-                    this.tcpSessions.set(machineId, true);
+                    this.tcpSessions.set(machineId, tcpSession);
 
                     this.setState(machineId, {
                         status: 'connected',
-                        message: `${machine.connection_type} connected`,
+                        message: tcpMode === 'SERVER'
+                            ? `${machine.connection_type} server starting on ${listenHost}:${machine.port}`
+                            : `${machine.connection_type} client connecting to ${machine.host}:${machine.port}`,
                         startedAt: nowIso(),
                     });
                     break;
@@ -418,7 +450,6 @@ export class MachineRuntimeManager {
             if (this.tcpSessions.has(machineId)) {
                 const session = this.tcpSessions.get(machineId);
                 if (session?.disconnect) await session.disconnect();
-                else if (this.tcp.disconnect) await this.tcp.disconnect();
                 this.tcpSessions.delete(machineId);
             }
 

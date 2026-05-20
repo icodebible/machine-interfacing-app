@@ -17,6 +17,10 @@
         <mat-icon>policy</mat-icon>
         System logs
       </button>
+      <button mat-stroked-button type="button" (click)="toggleFilters()">
+        <mat-icon>{{ showFilters() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        {{ showFilters() ? 'Hide filters' : 'Open filters' }}
+      </button>
       <button mat-flat-button color="primary" (click)="refresh()">
         <mat-icon>refresh</mat-icon>
         Refresh
@@ -29,97 +33,130 @@
   }
 
   @if (scope() === 'DELIVERY') {
-    <div class="summary-grid">
-      <div class="summary-card total"><div class="label">Total events</div><div class="value">{{ deliverySummary().total }}</div></div>
-      <div class="summary-card success"><div class="label">Delivered</div><div class="value">{{ deliverySummary().delivered }}</div></div>
-      <div class="summary-card warning"><div class="label">Started</div><div class="value">{{ deliverySummary().started }}</div></div>
-      <div class="summary-card danger"><div class="label">Failed</div><div class="value">{{ deliverySummary().failed }}</div></div>
-    </div>
-
-    <div class="filters card">
-      <div class="filters-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-select [ngModel]="deliveryFilters().status" (ngModelChange)="updateDeliveryFilter('status', $event)">
-            <mat-option value="">All</mat-option>
-            <mat-option value="STARTED">Started</mat-option>
-            <mat-option value="DELIVERED">Delivered</mat-option>
-            <mat-option value="FAILED">Failed</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Operation</mat-label>
-          <mat-select [ngModel]="deliveryFilters().operation" (ngModelChange)="updateDeliveryFilter('operation', $event)">
-            <mat-option value="">All</mat-option>
-            <mat-option value="SEND_NOW">Send now</mat-option>
-            <mat-option value="RETRY_WORKER">Retry worker</mat-option>
-            <mat-option value="HARNESS">Harness</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Target ID</mat-label>
-          <input matInput [ngModel]="deliveryFilters().targetId" (ngModelChange)="updateDeliveryFilter('targetId', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Queue ID</mat-label>
-          <input matInput [ngModel]="deliveryFilters().queueId" (ngModelChange)="updateDeliveryFilter('queueId', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Correlation ID</mat-label>
-          <input matInput [ngModel]="deliveryFilters().correlationId" (ngModelChange)="updateDeliveryFilter('correlationId', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>From</mat-label>
-          <input matInput type="datetime-local" [ngModel]="deliveryFilters().dateFrom" (ngModelChange)="updateDeliveryFilter('dateFrom', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>To</mat-label>
-          <input matInput type="datetime-local" [ngModel]="deliveryFilters().dateTo" (ngModelChange)="updateDeliveryFilter('dateTo', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Limit</mat-label>
-          <input matInput type="number" min="1" max="500" [ngModel]="deliveryFilters().limit" (ngModelChange)="updateDeliveryFilter('limit', $event)" />
-        </mat-form-field>
+    <div class="summary-grid summary-grid--delivery">
+      <div class="summary-card total">
+        <div class="label">Events in view</div>
+        <div class="value">{{ deliverySummary().total }}</div>
+        <div class="summary-sub">Delivery audit events after the current review filters.</div>
       </div>
-
-      <div class="filter-actions">
-        <button mat-stroked-button (click)="clearFilters()">
-          <mat-icon>filter_alt_off</mat-icon>
-          Clear
-        </button>
-        <button mat-flat-button color="primary" (click)="refresh()">
-          <mat-icon>search</mat-icon>
-          Apply
-        </button>
+      <div class="summary-card success">
+        <div class="label">Delivered</div>
+        <div class="value">{{ deliverySummary().delivered }}</div>
+        <div class="summary-sub">Confirmed delivery outcomes ready for operational review.</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="label">Started / pending</div>
+        <div class="value">{{ deliverySummary().started }}</div>
+        <div class="summary-sub">Attempts without a final completion outcome in the current result set.</div>
+      </div>
+      <div class="summary-card danger">
+        <div class="label">Failed</div>
+        <div class="value">{{ deliverySummary().failed }}</div>
+        <div class="summary-sub">Events that ended with an error and may need follow-up.</div>
+      </div>
+      <div class="summary-card neutral">
+        <div class="label">Correlation ready</div>
+        <div class="value">{{ deliverySummary().correlated }}</div>
+        <div class="summary-sub">Events carrying a correlation id for deeper traceability.</div>
       </div>
     </div>
+
+    @if (showFilters()) {
+      <div class="filters card">
+        <div class="filters-head">
+          <div>
+            <div class="card-title">Filter workspace</div>
+            <div class="filters-sub">Narrow the delivery audit list only when you need a more specific operational view.</div>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select [ngModel]="deliveryFilters().status" (ngModelChange)="updateDeliveryFilter('status', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="STARTED">Started</mat-option>
+              <mat-option value="DELIVERED">Delivered</mat-option>
+              <mat-option value="FAILED">Failed</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Operation</mat-label>
+            <mat-select [ngModel]="deliveryFilters().operation" (ngModelChange)="updateDeliveryFilter('operation', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="SEND_NOW">Send now</mat-option>
+              <mat-option value="RETRY_WORKER">Retry worker</mat-option>
+              <mat-option value="HARNESS">Harness</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Target reference</mat-label>
+            <input matInput [ngModel]="deliveryFilters().targetId" (ngModelChange)="updateDeliveryFilter('targetId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Queue ID</mat-label>
+            <input matInput [ngModel]="deliveryFilters().queueId" (ngModelChange)="updateDeliveryFilter('queueId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Correlation ID</mat-label>
+            <input matInput [ngModel]="deliveryFilters().correlationId" (ngModelChange)="updateDeliveryFilter('correlationId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>From</mat-label>
+            <input matInput type="datetime-local" [ngModel]="deliveryFilters().dateFrom" (ngModelChange)="updateDeliveryFilter('dateFrom', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>To</mat-label>
+            <input matInput type="datetime-local" [ngModel]="deliveryFilters().dateTo" (ngModelChange)="updateDeliveryFilter('dateTo', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Limit</mat-label>
+            <input matInput type="number" min="1" max="500" [ngModel]="deliveryFilters().limit" (ngModelChange)="updateDeliveryFilter('limit', $event)" />
+          </mat-form-field>
+        </div>
+
+        <div class="filter-actions">
+          <button mat-stroked-button (click)="clearFilters()">
+            <mat-icon>filter_alt_off</mat-icon>
+            Clear
+          </button>
+          <button mat-flat-button color="primary" (click)="applyFilters()">
+            <mat-icon>search</mat-icon>
+            Apply
+          </button>
+        </div>
+      </div>
+    }
 
     <div class="workspace">
       <div class="card list-card">
-        <div class="card-title">Delivery audit events</div>
+        <div class="card-head-inline">
+          <div class="card-title">Delivery audit events</div>
+          <div class="card-meta">{{ filteredDeliveryRows().length }} in view</div>
+        </div>
 
-        @if (!loading() && deliveryRows().length === 0) {
+        @if (!loading() && filteredDeliveryRows().length === 0) {
           <div class="empty">No delivery audit events matched the current filters.</div>
         } @else {
           <div class="list">
-            @for (row of deliveryRows(); track row.id) {
+            @for (row of filteredDeliveryRows(); track row.id) {
               <button class="list-row" [class.selected]="selectedDelivery()?.id === row.id" (click)="selectDelivery(row)">
                 <div class="row-head">
                   <span class="status-dot" [ngClass]="statusClass(row.status)"></span>
                   <span class="status-chip" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
                   <span class="op">{{ row.operation }}</span>
-                  <span class="timestamp">{{ row.created_at | date:'medium' }}</span>
+                  <span class="timestamp">{{ formatDateTime(row.created_at) }}</span>
                 </div>
                 <div class="row-meta">
                   <span>Attempt {{ row.attempt_no }}</span>
-                  <span>Target: {{ row.target_id }}</span>
+                  <span>Target: {{ row.target_name || row.target_id || '—' }}</span>
                   @if (row.queue_id) { <span>Queue: {{ row.queue_id }}</span> }
                   @if (row.http_status) { <span>HTTP {{ row.http_status }}</span> }
                 </div>
@@ -133,22 +170,33 @@
       </div>
 
       <div class="card detail-card">
-        <div class="card-title">Selected event</div>
+        <div class="card-head-inline">
+          <div class="card-title">Selected event</div>
+          @if (selectedDelivery()) {
+            <span class="status-chip" [ngClass]="statusClass(selectedDelivery()?.status)">{{ selectedDelivery()?.status }}</span>
+          }
+        </div>
 
         @if (!selectedDelivery()) {
           <div class="empty">Select an event to inspect its details.</div>
         } @else {
           <div class="detail-grid">
-            <div><span class="k">Status</span><span class="v"><span class="status-chip" [ngClass]="statusClass(selectedDelivery()?.status)">{{ selectedDelivery()?.status }}</span></span></div>
             <div><span class="k">Operation</span><span class="v">{{ selectedDelivery()?.operation }}</span></div>
-            <div><span class="k">Target</span><span class="v mono">{{ selectedDelivery()?.target_id }}</span></div>
+            <div><span class="k">Target</span><span class="v mono">{{ selectedDelivery()?.target_name || selectedDelivery()?.target_id || '—' }}</span></div>
+            <div><span class="k">Target type</span><span class="v">{{ selectedDelivery()?.target_type || '—' }}</span></div>
             <div><span class="k">Queue</span><span class="v mono">{{ selectedDelivery()?.queue_id || '—' }}</span></div>
             <div><span class="k">Attempt</span><span class="v">{{ selectedDelivery()?.attempt_no }}</span></div>
             <div><span class="k">HTTP status</span><span class="v">{{ selectedDelivery()?.http_status || '—' }}</span></div>
             <div><span class="k">Correlation ID</span><span class="v mono">{{ selectedDelivery()?.correlation_id || '—' }}</span></div>
             <div><span class="k">Duration</span><span class="v">{{ selectedDelivery()?.duration_ms ? (selectedDelivery()?.duration_ms + ' ms') : '—' }}</span></div>
-            <div><span class="k">Created</span><span class="v">{{ selectedDelivery()?.created_at | date:'medium' }}</span></div>
+            <div><span class="k">Created</span><span class="v">{{ formatDateTime(selectedDelivery()?.created_at) }}</span></div>
           </div>
+
+          @for (note of selectedDeliveryAlerts(selectedDelivery()); track note.text) {
+            <div class="callout" [class.info]="note.kind === 'info'" [class.warn]="note.kind === 'warn'" [class.error]="note.kind === 'bad'">
+              <div>{{ note.text }}</div>
+            </div>
+          }
 
           @if (selectedDelivery()?.error_message) {
             <div class="callout error">
@@ -156,90 +204,116 @@
               <div>{{ selectedDelivery()?.error_message }}</div>
             </div>
           }
-
-          @if (selectedDelivery()?.correlation_id) {
-            <div class="callout info">
-              <div class="callout-title">Correlation</div>
-              <div>Use this correlation ID to follow the same delivery attempt across related events and external traces.</div>
-            </div>
-          }
         }
       </div>
     </div>
   } @else {
-    <div class="summary-grid">
-      <div class="summary-card total"><div class="label">Total events</div><div class="value">{{ systemSummary().total }}</div></div>
-      <div class="summary-card danger"><div class="label">Errors</div><div class="value">{{ systemSummary().errors }}</div></div>
-      <div class="summary-card warning"><div class="label">Warnings</div><div class="value">{{ systemSummary().warnings }}</div></div>
-      <div class="summary-card neutral"><div class="label">Info</div><div class="value">{{ systemSummary().info }}</div></div>
-    </div>
-
-    <div class="filters card">
-      <div class="filters-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Level</mat-label>
-          <mat-select [ngModel]="systemFilters().level" (ngModelChange)="updateSystemFilter('level', $event)">
-            <mat-option value="">All</mat-option>
-            <mat-option value="error">Error</mat-option>
-            <mat-option value="warn">Warn</mat-option>
-            <mat-option value="info">Info</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Source</mat-label>
-          <mat-select [ngModel]="systemFilters().source" (ngModelChange)="updateSystemFilter('source', $event)">
-            <mat-option value="">All</mat-option>
-            <mat-option value="APP">App</mat-option>
-            <mat-option value="AUTH">Auth</mat-option>
-            <mat-option value="MACHINE">Machine</mat-option>
-            <mat-option value="TARGET">Target</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Entity type</mat-label>
-          <input matInput [ngModel]="systemFilters().entityType" (ngModelChange)="updateSystemFilter('entityType', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Entity ID</mat-label>
-          <input matInput [ngModel]="systemFilters().entityId" (ngModelChange)="updateSystemFilter('entityId', $event)" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Limit</mat-label>
-          <input matInput type="number" min="1" max="500" [ngModel]="systemFilters().limit" (ngModelChange)="updateSystemFilter('limit', $event)" />
-        </mat-form-field>
+    <div class="summary-grid summary-grid--system">
+      <div class="summary-card total">
+        <div class="label">Events in view</div>
+        <div class="value">{{ systemSummary().total }}</div>
+        <div class="summary-sub">System events after the current review filters.</div>
       </div>
-
-      <div class="filter-actions">
-        <button mat-stroked-button (click)="clearFilters()">
-          <mat-icon>filter_alt_off</mat-icon>
-          Clear
-        </button>
-        <button mat-flat-button color="primary" (click)="refresh()">
-          <mat-icon>search</mat-icon>
-          Apply
-        </button>
+      <div class="summary-card danger">
+        <div class="label">Errors</div>
+        <div class="value">{{ systemSummary().errors }}</div>
+        <div class="summary-sub">Critical events that need attention.</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="label">Warnings</div>
+        <div class="value">{{ systemSummary().warnings }}</div>
+        <div class="summary-sub">Operational events that may require follow-up.</div>
+      </div>
+      <div class="summary-card neutral">
+        <div class="label">Info</div>
+        <div class="value">{{ systemSummary().info }}</div>
+        <div class="summary-sub">Informational system activity in the current scope.</div>
+      </div>
+      <div class="summary-card info-tone">
+        <div class="label">Payload attached</div>
+        <div class="value">{{ systemSummary().withPayload }}</div>
+        <div class="summary-sub">Events carrying payload snapshots for deeper inspection.</div>
       </div>
     </div>
+
+    @if (showFilters()) {
+      <div class="filters card">
+        <div class="filters-head">
+          <div>
+            <div class="card-title">Filter workspace</div>
+            <div class="filters-sub">Use filters only when you need to narrow the system event view.</div>
+          </div>
+        </div>
+
+        <div class="filters-grid filters-grid--system">
+          <mat-form-field appearance="outline">
+            <mat-label>Level</mat-label>
+            <mat-select [ngModel]="systemFilters().level" (ngModelChange)="updateSystemFilter('level', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="error">Error</mat-option>
+              <mat-option value="warn">Warn</mat-option>
+              <mat-option value="info">Info</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Source</mat-label>
+            <mat-select [ngModel]="systemFilters().source" (ngModelChange)="updateSystemFilter('source', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="APP">App</mat-option>
+              <mat-option value="AUTH">Auth</mat-option>
+              <mat-option value="MACHINE">Machine</mat-option>
+              <mat-option value="TARGET">Target</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entity type</mat-label>
+            <input matInput [ngModel]="systemFilters().entityType" (ngModelChange)="updateSystemFilter('entityType', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entity ID</mat-label>
+            <input matInput [ngModel]="systemFilters().entityId" (ngModelChange)="updateSystemFilter('entityId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Limit</mat-label>
+            <input matInput type="number" min="1" max="500" [ngModel]="systemFilters().limit" (ngModelChange)="updateSystemFilter('limit', $event)" />
+          </mat-form-field>
+        </div>
+
+        <div class="filter-actions">
+          <button mat-stroked-button (click)="clearFilters()">
+            <mat-icon>filter_alt_off</mat-icon>
+            Clear
+          </button>
+          <button mat-flat-button color="primary" (click)="applyFilters()">
+            <mat-icon>search</mat-icon>
+            Apply
+          </button>
+        </div>
+      </div>
+    }
 
     <div class="workspace">
       <div class="card list-card">
-        <div class="card-title">System events</div>
+        <div class="card-head-inline">
+          <div class="card-title">System events</div>
+          <div class="card-meta">{{ filteredSystemRows().length }} in view</div>
+        </div>
 
-        @if (!loading() && systemRows().length === 0) {
+        @if (!loading() && filteredSystemRows().length === 0) {
           <div class="empty">No system log events matched the current filters.</div>
         } @else {
           <div class="list">
-            @for (row of systemRows(); track row.id) {
+            @for (row of filteredSystemRows(); track row.id) {
               <button class="list-row" [class.selected]="selectedSystem()?.id === row.id" (click)="selectSystem(row)">
                 <div class="row-head">
                   <span class="status-dot" [ngClass]="statusClass(row.level)"></span>
                   <span class="status-chip" [ngClass]="statusClass(row.level)">{{ row.level }}</span>
                   <span class="op">{{ row.source }}</span>
-                  <span class="timestamp">{{ row.created_at | date:'medium' }}</span>
+                  <span class="timestamp">{{ formatDateTime(row.created_at) }}</span>
                 </div>
                 <div class="row-meta">
                   @if (row.entity_type) { <span>{{ row.entity_type }}</span> }
@@ -253,17 +327,21 @@
       </div>
 
       <div class="card detail-card">
-        <div class="card-title">Selected event</div>
+        <div class="card-head-inline">
+          <div class="card-title">Selected event</div>
+          @if (selectedSystem()) {
+            <span class="status-chip" [ngClass]="statusClass(selectedSystem()?.level)">{{ selectedSystem()?.level }}</span>
+          }
+        </div>
 
         @if (!selectedSystem()) {
           <div class="empty">Select a system log row to inspect its details.</div>
         } @else {
           <div class="detail-grid">
-            <div><span class="k">Level</span><span class="v"><span class="status-chip" [ngClass]="statusClass(selectedSystem()?.level)">{{ selectedSystem()?.level }}</span></span></div>
             <div><span class="k">Source</span><span class="v">{{ selectedSystem()?.source }}</span></div>
             <div><span class="k">Entity type</span><span class="v">{{ selectedSystem()?.entity_type || '—' }}</span></div>
             <div><span class="k">Entity ID</span><span class="v mono">{{ selectedSystem()?.entity_id || '—' }}</span></div>
-            <div><span class="k">Created</span><span class="v">{{ selectedSystem()?.created_at | date:'medium' }}</span></div>
+            <div><span class="k">Created</span><span class="v">{{ formatDateTime(selectedSystem()?.created_at) }}</span></div>
           </div>
 
           <div class="callout info">

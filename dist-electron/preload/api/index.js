@@ -5,6 +5,8 @@ const electron_1 = require("electron");
 const channels_1 = require("../../shared/channels");
 const runtime_event_bus_1 = require("../../main/runtime/runtime-event-bus");
 exports.api = {
+    // preload index.ts
+    copyToClipboard: (text) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.COPY_TO_CLIPBOARD, text),
     // Base
     getAppVersion: () => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.APP_GET_VERSION),
     ping: (msg) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.APP_PING, msg),

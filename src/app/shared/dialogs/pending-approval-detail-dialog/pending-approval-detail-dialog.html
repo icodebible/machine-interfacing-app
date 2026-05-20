@@ -15,13 +15,6 @@
 }
 
 <div mat-dialog-content class="dialog-shell">
-    @if (reviewAlert(); as alert) {
-    <section class="alert-banner" [class.bad]="alert.tone === 'bad'" [class.warn]="alert.tone === 'warn'" [class.info]="alert.tone === 'info'">
-        <div class="alert-title">{{ alert.title }}</div>
-        <div class="alert-copy">{{ alert.message }}</div>
-    </section>
-    }
-
     <section class="surface-block">
         <div class="section-title">Decision summary</div>
         <div class="summary-grid">
@@ -38,54 +31,17 @@
     </section>
 
     <section class="surface-block">
-        <div class="section-title">Review cards</div>
-        <div class="review-grid">
-            <div class="review-card">
-                <div class="review-title">Result context</div>
-                <div class="key-value-list">
-                    <div><b>Patient</b><span>{{ patientSummary() }}</span></div>
-                    <div><b>Sample / Order</b><span>{{ sampleOrderSummary() }}</span></div>
-                    <div><b>Test</b><span>{{ row()?.test_name || row()?.test_code || '—' }}</span></div>
-                    <div><b>Protocol</b><span>{{ row()?.protocol || '—' }}</span></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="review-title">Clinical summary</div>
-                <div class="key-value-list">
-                    <div><b>Value</b><span>{{ resultValueSummary() }}</span></div>
-                    <div><b>Reference range</b><span>{{ row()?.reference_range || '—' }}</span></div>
-                    <div><b>Abnormal flag</b><span>{{ row()?.abnormal_flag || '—' }}</span></div>
-                    <div><b>Observed</b><span>{{ formatDateTime(row()?.observed_at) }}</span></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="review-title">Release context</div>
-                <div class="key-value-list">
-                    <div><b>Policy</b><span>{{ row()?.policy_name || row()?.approval_policy_id || '—' }}</span></div>
-                    <div><b>Route targets</b><span>{{ routeTargetSummary() }}</span></div>
-                    <div><b>Approvals required</b><span>{{ row()?.approval_count_required || 0 }}</span></div>
-                    <div><b>Approvals received</b><span>{{ row()?.approval_count_received || 0 }}</span></div>
-                </div>
-            </div>
+        <div class="section-title">Approved data context</div>
+        <div class="summary-grid">
+            <div><b>Patient:</b> {{ row()?.patient_name || row()?.patient_id || '—' }}</div>
+            <div><b>Sample / Order:</b> {{ row()?.sample_id || row()?.order_id || '—' }}</div>
+            <div><b>Test:</b> {{ row()?.test_name || row()?.test_code || '—' }}</div>
+            <div><b>Value:</b> {{ resultValueSummary() }}</div>
+            <div><b>Reference range:</b> {{ row()?.reference_range || '—' }}</div>
+            <div><b>Abnormal flag:</b> {{ row()?.abnormal_flag || '—' }}</div>
+            <div><b>Observed:</b> {{ formatDateTime(row()?.observed_at) }}</div>
+            <div><b>Protocol:</b> {{ row()?.protocol || '—' }}</div>
         </div>
-    </section>
-
-    <section class="surface-block">
-        <div class="section-title">Route targets after approval</div>
-        @if (routeTargetList().length) {
-        <div class="chip-list">
-            @for (target of routeTargetList(); track target.id || target.name) {
-            <div class="route-chip">
-                <div class="route-chip-title">{{ target.name || target.id }}</div>
-                <div class="route-chip-sub">{{ target.type || 'Configured target' }}</div>
-            </div>
-            }
-        </div>
-        } @else {
-        <div class="context-note info">No route targets are configured for release yet.</div>
-        }
     </section>
 
     <section class="surface-block">
@@ -121,3 +77,4 @@
     <button mat-stroked-button color="warn" type="button" (click)="openAction('reject')" [disabled]="!canAct() || actionInProgress()">Reject</button>
     <button mat-flat-button color="primary" type="button" (click)="openAction('approve')" [disabled]="!canAct() || actionInProgress()">Approve</button>
 </div>
+

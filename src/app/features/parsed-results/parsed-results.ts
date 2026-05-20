@@ -12,6 +12,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { ParsedResultDetailDialog } from '../../shared/dialogs/parsed-result-detail-dialog/parsed-result-detail-dialog';
@@ -57,6 +58,7 @@ interface ParsedResultViewRow {
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
+    MatTooltipModule,
   ],
   templateUrl: './parsed-results.html',
   styleUrl: './parsed-results.scss',
@@ -69,16 +71,17 @@ export class ParsedResults {
   loading = signal(false);
   rows = signal<ParsedResultViewRow[]>([]);
   expandedRowId = signal<string | null>(null);
+  showFilters = signal(false);
 
-  searchTerm = '';
-  protocolFilter: 'ALL' | ParsedResultViewRow['protocol'] = 'ALL';
-  statusFilter: 'ALL' | ParsedStatus = 'ALL';
+  searchTerm = signal('');
+  protocolFilter = signal<'ALL' | ParsedResultViewRow['protocol']>('ALL');
+  statusFilter = signal<'ALL' | ParsedStatus>('ALL');
 
   cols: string[] = ['message', 'protocol', 'status', 'received', 'actions'];
   detailCols: string[] = ['expandedDetail'];
 
   filteredRows = computed(() => {
-    const term = this.searchTerm.trim().toLowerCase();
+    const term = this.searchTerm().trim().toLowerCase();
 
     return this.rows().filter((row) => {
       const matchesTerm =
@@ -93,10 +96,16 @@ export class ParsedResults {
           row.sampleId ?? '',
           row.orderId ?? '',
           row.summary ?? '',
+          row.rawPayload ?? '',
+          row.warnings.join(' '),
+          row.errors.join(' '),
+          JSON.stringify(row.parsedPayload ?? {}),
         ].some((value) => value.toLowerCase().includes(term));
 
-      const matchesProtocol = this.protocolFilter === 'ALL' || row.protocol === this.protocolFilter;
-      const matchesStatus = this.statusFilter === 'ALL' || row.parseStatus === this.statusFilter;
+      const protocolFilter = this.protocolFilter();
+      const statusFilter = this.statusFilter();
+      const matchesProtocol = protocolFilter === 'ALL' || row.protocol === protocolFilter;
+      const matchesStatus = statusFilter === 'ALL' || row.parseStatus === statusFilter;
 
       return matchesTerm && matchesProtocol && matchesStatus;
     });
@@ -105,27 +114,43 @@ export class ParsedResults {
   summaryCards = computed(() => {
     const rows = this.filteredRows();
     return [
-      { label: 'Total messages', value: rows.length, tone: 'idle' },
+      { label: 'Total messages', value: rows.length, tone: 'accent-neutral' },
       {
         label: 'Parsed cleanly',
         value: rows.filter((row) => row.parseStatus === 'PARSED').length,
-        tone: 'ok',
+        tone: 'accent-good',
       },
       {
         label: 'Warnings',
         value: rows.filter((row) => row.parseStatus === 'WARNING').length,
-        tone: 'warn',
+        tone: 'accent-warn',
       },
       {
         label: 'Failures',
         value: rows.filter((row) => row.parseStatus === 'FAILED').length,
-        tone: 'bad',
+        tone: 'accent-bad',
       },
     ];
   });
 
   constructor() {
     this.refresh();
+  }
+
+  toggleFilters() {
+    this.showFilters.set(!this.showFilters());
+  }
+
+  setSearchTerm(value: string) {
+    this.searchTerm.set(value ?? '');
+  }
+
+  setProtocolFilter(value: 'ALL' | ParsedResultViewRow['protocol']) {
+    this.protocolFilter.set(value ?? 'ALL');
+  }
+
+  setStatusFilter(value: 'ALL' | ParsedStatus) {
+    this.statusFilter.set(value ?? 'ALL');
   }
 
   async refresh() {

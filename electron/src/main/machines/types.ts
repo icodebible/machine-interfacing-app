@@ -5,7 +5,8 @@ export type SerialConfig = { path: string; baudRate: number };
 
 export type MachineMessage = {
     timestamp: string;
-    direction: 'in' | 'out';
+    // direction: 'in' | 'out';
+    direction: 'in' | 'out' | 'system';
     payload: string;
 };
 

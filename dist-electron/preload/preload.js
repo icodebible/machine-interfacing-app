@@ -124,6 +124,8 @@ var RUNTIME_EVENT_CHANNEL = "machines:runtime:event";
 
 // electron/src/preload/api/index.ts
 var api = {
+  // preload index.ts
+  copyToClipboard: (text) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.COPY_TO_CLIPBOARD, text),
   // Base
   getAppVersion: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APP_GET_VERSION),
   ping: (msg) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.APP_PING, msg),

@@ -1,3 +1,4 @@
+
 <div class="content">
     <div class="page-toolbar">
         <div class="title">
@@ -69,7 +70,7 @@
                 <th mat-header-cell *matHeaderCellDef>Policy</th>
                 <td mat-cell *matCellDef="let row">
                     <div class="cell-title small">{{ policyName(row.approval_policy_id) }}</div>
-                    <div class="micro-copy">{{ routeTargetSummary(row) }}</div>
+                    <div class="micro-copy">{{ row.approval_policy_id || 'Awaiting policy match' }}</div>
                 </td>
             </ng-container>
 
@@ -154,8 +155,6 @@
                                     <div><b>Updated:</b> {{ formatDateTime(row.updated_at) }}</div>
                                     <div><b>Created by:</b> {{ row.created_by_username || 'SYSTEM' }}</div>
                                     <div><b>Updated by:</b> {{ row.updated_by_username || row.created_by_username || 'SYSTEM' }}</div>
-                                    <div><b>Patient:</b> {{ row.patient_name || row.patient_id || '—' }}</div>
-                                    <div><b>Targets:</b> {{ routeTargetSummary(row) }}</div>
                                 </div>
                             </div>
 

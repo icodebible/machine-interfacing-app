@@ -422,7 +422,8 @@ export class Machines {
     const t = m.connection_type;
 
     if (t === 'TCP' || t === 'HL7_MLLP') {
-      return m.host && m.port ? `${t} ${m.host}:${m.port}` : `${t} (not set)`;
+      const mode = m.tcp_mode === 'CLIENT' ? 'Client' : 'Server';
+      return m.host && m.port ? `${t} ${mode} ${m.host}:${m.port}` : `${t} ${mode} (not set)`;
     }
 
     if (t === 'SERIAL') {

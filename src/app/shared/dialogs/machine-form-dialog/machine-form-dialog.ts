@@ -55,6 +55,7 @@ export type MachineDto = {
   // TCP / HL7
   host?: string | null;
   port?: number | null;
+  tcp_mode?: 'SERVER' | 'CLIENT' | null;
 
   // SERIAL
   serial_port?: string | null;
@@ -147,8 +148,9 @@ export class MachineFormDialog {
     connection_type: ['TCP' as ConnectionType, [Validators.required]],
     protocol: ['ASTM' as ProtocolType, [Validators.required]],
 
-    host: [null as string | null],
+    host: ['0.0.0.0' as string | null],
     port: [null as number | null],
+    tcp_mode: ['SERVER' as 'SERVER' | 'CLIENT'],
 
     serial_port: [null as string | null],
     baud_rate: [9600 as number | null],
@@ -201,6 +203,9 @@ export class MachineFormDialog {
 
     // Re-apply validators when connection type changes
     this.form.get('connection_type')!.valueChanges.subscribe(() => {
+      if (this.needsTcp() && !this.form.get('host')!.value) {
+        this.form.patchValue({ host: '0.0.0.0', tcp_mode: 'SERVER' }, { emitEvent: false });
+      }
       this.applyConnectionValidators();
     });
 
@@ -213,6 +218,10 @@ export class MachineFormDialog {
     effect(() => {
       const ct = this.ctype();
       const protocol = this.form.get('protocol')!.value;
+
+      if ((ct === 'TCP' || ct === 'HL7_MLLP') && !this.form.get('tcp_mode')!.value) {
+        this.form.get('tcp_mode')!.setValue('SERVER');
+      }
 
       if (ct === 'HL7_MLLP' && protocol !== 'HL7') {
         this.form.get('protocol')!.setValue('HL7');
@@ -295,10 +304,13 @@ export class MachineFormDialog {
     }
 
     const raw = this.form.getRawValue();
+    const tcpMode = (raw.tcp_mode ?? 'SERVER') as 'SERVER' | 'CLIENT';
 
-    // Ensure numeric flags are stored as 0/1
+    // Ensure numeric flags are stored as 0/1 and TCP server has a stable bind address.
     const payload: MachineDto = {
       ...(raw as any),
+      host: this.needsTcp() ? (raw.host || (tcpMode === 'SERVER' ? '0.0.0.0' : null)) : raw.host,
+      tcp_mode: this.needsTcp() ? tcpMode : null,
       is_active: Number(raw.is_active ?? 1),
       auto_connect: Number(raw.auto_connect ?? 0),
     };

@@ -1,348 +1,304 @@
-<div class="content">
+<section class="content">
   <div class="page-toolbar">
     <div class="title-wrap">
-      <div class="title">Targets</div>
+      <h2 class="title">Targets</h2>
       <div class="sub">
-        Manage destination systems, connector security, connection tests, and transformation
-        preview.
+        Manage outbound destinations, connector security, connection checks, and transform preview from one production-ready workspace.
       </div>
     </div>
 
     <div class="toolbar-actions">
-      <button mat-stroked-button (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
-        Refresh
+      <button mat-stroked-button type="button" (click)="toggleStarters()">
+        <mat-icon>{{ showStarters() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        {{ showStarters() ? 'Hide target templates' : 'Show target templates' }}
       </button>
-
-      <button mat-flat-button color="primary" (click)="openCreate()">
+      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
         <mat-icon>add</mat-icon>
-        New Target
+        New target
       </button>
     </div>
   </div>
 
-  <div class="starter-panel card">
-    <div class="panel-head">
-      <div>
-        <div class="section-title">Target creation defaults</div>
-        <div class="sub">
-          Start with a connector-specific default so naming, base URL patterns, and recommended
-          operational posture stay consistent.
-        </div>
+  <section class="summary-grid" aria-label="Target summary">
+    <article class="summary-card primary">
+      <div class="summary-label">Total targets</div>
+      <div class="summary-value">{{ summary().total }}</div>
+      <div class="summary-sub">Configured outbound connectors</div>
+    </article>
+
+    <article class="summary-card success">
+      <div class="summary-label">Enabled</div>
+      <div class="summary-value">{{ summary().enabled }}</div>
+      <div class="summary-sub">Active for workflow routing</div>
+    </article>
+
+    <article class="summary-card warning">
+      <div class="summary-label">Disabled</div>
+      <div class="summary-value">{{ summary().disabled }}</div>
+      <div class="summary-sub">Available but not currently sending</div>
+    </article>
+
+    <article class="summary-card accent">
+      <div class="summary-label">Types in use</div>
+      <div class="summary-value">{{ summary().configuredTypes }}</div>
+      <div class="summary-sub">Distinct connector categories</div>
+    </article>
+
+    <article class="summary-card info">
+      <div class="summary-label">Retry ready</div>
+      <div class="summary-value">{{ summary().retryReady }}</div>
+      <div class="summary-sub">Targets with retry enabled</div>
+    </article>
+  </section>
+
+  <section class="template-toggle-card card">
+    <div class="template-toggle-copy">
+      <div class="template-toggle-title">Starter templates</div>
+      <div class="template-toggle-sub">
+        Templates stay hidden by default so the operations table remains visible. Open them only when you need a guided starting point.
       </div>
     </div>
 
-    <div class="starter-grid">
-      @for (starter of starters; track starter.type) {
-      <div class="starter-card">
-        <div class="starter-label-row">
-          <div class="starter-label">{{ starter.label }}</div>
-          <div class="starter-chip">{{ starter.type }}</div>
+    <div class="template-toggle-actions">
+      <span class="status-pill info">{{ starters.length }} available</span>
+      <button mat-button type="button" (click)="toggleStarters()">
+        {{ showStarters() ? 'Collapse' : 'Open templates' }}
+      </button>
+    </div>
+  </section>
+
+  @if (showStarters()) {
+    <section class="starter-panel card">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Target starter templates</div>
+          <div class="meta">Compact templates for faster setup without hiding the target table below.</div>
         </div>
+      </div>
 
-        <div class="starter-description">{{ starter.description }}</div>
-        <div class="starter-url mono">{{ starter.defaultBaseUrl }}</div>
-
-        <div class="starter-block">
-          <div class="starter-block-title">Metadata defaults</div>
-          <div class="starter-default"><b>Name:</b> {{ starter.defaultName }}</div>
-          <div class="starter-default"><b>Base URL:</b> {{ starter.defaultBaseUrl }}</div>
-          <div class="starter-notes">
-            @for (note of starter.metadataNotes; track note) {
-            <div>- {{ note }}</div>
-            }
-          </div>
-        </div>
-
-        <div class="starter-block">
-          <div class="starter-block-title">Recommended operational defaults</div>
-          <div class="starter-default-grid">
-            <div>
-              <b>Request timeout:</b> {{ starter.operationalDefaults.requestTimeoutMs }} ms
+      <div class="starter-grid">
+        @for (starter of starters; track starter.type) {
+          <article class="starter-card">
+            <div class="starter-head-row">
+              <div>
+                <div class="starter-label">{{ starter.label }}</div>
+                <div class="starter-description">{{ starter.description }}</div>
+              </div>
+              <span class="starter-chip">{{ starter.type }}</span>
             </div>
-            <div><b>Auto retry:</b> {{ starter.operationalDefaults.autoRetry }}</div>
-            <div><b>Max attempts:</b> {{ starter.operationalDefaults.maxAttempts }}</div>
-            <div><b>Backoff:</b> {{ starter.operationalDefaults.backoffStrategy }}</div>
-            <div><b>Base delay:</b> {{ starter.operationalDefaults.baseDelayMs }} ms</div>
-            <div><b>Delay cap:</b> {{ starter.operationalDefaults.maxDelayMs }} ms</div>
-          </div>
-        </div>
 
-        <div class="starter-footnote">
-          Secrets intentionally stay blank and should be saved under Connector Security after the
-          target is created.
-        </div>
+            <div class="starter-url mono">{{ starter.defaultBaseUrl }}</div>
 
-        <button mat-stroked-button (click)="openCreate(starter.type)">
-          <mat-icon>playlist_add</mat-icon>
-          Use {{ starter.type }} defaults
-        </button>
+            <div class="starter-mini-grid">
+              <div>
+                <div class="mini-label">Timeout</div>
+                <div class="mini-value">{{ starter.operationalDefaults.requestTimeoutMs | number }} ms</div>
+              </div>
+              <div>
+                <div class="mini-label">Retry profile</div>
+                <div class="mini-value">{{ starter.operationalDefaults.maxAttempts }} · {{ starter.operationalDefaults.backoffStrategy }}</div>
+              </div>
+            </div>
+
+            <div class="starter-notes">
+              {{ starter.metadataNotes[0] }}
+            </div>
+
+            <div class="starter-actions">
+              <button mat-stroked-button type="button" (click)="openCreate(starter)">
+                <mat-icon>auto_awesome</mat-icon>
+                Use template
+              </button>
+            </div>
+          </article>
+        }
       </div>
-      }
-    </div>
-  </div>
-
-  @if (loading()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </section>
   }
 
-  <div class="card">
-    <mat-divider></mat-divider>
+  <section class="card table-card">
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
 
-    <table mat-table [dataSource]="rows()" class="table">
+    <table mat-table [dataSource]="rows()" multiTemplateDataRows class="table">
       <ng-container matColumnDef="target">
         <th mat-header-cell *matHeaderCellDef>Target</th>
         <td mat-cell *matCellDef="let row">
-          <div class="cell-title">{{ row.name }}</div>
-          <div class="cell-sub">{{ row.base_url }}</div>
+          <div class="row-main-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="expander"
+              matTooltip="Expand quick details"
+              [attr.aria-label]="expandedId() === row.id ? 'Collapse target row' : 'Expand target row'"
+              (click)="toggleExpanded(row); $event.stopPropagation()"
+            >
+              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+
+            <div>
+              <div class="cell-title">{{ row.name }}</div>
+              <div class="cell-sub">{{ row.type }} <span class="dot">•</span> {{ row.base_url }}</div>
+              <div class="meta">Updated {{ relativeTime(row.updated_at) }}</div>
+            </div>
+          </div>
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="type">
-        <th mat-header-cell *matHeaderCellDef>Type</th>
+      <ng-container matColumnDef="delivery">
+        <th mat-header-cell *matHeaderCellDef>Delivery profile</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.type }}
+          <div class="cell-title">{{ formatTimeout(row) }}</div>
+          <div class="cell-sub">{{ formatRetry(row) }}</div>
+          <div class="meta">Backoff: {{ formatBackoff(row) }}</div>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Status</th>
         <td mat-cell *matCellDef="let row">
-          <span class="status-dot" [class]="statusClass(row.enabled)"></span>
-          <span class="muted">{{ row.enabled === 1 ? 'Enabled' : 'Disabled' }}</span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="updated">
-        <th mat-header-cell *matHeaderCellDef>Updated</th>
-        <td mat-cell *matCellDef="let row">
-          {{ formatDateTime(row.updated_at) }}
+          <div class="status-line">
+            <span class="status-dot" [ngClass]="statusClass(row.enabled)"></span>
+            <span class="status-pill" [ngClass]="statusClass(row.enabled)">
+              {{ row.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </div>
+          <div class="meta">
+            {{ row.updated_by_username || row.created_by_username || 'System managed' }}
+          </div>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
         <td mat-cell *matCellDef="let row" class="actions-col">
-          <button mat-icon-button (click)="selectRow(row); $event.stopPropagation()">
-            <mat-icon>info</mat-icon>
-          </button>
+          <div class="row-actions">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Overview"
+              aria-label="Open target overview"
+              (click)="openWorkspace(row, 'overview'); $event.stopPropagation()"
+            >
+              <mat-icon>edit_note</mat-icon>
+            </button>
 
-          <button mat-icon-button (click)="openEdit(row); $event.stopPropagation()">
-            <mat-icon>edit</mat-icon>
-          </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Security and test"
+              aria-label="Open target security and test"
+              (click)="openWorkspace(row, 'security'); $event.stopPropagation()"
+            >
+              <mat-icon>shield</mat-icon>
+            </button>
 
-          <button mat-icon-button color="warn" (click)="remove(row); $event.stopPropagation()">
-            <mat-icon>delete</mat-icon>
-          </button>
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              matTooltip="Delete target"
+              aria-label="Delete target"
+              (click)="remove(row); $event.stopPropagation()"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+          @if (expandedId() === row.id) {
+            <div class="expanded-panel">
+              <div class="expanded-grid">
+                <section class="section-block">
+                  <div class="section-head-inline">
+                    <div class="section-title">Connector overview</div>
+                    <span class="status-pill" [ngClass]="statusClass(row.enabled)">
+                      {{ row.enabled ? 'Enabled' : 'Disabled' }}
+                    </span>
+                  </div>
+
+                  <div class="summary-grid-mini compact">
+                    <div>
+                      <strong>Type</strong>
+                      <div class="meta">{{ row.type }}</div>
+                    </div>
+                    <div>
+                      <strong>Base URL</strong>
+                      <div class="meta mono">{{ row.base_url }}</div>
+                    </div>
+                    <div>
+                      <strong>Created</strong>
+                      <div class="meta">{{ formatDateTime(row.created_at) }}</div>
+                    </div>
+                    <div>
+                      <strong>Updated</strong>
+                      <div class="meta">{{ formatDateTime(row.updated_at) }}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section-block">
+                  <div class="section-title">Operational delivery</div>
+                  <div class="summary-grid-mini compact">
+                    <div>
+                      <strong>Timeout</strong>
+                      <div class="meta">{{ formatTimeout(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Retry</strong>
+                      <div class="meta">{{ formatRetry(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Backoff window</strong>
+                      <div class="meta">{{ formatBackoff(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Maintained by</strong>
+                      <div class="meta">{{ row.updated_by_username || row.created_by_username || 'System managed' }}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section-block span-2 quick-actions-block">
+                  <div class="section-head-inline">
+                    <div>
+                      <div class="section-title">Quick workspace actions</div>
+                      <div class="meta">Open the full dialog only where you need to work next.</div>
+                    </div>
+                  </div>
+
+                  <div class="quick-actions-row">
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'overview'); $event.stopPropagation()">
+                      <mat-icon>dashboard_customize</mat-icon>
+                      Overview
+                    </button>
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'security'); $event.stopPropagation()">
+                      <mat-icon>shield</mat-icon>
+                      Security &amp; test
+                    </button>
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'preview')">
+                      <mat-icon>preview</mat-icon>
+                      Preview transform
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          }
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="cols"></tr>
-      <tr mat-row *matRowDef="let row; columns: cols" class="row-clickable" (click)="selectRow(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols; trackBy: trackById" class="clickable-row" (click)="toggleExpanded(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"></tr>
     </table>
 
-    @if (rows().length === 0 && !loading()) {
-    <div class="empty">No targets found.</div>
+    @if (!loading() && rows().length === 0) {
+      <div class="empty">No targets found. Create one from scratch or open a starter template.</div>
     }
-
-    @if (selected()) {
-    <mat-divider></mat-divider>
-
-    <div class="detail-panel">
-      <div class="detail-head">
-        <div>
-          <div class="title">{{ selected()?.name }}</div>
-          <div class="meta">{{ selected()?.type }} · {{ selected()?.base_url }}</div>
-        </div>
-      </div>
-
-      @if (selectedStarter()) {
-      <div class="recommendation-box">
-        <div class="section-title">Recommended defaults for {{ selectedStarter()?.type }}</div>
-        <div class="recommendation-grid">
-          <div><b>Starter:</b> {{ selectedStarter()?.label }}</div>
-          <div>
-            <b>Request timeout:</b>
-            {{ selectedStarter()?.operationalDefaults?.requestTimeoutMs }} ms
-          </div>
-          <div><b>Auto retry:</b> {{ selectedStarter()?.operationalDefaults?.autoRetry }}</div>
-          <div>
-            <b>Max attempts:</b> {{ selectedStarter()?.operationalDefaults?.maxAttempts }}
-          </div>
-          <div>
-            <b>Backoff:</b> {{ selectedStarter()?.operationalDefaults?.backoffStrategy }}
-          </div>
-          <div>
-            <b>Delay cap:</b> {{ selectedStarter()?.operationalDefaults?.maxDelayMs }} ms
-          </div>
-        </div>
-        <div class="recommendation-note">
-          These are recommended connector defaults. Secrets remain separate and should stay
-          blank until they are saved under Connector Security.
-        </div>
-      </div>
-      }
-
-      <div class="section-title">Connector Security</div>
-
-      @if (secretLoading()) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      }
-
-      <div class="preview-controls">
-        <mat-form-field appearance="outline">
-          <mat-label>Auth Mode</mat-label>
-          <mat-select [(ngModel)]="authType">
-            <mat-option value="none">None</mat-option>
-            <mat-option value="bearer">Bearer Token</mat-option>
-            <mat-option value="basic">Basic Auth</mat-option>
-            <mat-option value="api_key">API Key</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Allow Insecure TLS</mat-label>
-          <mat-select [(ngModel)]="allowInsecureTls">
-            <mat-option [value]="false">No</mat-option>
-            <mat-option [value]="true">Yes (dev only)</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-
-      @if (authType === 'bearer') {
-      <div class="secret-field">
-        <mat-form-field appearance="outline">
-          <mat-label>Bearer Token</mat-label>
-          <input matInput [(ngModel)]="token" [type]="showToken() ? 'text' : 'password'" />
-        </mat-form-field>
-
-        <button mat-stroked-button type="button" (click)="showToken.set(!showToken())">
-          <mat-icon>{{ showToken() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          {{ showToken() ? 'Hide' : 'Show' }}
-        </button>
-      </div>
-      }
-
-      @if (authType === 'basic') {
-      <div class="preview-controls">
-        <mat-form-field appearance="outline">
-          <mat-label>Username</mat-label>
-          <input matInput [(ngModel)]="username" />
-        </mat-form-field>
-
-        <div class="secret-field">
-          <mat-form-field appearance="outline">
-            <mat-label>Password</mat-label>
-            <input matInput [(ngModel)]="password" [type]="showPassword() ? 'text' : 'password'" />
-          </mat-form-field>
-
-          <button mat-stroked-button type="button" (click)="showPassword.set(!showPassword())">
-            <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-            {{ showPassword() ? 'Hide' : 'Show' }}
-          </button>
-        </div>
-      </div>
-      }
-
-      @if (authType === 'api_key') {
-      <div class="preview-controls">
-        <mat-form-field appearance="outline">
-          <mat-label>API Key Header Name</mat-label>
-          <input matInput [(ngModel)]="apiKeyName" />
-        </mat-form-field>
-
-        <div class="secret-field">
-          <mat-form-field appearance="outline">
-            <mat-label>API Key Value</mat-label>
-            <input matInput [(ngModel)]="apiKeyValue" [type]="showApiKeyValue() ? 'text' : 'password'" />
-          </mat-form-field>
-
-          <button mat-stroked-button type="button" (click)="showApiKeyValue.set(!showApiKeyValue())">
-            <mat-icon>{{ showApiKeyValue() ? 'visibility_off' : 'visibility' }}</mat-icon>
-            {{ showApiKeyValue() ? 'Hide' : 'Show' }}
-          </button>
-        </div>
-      </div>
-      }
-
-      <div class="toolbar-actions">
-        <button mat-stroked-button (click)="saveSecrets()" [disabled]="savingSecrets()">
-          <mat-icon>save</mat-icon>
-          Save Secrets
-        </button>
-
-        <button mat-flat-button color="primary" (click)="testConnection()" [disabled]="testing()">
-          <mat-icon>wifi_tethering</mat-icon>
-          Test Connection
-        </button>
-      </div>
-
-      @if (diagnostics()) {
-      <div class="warning-box">
-        <div><b>Diagnostics</b></div>
-        <div>{{ diagnostics() }}</div>
-
-        @if (diagnosticsDetails()) {
-        <div class="diag-grid">
-          <div>
-            <b>Target:</b>
-            {{ diagnosticsDetails()?.targetName || diagnosticsDetails()?.targetId || '—' }}
-          </div>
-          <div><b>Type:</b> {{ diagnosticsDetails()?.targetType || '—' }}</div>
-          <div><b>URL:</b> {{ diagnosticsDetails()?.baseUrl || '—' }}</div>
-          <div><b>Auth:</b> {{ diagnosticsDetails()?.authType || '—' }}</div>
-          <div><b>TLS:</b> {{ diagnosticsDetails()?.tlsMode || '—' }}</div>
-          <div><b>HTTP Status:</b> {{ diagnosticsDetails()?.httpStatus ?? '—' }}</div>
-          <div><b>Checked:</b> {{ diagnosticsDetails()?.checkedAt || '—' }}</div>
-        </div>
-
-        @if (diagnosticsDetails()?.notes?.length) {
-        <div class="diag-notes">
-          <div><b>Notes</b></div>
-          @for (note of diagnosticsDetails()?.notes; track note) {
-          <div>- {{ note }}</div>
-          }
-        </div>
-        }
-        }
-      </div>
-      }
-
-      <mat-divider></mat-divider>
-
-      <div class="section-title">Transformation Preview</div>
-
-      <div class="preview-controls">
-        <mat-form-field appearance="outline">
-          <mat-label>Normalized Result ID</mat-label>
-          <input matInput [(ngModel)]="normalizedResultId" />
-        </mat-form-field>
-
-        <button mat-flat-button color="primary" (click)="previewTransform()">
-          <mat-icon>visibility</mat-icon>
-          Preview Transform
-        </button>
-      </div>
-
-      @if (previewLoading()) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      }
-
-      @if (preview()) {
-      <div class="section-title">{{ preview()?.previewName }}</div>
-
-      @if (preview()?.warnings?.length) {
-      <div class="warning-box">
-        <div><b>Warnings</b></div>
-        @for (w of preview()?.warnings; track w) {
-        <div>- {{ w }}</div>
-        }
-      </div>
-      }
-
-      <div class="payload mono">{{ prettyJson(preview()?.payload) }}</div>
-      }
-    </div>
-    }
-  </div>
-</div>
+  </section>
+</section>

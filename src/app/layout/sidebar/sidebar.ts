@@ -68,7 +68,7 @@ export class Sidebar {
   ];
 
   navRouting: NavItem[] = [
-    { label: 'Routing Rules', icon: 'alt_route', route: '/app/routing-rules' },
+    // { label: 'Routing Rules', icon: 'alt_route', route: '/app/routing-rules' },
     { label: 'Targets', icon: 'route', route: '/app/targets' },
     { label: 'Transform Mappings', icon: 'rule', route: '/app/mappings' },
     {
@@ -83,12 +83,12 @@ export class Sidebar {
       route: '/app/delivery-history',
       requires: 'RESULT_ROUTE',
     },
-    { label: 'Legacy Outbox', icon: 'archive', route: '/app/outbox' },
+    // { label: 'Legacy Outbox', icon: 'archive', route: '/app/outbox' },
   ];
 
   navAdmin: NavItem[] = [
-    { label: 'Users', icon: 'group', route: '/app/users', requires: 'USERS_WRITE' },
-    { label: 'Roles', icon: 'admin_panel_settings', route: '/app/roles', requires: 'ROLES_WRITE' },
+    // { label: 'Users', icon: 'group', route: '/app/users', requires: 'USERS_WRITE' },
+    // { label: 'Roles', icon: 'admin_panel_settings', route: '/app/roles', requires: 'ROLES_WRITE' },
     {
       label: 'Approval Policies',
       icon: 'fact_check',

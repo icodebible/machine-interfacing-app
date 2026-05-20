@@ -1,3 +1,4 @@
+
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -168,12 +169,6 @@ export class PendingApprovals {
     );
   }
 
-  routeTargetSummary(row: any) {
-    const targets = Array.isArray(row?.route_targets) ? row.route_targets : [];
-    if (!targets.length) return 'No route targets configured';
-    return targets.map((target: any) => target?.name || target?.id).join(', ');
-  }
-
   async reevaluatePolicy(row: any) {
     if (!this.canReevaluate(row)) {
       this.snack.open(this.actionBlockedMessage(row), 'Close', { duration: 4200 });
@@ -288,12 +283,6 @@ export class PendingApprovals {
         kind: 'info',
         text: 'This result is ready for supervisor review and approval decision.',
       });
-      if (!(row?.route_targets?.length > 0)) {
-        notes.push({
-          kind: 'warn',
-          text: 'Approval is possible, but no routing targets are configured yet. The result will remain held after approval until targets are added.',
-        });
-      }
     }
 
     return notes.length

@@ -1,69 +1,3 @@
-// import { CommonModule } from '@angular/common';
-// import { Component, Inject, inject } from '@angular/core';
-// import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-// import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-// import { MatButtonModule } from '@angular/material/button';
-// import { MatFormFieldModule } from '@angular/material/form-field';
-// import { MatInputModule } from '@angular/material/input';
-// import { MatIconModule } from '@angular/material/icon';
-// import { MatSelectModule } from '@angular/material/select';
-
-// type DialogData = {
-//   mode: 'create' | 'edit';
-//   row?: any | null;
-// };
-
-// @Component({
-//   selector: 'app-approval-policy-dialog',
-//   standalone: true,
-//   imports: [
-//     CommonModule,
-//     ReactiveFormsModule,
-//     MatDialogModule,
-//     MatButtonModule,
-//     MatFormFieldModule,
-//     MatInputModule,
-//     MatIconModule,
-//     MatSelectModule,
-//   ],
-//   templateUrl: './approval-policy-dialog.html',
-//   styleUrl: './approval-policy-dialog.scss',
-// })
-// export class ApprovalPolicyDialog {
-//   private fb = inject(FormBuilder);
-//   private ref = inject(MatDialogRef<ApprovalPolicyDialog>);
-//   form: FormGroup;
-
-//   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
-//     this.form = this.fb.group({
-//       name: [this.data.row?.name ?? '', Validators.required],
-//       enabled: [this.data.row?.enabled ?? 1, Validators.required],
-//       requires_approval: [this.data.row?.requires_approval ?? 1, Validators.required],
-//       min_approvals: [this.data.row?.min_approvals ?? 1, Validators.required],
-//       applies_to_lab_id: [this.data.row?.applies_to_lab_id ?? ''],
-//       applies_to_machine_id: [this.data.row?.applies_to_machine_id ?? ''],
-//       applies_to_target_id: [this.data.row?.applies_to_target_id ?? ''],
-//     });
-//   }
-
-//   submit() {
-//     const v = this.form.getRawValue();
-//     this.ref.close({
-//       ...v,
-//       min_approvals: Number(v.min_approvals ?? 0),
-//       enabled: Number(v.enabled ?? 0),
-//       requires_approval: Number(v.requires_approval ?? 0),
-//       applies_to_lab_id: v.applies_to_lab_id || null,
-//       applies_to_machine_id: v.applies_to_machine_id || null,
-//       applies_to_target_id: v.applies_to_target_id || null,
-//     });
-//   }
-
-//   close() {
-//     this.ref.close();
-//   }
-// }
-
 import { CommonModule } from '@angular/common';
 import { Component, Inject, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -178,7 +112,8 @@ export class ApprovalPolicyDialog {
       scope_mode: [this.inferScopeMode(this.data.row), Validators.required],
       applies_to_lab_id: [this.data.row?.applies_to_lab_id ?? null],
       applies_to_machine_id: [this.data.row?.applies_to_machine_id ?? null],
-      applies_to_target_id: [this.data.row?.applies_to_target_id ?? null],
+      applies_to_target_id: [this.firstRouteTargetId(this.data.row)],
+      route_target_ids: [this.normalizeRouteTargetIds(this.data.row)],
     });
 
     this.applyScopeRules(this.form.controls['scope_mode'].value as ScopeMode);
@@ -212,9 +147,10 @@ export class ApprovalPolicyDialog {
     return this.machines().find((machine) => machine.id === id) ?? null;
   });
 
-  readonly selectedTarget = computed(() => {
-    const id = this.form?.controls?.['applies_to_target_id']?.value;
-    return this.targets().find((target) => target.id === id) ?? null;
+  readonly selectedRouteTargets = computed(() => {
+    const ids = this.routeTargetIds();
+    if (!ids.length) return [] as TargetOption[];
+    return this.targets().filter((target) => ids.includes(target.id));
   });
 
   // readonly scopeMode = computed(() => this.form.controls['scope_mode']?.value as ScopeMode);
@@ -242,6 +178,59 @@ export class ApprovalPolicyDialog {
     if (row?.applies_to_machine_id) return 'MACHINE';
     if (row?.applies_to_lab_id) return 'LAB';
     return 'GLOBAL';
+  }
+
+
+  private normalizeRouteTargetIds(row?: any | null): string[] {
+    const ids = Array.isArray(row?.route_target_ids)
+      ? row.route_target_ids
+      : row?.applies_to_target_id
+        ? [row.applies_to_target_id]
+        : [];
+
+    return Array.from(
+      new Set(
+        ids
+          .map((value: unknown) => String(value ?? '').trim())
+          .filter((value: string) => value.length > 0),
+      ),
+    );
+  }
+
+  private firstRouteTargetId(row?: any | null): string | null {
+    return this.normalizeRouteTargetIds(row)[0] ?? null;
+  }
+
+  routeTargetIds(): string[] {
+    const value = this.form?.controls?.['route_target_ids']?.value;
+    return Array.isArray(value)
+      ? value
+          .map((entry) => String(entry ?? '').trim())
+          .filter((entry) => entry.length > 0)
+      : [];
+  }
+
+  selectedRouteTargetSummary() {
+    const targets = this.selectedRouteTargets();
+    if (!targets.length) return 'No route targets selected';
+    if (targets.length === 1) return this.targetLabel(targets[0]);
+    return `${targets.length} route targets selected`;
+  }
+
+  areAllRouteTargetsSelected() {
+    const availableIds = this.targets().map((target) => target.id);
+    if (!availableIds.length) return false;
+    const selectedIds = new Set(this.routeTargetIds());
+    return availableIds.every((id) => selectedIds.has(id));
+  }
+
+  toggleAllRouteTargets() {
+    const next = this.areAllRouteTargetsSelected() ? [] : this.targets().map((target) => target.id);
+    this.form.controls['route_target_ids'].setValue(next);
+  }
+
+  clearRouteTargets() {
+    this.form.controls['route_target_ids'].setValue([]);
   }
 
   private async loadOptions() {
@@ -277,11 +266,13 @@ export class ApprovalPolicyDialog {
       ),
     );
 
+    const selectedRouteTargetIds = new Set(this.normalizeRouteTargetIds(current));
+
     this.targets.set(
       (targets ?? []).filter(
         (target) =>
           target.enabled === 1 ||
-          target.id === current.applies_to_target_id ||
+          selectedRouteTargetIds.has(target.id) ||
           !('enabled' in target),
       ),
     );
@@ -363,6 +354,7 @@ export class ApprovalPolicyDialog {
 
     const raw = this.form.getRawValue();
     const requiresApproval = Number(raw.requires_approval ?? 0);
+    const routeTargetIds = this.routeTargetIds();
 
     this.ref.close({
       name: String(raw.name ?? '').trim(),
@@ -372,7 +364,8 @@ export class ApprovalPolicyDialog {
       applies_to_lab_id: raw.scope_mode === 'LAB' ? raw.applies_to_lab_id || null : null,
       applies_to_machine_id:
         raw.scope_mode === 'MACHINE' ? raw.applies_to_machine_id || null : null,
-      applies_to_target_id: raw.applies_to_target_id || null,
+      applies_to_target_id: routeTargetIds[0] ?? null,
+      route_target_ids: routeTargetIds,
     });
   }
 

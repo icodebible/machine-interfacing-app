@@ -329,6 +329,13 @@
           <div class="v">{{ connLabel(s) }}</div>
         </div>
 
+        @if (s.connection_type === 'TCP' || s.connection_type === 'HL7_MLLP') {
+          <div class="kv">
+            <div class="k">TCP mode</div>
+            <div class="v">{{ s.tcp_mode === 'CLIENT' ? 'Client / Connector' : 'Server / Listener' }}</div>
+          </div>
+        }
+
         <div class="kv">
           <div class="k">Runtime state</div>
           <div class="v">{{ runtimeStatusLabel(s) }}</div>
