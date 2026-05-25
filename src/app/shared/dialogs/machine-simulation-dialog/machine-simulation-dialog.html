@@ -1,4 +1,4 @@
-<h2 mat-dialog-title class="dlg-header">
+<!-- <h2 mat-dialog-title class="dlg-header">
     <div class="dlg-header__text">
         <div class="dlg-header__title">Run Simulation</div>
         <div class="dlg-header__subtitle">
@@ -66,6 +66,225 @@
                 <mat-select [value]="scenario()" (selectionChange)="scenario.set($event.value)">
                     @for (item of allowedScenarios(); track item.value) {
                     <mat-option [value]="item.value">{{ item.label }}</mat-option>
+                    }
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+                <mat-label>Interval (ms)</mat-label>
+                <input matInput type="number" [value]="intervalMs()"
+                    (input)="intervalMs.set(+$any($event.target).value || 5000)" />
+            </mat-form-field>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="dialog-section__title">Live Output Preview</div>
+        <div class="dialog-section__subtitle">
+            Latest simulated payload emitted by this profile.
+        </div>
+
+        <div class="preview-box mono">
+            {{ latestPreview() || 'No simulation traffic yet.' }}
+        </div>
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-button (click)="close()">Close</button>
+
+    @if (simState()?.running) {
+    <button mat-stroked-button color="warn" (click)="stop()">
+        <mat-icon>stop_circle</mat-icon>
+        Stop Simulation
+    </button>
+    } @else {
+    <button mat-flat-button color="primary" (click)="start()">
+        <mat-icon>smart_toy</mat-icon>
+        Start Simulation
+    </button>
+    }
+</div> -->
+
+<!-- 
+<h2 mat-dialog-title class="dlg-header">
+    <div class="dlg-header__text">
+        <div class="dlg-header__title">Run Simulation</div>
+        <div class="dlg-header__subtitle">
+            {{ data.machine?.name }} · {{ data.machine?.connection_type }} ·
+            {{ data.machine?.protocol }} ·
+            {{ data.machine?.lab_name || 'No lab assigned' }}
+        </div>
+    </div>
+
+    <div class="dlg-header__meta">
+        <span class="status-badge" [class.status-badge--running]="simState()?.running"
+            [class.status-badge--stopped]="!simState()?.running">
+            {{ simState()?.running ? 'Running' : 'Stopped' }}
+        </span>
+
+        <button mat-icon-button aria-label="Close simulation dialog" (click)="close()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="dialog-section">
+        <div class="dialog-section__title">Machine Context</div>
+        <div class="dialog-section__subtitle">Simulation follows the configured machine profile.</div>
+
+        <div class="context-grid">
+            <div class="kv">
+                <div class="k">Machine</div>
+                <div class="v">{{ data.machine?.name || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Protocol</div>
+                <div class="v">
+                    <span class="status-badge status-badge--info">
+                        {{ data.machine?.protocol || '—' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Connection Type</div>
+                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Current Scenario</div>
+                <div class="v">{{ selectedScenarioLabel() || '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="dialog-section__title">Simulation Controls</div>
+        <div class="dialog-section__subtitle">
+            Select a scenario and how frequently events should be emitted.
+        </div>
+
+        <div class="form-grid">
+            <mat-form-field appearance="outline">
+                <mat-label>Scenario</mat-label>
+                <mat-select [value]="scenario()" (selectionChange)="scenario.set($event.value)">
+                    @for (item of allowedScenarios(); track item.value) {
+                    <mat-option [value]="item.value">{{ item.label }}</mat-option>
+                    }
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+                <mat-label>Interval (ms)</mat-label>
+                <input matInput type="number" [value]="intervalMs()"
+                    (input)="intervalMs.set(+$any($event.target).value || 5000)" />
+            </mat-form-field>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="dialog-section__title">Live Output Preview</div>
+        <div class="dialog-section__subtitle">Latest simulated payload emitted by this profile.</div>
+
+        <div class="preview-box mono">
+            {{ latestPreview() || 'No simulation traffic yet.' }}
+        </div>
+    </div>
+</div>
+
+<div mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-button (click)="close()">Close</button>
+
+    @if (simState()?.running) {
+    <button mat-stroked-button color="warn" (click)="stop()">
+        <mat-icon>stop_circle</mat-icon>
+        Stop Simulation
+    </button>
+    } @else {
+    <button mat-flat-button color="primary" (click)="start()">
+        <mat-icon>smart_toy</mat-icon>
+        Start Simulation
+    </button>
+    }
+</div> -->
+
+<h2 mat-dialog-title class="dlg-header">
+    <div class="dlg-header__text">
+        <div class="dlg-header__title">Run Simulation</div>
+        <div class="dlg-header__subtitle">
+            {{ data.machine?.name }} · {{ data.machine?.connection_type }} ·
+            {{ data.machine?.protocol }} ·
+            {{ data.machine?.lab_name || 'No lab assigned' }}
+        </div>
+    </div>
+
+    <div class="dlg-header__meta">
+        <span class="status-badge" [class.status-badge--running]="simState()?.running"
+            [class.status-badge--stopped]="!simState()?.running">
+            {{ simState()?.running ? 'Running' : 'Stopped' }}
+        </span>
+
+        <button mat-icon-button aria-label="Close simulation dialog" (click)="close()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</h2>
+
+<div mat-dialog-content class="dialog-shell">
+    <div class="dialog-section">
+        <div class="dialog-section__title">Machine Context</div>
+        <div class="dialog-section__subtitle">
+            Simulation follows the configured machine profile.
+        </div>
+
+        <div class="context-grid">
+            <div class="kv">
+                <div class="k">Machine</div>
+                <div class="v">{{ data.machine?.name || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Protocol</div>
+                <div class="v">
+                    <span class="status-badge status-badge--info">
+                        {{ data.machine?.protocol || '—' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Connection Type</div>
+                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            </div>
+
+            <div class="kv">
+                <div class="k">Current Scenario</div>
+                <div class="v">
+                    <div>{{ simState()?.scenario || scenario() || '—' }}</div>
+                    <small class="muted">Scenario value is kept in capital letters with underscore separation for consistency.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-section">
+        <div class="dialog-section__title">Simulation Controls</div>
+        <div class="dialog-section__subtitle">
+            Select a scenario and how frequently events should be emitted.
+        </div>
+
+        <div class="form-grid">
+            <mat-form-field appearance="outline">
+                <mat-label>Scenario</mat-label>
+                <mat-select [value]="scenario()" (selectionChange)="scenario.set($event.value)">
+                    @for (item of allowedScenarios(); track item.value) {
+                    <mat-option [value]="item.value">
+                        <div>{{ item.label }}</div>
+                        <small class="scenario-code">{{ item.value }}</small>
+                    </mat-option>
                     }
                 </mat-select>
             </mat-form-field>

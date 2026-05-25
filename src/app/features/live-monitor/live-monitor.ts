@@ -63,7 +63,7 @@ interface LiveMonitorRow {
   runtimeUpdatedAt: string | null;
 
   simulationRunning: boolean;
-  simulationScenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' | null;
+  simulationScenario: 'ASTM_BASIC' | 'HL7_ORU' | 'HL7_COBAS_HPV_FINAL_RESULT' | 'ASTM_COBAS_HPV_FINAL_RESULT' | 'RAW_PING' | null;
   simulationIntervalMs: number | null;
   simulationUpdatedAt: string | null;
 
