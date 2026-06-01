@@ -107,6 +107,8 @@ var IPC_CHANNELS = {
   MAPPINGS_UPDATE: "mappings:update",
   MAPPINGS_DELETE: "mappings:delete",
   MAPPINGS_VALIDATE: "mappings:validate",
+  MAPPINGS_OPENMRS_LIS_DISCOVER: "mappings:openmrs-lis:discover",
+  MAPPINGS_OPENMRS_LIS_SEED: "mappings:openmrs-lis:seed",
   MAPPING_VALUE_TRANSLATIONS_LIST: "mapping-value-translations:list",
   MAPPING_VALUE_TRANSLATIONS_CREATE: "mapping-value-translations:create",
   MAPPING_VALUE_TRANSLATIONS_UPDATE: "mapping-value-translations:update",
@@ -190,9 +192,19 @@ var api = {
   },
   machinesLogsList: (machineId, limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_LIST, machineId, limit),
   machinesLogsClear: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_CLEAR, machineId),
-  machinesSimStart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_START, machineId, scenario, intervalMs),
+  machinesSimStart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.MACHINES_SIM_START,
+    machineId,
+    scenario,
+    intervalMs
+  ),
   machinesSimStop: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STOP, machineId),
-  machinesSimRestart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_RESTART, machineId, scenario, intervalMs),
+  machinesSimRestart: (machineId, scenario, intervalMs) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.MACHINES_SIM_RESTART,
+    machineId,
+    scenario,
+    intervalMs
+  ),
   machinesSimState: (machineId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STATE, machineId),
   machinesSimStates: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SIM_STATES),
   machinesParsedList: (machineId, limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MACHINES_PARSED_LIST, machineId, limit),
@@ -213,7 +225,11 @@ var api = {
   resultApprovalsAll: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_APPROVALS_ALL, limit),
   deliveryHistoryList: (limit) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.DELIVERY_HISTORY_LIST, limit),
   deliveryAuditQuery: (q) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.DELIVERY_AUDIT_QUERY, q),
-  targetTransformPreview: (targetId, normalizedResultId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW, targetId, normalizedResultId),
+  targetTransformPreview: (targetId, normalizedResultId) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW,
+    targetId,
+    normalizedResultId
+  ),
   targetSecretsGet: (targetId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_SECRETS_GET, targetId),
   targetSecretsSave: (targetId, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_SECRETS_SAVE, targetId, dto),
   mappingsList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_LIST),
@@ -221,15 +237,35 @@ var api = {
   mappingsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_UPDATE, id, dto),
   mappingsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_DELETE, id),
   mappingsValidate: (targetType) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_VALIDATE, targetType),
-  mappingValueTranslationsList: (mappingRuleId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST, mappingRuleId),
+  mappingsOpenMrsLisDiscover: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_DISCOVER, dto),
+  mappingsOpenMrsLisSeed: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_SEED, dto),
+  mappingValueTranslationsList: (mappingRuleId) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST,
+    mappingRuleId
+  ),
   mappingValueTranslationsCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_CREATE, dto),
   mappingValueTranslationsUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_UPDATE, id, dto),
   mappingValueTranslationsDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_DELETE, id),
-  mappingValueTranslationsSaveConfig: (mappingRuleId, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_SAVE_CONFIG, mappingRuleId, dto),
-  targetTransformPreviewFromQueue: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_QUEUE, queueId),
-  targetTransformPreviewFromDeliveryHistory: (queueId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_DELIVERY_HISTORY, queueId),
+  mappingValueTranslationsSaveConfig: (mappingRuleId, dto) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_SAVE_CONFIG,
+    mappingRuleId,
+    dto
+  ),
+  targetTransformPreviewFromQueue: (queueId) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_QUEUE,
+    queueId
+  ),
+  targetTransformPreviewFromDeliveryHistory: (queueId) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_DELIVERY_HISTORY,
+    queueId
+  ),
   // preload index.ts
-  targetsHarnessSend: (targetId, payload, previewName) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.TARGETS_HARNESS_SEND, targetId, payload, previewName),
+  targetsHarnessSend: (targetId, payload, previewName) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.TARGETS_HARNESS_SEND,
+    targetId,
+    payload,
+    previewName
+  ),
   usersList: () => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_LIST),
   usersCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_CREATE, dto),
   usersUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.USERS_UPDATE, id, dto),
@@ -240,7 +276,10 @@ var api = {
   rolesCreate: (dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_CREATE, dto),
   rolesUpdate: (id, dto) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_UPDATE, id, dto),
   rolesDelete: (id) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.ROLES_DELETE, id),
-  resultReevaluatePolicy: (normalizedResultId) => import_electron2.ipcRenderer.invoke(IPC_CHANNELS.RESULT_REEVALUATE_POLICY, normalizedResultId)
+  resultReevaluatePolicy: (normalizedResultId) => import_electron2.ipcRenderer.invoke(
+    IPC_CHANNELS.RESULT_REEVALUATE_POLICY,
+    normalizedResultId
+  )
 };
 
 // electron/src/preload/preload.ts

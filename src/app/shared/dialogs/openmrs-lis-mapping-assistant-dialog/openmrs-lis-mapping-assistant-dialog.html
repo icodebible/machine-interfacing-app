@@ -1,0 +1,750 @@
+<!-- <div class="lis-dialog-shell">
+  <div class="dialog-header">
+    <div>
+      <div class="dialog-title">OpenMRS LIS mapping assistant</div>
+      <div class="dialog-subtitle">
+        Fetch metadata from the selected OpenMRS/LIS target, review dynamic test parameters, and
+        create the LIS mappings needed for analyzer result delivery.
+      </div>
+    </div>
+
+    <button mat-stroked-button type="button" (click)="close()">
+      <mat-icon>close</mat-icon>
+      Close
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="setup-panel">
+    <div class="setup-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>LIS / OpenMRS target</mat-label>
+        <mat-select [ngModel]="selectedTargetId()" (ngModelChange)="selectedTargetId.set($event)">
+          @for (target of targets(); track target.id) {
+            <mat-option [value]="target.id">{{ target.name }} · {{ target.type }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Sample barcode / label</mat-label>
+        <input
+          matInput
+          [ngModel]="sampleId()"
+          (ngModelChange)="sampleId.set($event)"
+          placeholder="NPHL/22/0000001"
+        />
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="fetch-button"
+        (click)="discover()"
+        [disabled]="metadataLoading() || !selectedTargetId()"
+      >
+        <mat-icon>cloud_sync</mat-icon>
+        {{ metadataLoading() ? 'Fetching...' : 'Fetch metadata' }}
+      </button>
+    </div>
+
+    @if (selectedTarget()) {
+      <div class="target-note">
+        <mat-icon>dns</mat-icon>
+        <div>
+          <strong>{{ selectedTarget()?.name }}</strong>
+          <span>{{ selectedTarget()?.base_url }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (metadataLoading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (metadata()) {
+    <div class="metadata-summary-grid">
+      <article>
+        <span class="summary-label">Sample</span>
+        <strong>{{ metadata()?.sample?.label || sampleId() }}</strong>
+        <span>{{ metadata()?.sample?.uuid || 'UUID not available' }}</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Parameters</span>
+        <strong>{{ parameterDrafts().length }}</strong>
+        <span>{{ readyParameterCount() }} ready · {{ missingRequiredCount() }} incomplete</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Instruments</span>
+        <strong>{{ metadata()?.instruments?.length || 0 }}</strong>
+        <span>loaded from LIS_INSTRUMENT concepts</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Users</span>
+        <strong>{{ metadata()?.users?.length || 0 }}</strong>
+        <span>available for tested-by selection</span>
+      </article>
+    </div>
+
+    @if (metadata()?.warnings?.length) {
+      <div class="warning-list">
+        @for (warning of metadata()?.warnings; track warning) {
+          <div><mat-icon>warning</mat-icon>{{ warning }}</div>
+        }
+      </div>
+    }
+
+    <section class="defaults-card">
+      <div>
+        <div class="section-title">Delivery defaults</div>
+        <div class="section-sub">
+          These values become constant LIS rules. They are applied during preview, approval-to-queue,
+          and real analyzer message delivery.
+        </div>
+      </div>
+
+      <div class="defaults-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Instrument</mat-label>
+          <mat-select [ngModel]="instrumentUuid()" (ngModelChange)="instrumentUuid.set($event)">
+            <mat-option value="">Select instrument</mat-option>
+            @for (instrument of metadata()?.instruments ?? []; track instrument.uuid) {
+              <mat-option [value]="instrument.uuid">{{ instrument.display }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tested by</mat-label>
+          <mat-select [ngModel]="testedBy()" (ngModelChange)="testedBy.set($event)">
+            <mat-option class="user-search-option" [value]="testedBy()">
+              <div
+                class="user-search-panel"
+                (click)="stopUserSearchPanelEvent($event)"
+                (keydown)="stopUserSearchPanelEvent($event)"
+              >
+                <mat-icon>search</mat-icon>
+                <input
+                  matInput
+                  type="text"
+                  placeholder="Search users by name, username, or UUID"
+                  [ngModel]="userSearch()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onUserSearchInput($event)"
+                  autocomplete="off"
+                />
+                @if (userSearch()) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Clear user search"
+                    (click)="clearUserSearch($event)"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
+            </mat-option>
+            <mat-option value="">Select OpenMRS user</mat-option>
+            @if (filteredUsers().length) {
+              @for (user of filteredUsers(); track user.uuid) {
+                <mat-option [value]="user.uuid">
+                  {{ user.display }} {{ user.username ? '(' + user.username + ')' : '' }}
+                </mat-option>
+              }
+            } @else {
+              <mat-option disabled>No users match the current search.</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ metadata()?.users?.length || 0 }} user(s) fetched from OpenMRS</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status category</mat-label>
+          <input matInput [ngModel]="statusCategory()" (ngModelChange)="statusCategory.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <input matInput [ngModel]="statusStatus()" (ngModelChange)="statusStatus.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Default remarks</mat-label>
+          <input matInput [ngModel]="statusRemarks()" (ngModelChange)="statusRemarks.set($event)" />
+        </mat-form-field>
+      </div>
+
+      @if (selectedTestedByUser()) {
+        <div class="selected-user-note">
+          <mat-icon>person_check</mat-icon>
+          Tested-by will be saved as
+          <strong>{{ selectedTestedByUser()?.display }}</strong>
+          <span class="mono">{{ selectedTestedByUser()?.uuid }}</span>
+        </div>
+      }
+    </section>
+
+    <section class="parameters-card">
+      <div class="section-row">
+        <div>
+          <div class="section-title">Analyzer code to OpenMRS parameter mapping</div>
+          <div class="section-sub">
+            Keep analyzer codes aligned with HL7 OBX identifiers or ASTM result identifiers. The
+            assistant will seed concept UUID, allocation UUID, datatype, and coded-answer value maps.
+          </div>
+        </div>
+        <span class="pill">{{ selectedParameters().length }} selected</span>
+      </div>
+
+      <div class="parameter-list">
+        @for (draft of parameterDrafts(); track $index; let i = $index) {
+          <article class="parameter-card" [class.disabled]="!draft.selected">
+            <div class="parameter-head">
+              <label class="check-label">
+                <input
+                  type="checkbox"
+                  [checked]="draft.selected"
+                  (change)="updateParameter(i, { selected: $any($event.target).checked })"
+                />
+                <span>Use</span>
+              </label>
+
+              <div>
+                <strong>{{ draft.display || draft.analyzerCode }}</strong>
+                <span class="mono">{{ draft.conceptUuid || 'No concept UUID' }}</span>
+              </div>
+
+              <span class="datatype-pill">{{ draft.datatype || 'datatype not detected' }}</span>
+            </div>
+
+            <div class="parameter-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Primary analyzer code</mat-label>
+                <input
+                  matInput
+                  placeholder="e.g. HPV16, HPV18, HRHPV, 71432-9"
+                  [ngModel]="draft.analyzerCode"
+                  (ngModelChange)="updateParameter(i, { analyzerCode: $event })"
+                />
+                @if (draft.analyzerCode) {
+                  <mat-hint>Used first; aliases below are also seeded for real analyzer messages.</mat-hint>
+                } @else {
+                  <mat-hint class="mapping-warning-hint">No analyzer code was inferred; enter the real analyzer code before applying mappings.</mat-hint>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Concept UUID</mat-label>
+                <input
+                  matInput
+                  class="mono-input"
+                  [ngModel]="draft.conceptUuid"
+                  (ngModelChange)="updateParameter(i, { conceptUuid: $event })"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Allocation UUID</mat-label>
+                <input
+                  matInput
+                  class="mono-input"
+                  [ngModel]="draft.allocationUuid"
+                  (ngModelChange)="updateParameter(i, { allocationUuid: $event })"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Datatype</mat-label>
+                <input
+                  matInput
+                  [ngModel]="draft.datatype"
+                  (ngModelChange)="updateParameter(i, { datatype: $event })"
+                />
+              </mat-form-field>
+            </div>
+
+            @if (draft.analyzerAliases.length) {
+              <div class="alias-strip">
+                <span class="alias-label">Analyzer aliases from OpenMRS metadata</span>
+                @for (alias of draft.analyzerAliases.slice(0, 8); track alias) {
+                  <span class="alias-chip">{{ alias }}</span>
+                }
+                @if (draft.analyzerAliases.length > 8) {
+                  <span class="alias-chip more">+{{ draft.analyzerAliases.length - 8 }} more</span>
+                }
+              </div>
+            }
+
+            <div class="answer-section">
+              <div class="answer-section__head">
+                <div>
+                  <div class="answer-title">Coded answer mappings</div>
+                  <div class="section-sub">
+                    Translate analyzer values such as POS, NEG, or INVALID into the OpenMRS coded answer UUID expected by LIS.
+                  </div>
+                </div>
+
+                @if (draft.answerOptions.length) {
+                  <button mat-stroked-button type="button" (click)="addAnswer(i)">
+                    <mat-icon>add</mat-icon>
+                    Add value
+                  </button>
+                }
+              </div>
+
+              @if (draft.answers.length) {
+                <div class="answer-list">
+                  @for (answer of draft.answers; track $index; let ai = $index) {
+                    <div class="answer-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Analyzer value</mat-label>
+                        <input
+                          matInput
+                          [ngModel]="answer.sourceValue"
+                          (ngModelChange)="updateAnswer(i, ai, { sourceValue: $event })"
+                          placeholder="POS"
+                        />
+                      </mat-form-field>
+
+                      <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>OpenMRS coded answer</mat-label>
+                        <mat-select
+                          [ngModel]="answer.destinationUuid"
+                          (ngModelChange)="updateAnswer(i, ai, { destinationUuid: $event })"
+                        >
+                          @for (option of draft.answerOptions; track option.uuid) {
+                            <mat-option [value]="option.uuid">{{ answerOptionLabel(draft, option.uuid) }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <button mat-icon-button type="button" matTooltip="Remove this coded value" (click)="removeAnswer(i, ai)">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+
+                      <div class="answer-explanation">
+                        {{ answerExplanation(draft, answer) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="empty-answer-note">
+                  <mat-icon>info</mat-icon>
+                  No coded answers were detected for this parameter. Numeric and text values will be sent directly when datatype supports it.
+                </div>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  } @else {
+    <div class="empty-state">
+      <mat-icon>hub</mat-icon>
+      <div>
+        <strong>Start by fetching OpenMRS LIS metadata.</strong>
+        <span>Select the LIS/OpenMRS target and sample label so the assistant can discover allocations, parameters, instruments, coded answers, and tested-by users.</span>
+      </div>
+    </div>
+  }
+
+  <mat-divider></mat-divider>
+
+  <div class="dialog-actions">
+    <button mat-stroked-button type="button" (click)="close()">Close</button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="seedMappings()"
+      [disabled]="seeding() || !metadata() || selectedParameters().length === 0"
+    >
+      <mat-icon>playlist_add_check</mat-icon>
+      {{ seeding() ? 'Creating mappings...' : 'Create/update LIS mappings' }}
+    </button>
+  </div>
+</div> -->
+
+
+<div class="lis-dialog-shell">
+  <div class="dialog-header">
+    <div>
+      <div class="dialog-title">OpenMRS LIS mapping assistant</div>
+      <div class="dialog-subtitle">
+        Fetch metadata from the selected OpenMRS/LIS target, review dynamic test parameters, and
+        create the LIS mappings needed for analyzer result delivery.
+      </div>
+    </div>
+
+    <button mat-stroked-button type="button" (click)="close()">
+      <mat-icon>close</mat-icon>
+      Close
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="setup-panel">
+    <div class="setup-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>LIS / OpenMRS target</mat-label>
+        <mat-select [ngModel]="selectedTargetId()" (ngModelChange)="selectedTargetId.set($event)">
+          @for (target of targets(); track target.id) {
+            <mat-option [value]="target.id">{{ target.name }} · {{ target.type }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Sample barcode / label</mat-label>
+        <input
+          matInput
+          [ngModel]="sampleId()"
+          (ngModelChange)="sampleId.set($event)"
+          placeholder="NPHL/22/0000001"
+        />
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="fetch-button"
+        (click)="discover()"
+        [disabled]="metadataLoading() || !selectedTargetId()"
+      >
+        <mat-icon>cloud_sync</mat-icon>
+        {{ metadataLoading() ? 'Fetching...' : 'Fetch metadata' }}
+      </button>
+    </div>
+
+    @if (selectedTarget()) {
+      <div class="target-note">
+        <mat-icon>dns</mat-icon>
+        <div>
+          <strong>{{ selectedTarget()?.name }}</strong>
+          <span>{{ selectedTarget()?.base_url }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (metadataLoading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (metadata()) {
+    <div class="metadata-summary-grid">
+      <article>
+        <span class="summary-label">Sample</span>
+        <strong>{{ metadata()?.sample?.label || sampleId() }}</strong>
+        <span>{{ metadata()?.sample?.uuid || 'UUID not available' }}</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Parameters</span>
+        <strong>{{ parameterDrafts().length }}</strong>
+        <span>{{ readyParameterCount() }} ready · {{ missingRequiredCount() }} incomplete</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Instruments</span>
+        <strong>{{ metadata()?.instruments?.length || 0 }}</strong>
+        <span>loaded from LIS_INSTRUMENT concepts</span>
+      </article>
+
+      <article>
+        <span class="summary-label">Users</span>
+        <strong>{{ metadata()?.users?.length || 0 }}</strong>
+        <span>available for tested-by selection</span>
+      </article>
+    </div>
+
+    @if (metadata()?.warnings?.length) {
+      <div class="warning-list">
+        @for (warning of metadata()?.warnings; track warning) {
+          <div><mat-icon>warning</mat-icon>{{ warning }}</div>
+        }
+      </div>
+    }
+
+    <section class="defaults-card">
+      <div>
+        <div class="section-title">Delivery defaults</div>
+        <div class="section-sub">
+          These values become constant LIS rules. They are applied during preview, approval-to-queue,
+          and real analyzer message delivery.
+        </div>
+      </div>
+
+      <div class="defaults-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Instrument</mat-label>
+          <mat-select [ngModel]="instrumentUuid()" (ngModelChange)="instrumentUuid.set($event)">
+            <mat-option value="">Select instrument</mat-option>
+            @for (instrument of metadata()?.instruments ?? []; track instrument.uuid) {
+              <mat-option [value]="instrument.uuid">{{ instrument.display }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tested by</mat-label>
+          <mat-select [ngModel]="testedBy()" (ngModelChange)="testedBy.set($event)">
+            <mat-option class="user-search-option" [value]="testedBy()">
+              <div
+                class="user-search-panel"
+                (click)="stopUserSearchPanelEvent($event)"
+                (keydown)="stopUserSearchPanelEvent($event)"
+              >
+                <mat-icon>search</mat-icon>
+                <input
+                  matInput
+                  type="text"
+                  placeholder="Search users by name, username, or UUID"
+                  [ngModel]="userSearch()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onUserSearchInput($event)"
+                  autocomplete="off"
+                />
+                @if (userSearch()) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Clear user search"
+                    (click)="clearUserSearch($event)"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
+            </mat-option>
+            <mat-option value="">Select OpenMRS user</mat-option>
+            @if (filteredUsers().length) {
+              @for (user of filteredUsers(); track user.uuid) {
+                <mat-option [value]="user.uuid">
+                  {{ user.display }} {{ user.username ? '(' + user.username + ')' : '' }}
+                </mat-option>
+              }
+            } @else {
+              <mat-option disabled>No users match the current search.</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ metadata()?.users?.length || 0 }} user(s) fetched from OpenMRS</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status category</mat-label>
+          <input matInput [ngModel]="statusCategory()" (ngModelChange)="statusCategory.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <input matInput [ngModel]="statusStatus()" (ngModelChange)="statusStatus.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Default remarks</mat-label>
+          <input matInput [ngModel]="statusRemarks()" (ngModelChange)="statusRemarks.set($event)" />
+        </mat-form-field>
+      </div>
+
+      @if (selectedTestedByUser()) {
+        <div class="selected-user-note">
+          <mat-icon>person_check</mat-icon>
+          Tested-by will be saved as
+          <strong>{{ selectedTestedByUser()?.display }}</strong>
+          <span class="mono">{{ selectedTestedByUser()?.uuid }}</span>
+        </div>
+      }
+    </section>
+
+    <section class="parameters-card">
+      <div class="section-row">
+        <div>
+          <div class="section-title">Analyzer code to OpenMRS parameter mapping</div>
+          <div class="section-sub">
+            Keep analyzer codes aligned with HL7 OBX identifiers or ASTM result identifiers. The
+            assistant will seed concept UUID, allocation UUID, datatype, and coded-answer value maps.
+          </div>
+        </div>
+        <span class="pill">{{ selectedParameters().length }} selected</span>
+      </div>
+
+      <div class="parameter-list">
+        @for (draft of parameterDrafts(); track $index; let i = $index) {
+          <article class="parameter-card" [class.disabled]="!draft.selected">
+            <div class="parameter-head">
+              <label class="check-label">
+                <input
+                  type="checkbox"
+                  [checked]="draft.selected"
+                  (change)="updateParameter(i, { selected: $any($event.target).checked })"
+                />
+                <span>Use</span>
+              </label>
+
+              <div>
+                <strong>{{ draft.display || draft.analyzerCode }}</strong>
+                <span class="mono">{{ draft.conceptUuid || 'No concept UUID' }}</span>
+              </div>
+
+              <span class="datatype-pill">{{ draft.datatype || 'datatype not detected' }}</span>
+            </div>
+
+            @if (draft.aliases.length || draft.isCalculated) {
+              <div class="alias-strip">
+                @if (draft.isCalculated) {
+                  <span class="alias-chip calculated">Calculated / derived parameter</span>
+                }
+                @for (alias of draft.aliases.slice(0, 8); track alias) {
+                  <span class="alias-chip">{{ alias }}</span>
+                }
+                @if (draft.aliases.length > 8) {
+                  <span class="alias-chip muted">+{{ draft.aliases.length - 8 }} more</span>
+                }
+              </div>
+            }
+
+            <div class="parameter-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Analyzer code</mat-label>
+                <input
+                  matInput
+                  [ngModel]="draft.analyzerCode"
+                  (ngModelChange)="updateParameter(i, { analyzerCode: $event })"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Concept UUID</mat-label>
+                <input
+                  matInput
+                  class="mono-input"
+                  [ngModel]="draft.conceptUuid"
+                  (ngModelChange)="updateParameter(i, { conceptUuid: $event })"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Allocation UUID</mat-label>
+                <input
+                  matInput
+                  class="mono-input"
+                  [ngModel]="draft.allocationUuid"
+                  (ngModelChange)="updateParameter(i, { allocationUuid: $event })"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Datatype</mat-label>
+                <input
+                  matInput
+                  [ngModel]="draft.datatype"
+                  (ngModelChange)="updateParameter(i, { datatype: $event })"
+                />
+              </mat-form-field>
+            </div>
+
+            <div class="answer-section">
+              <div class="answer-section__head">
+                <div>
+                  <div class="answer-title">Coded answer mappings</div>
+                  <div class="section-sub">
+                    Translate analyzer values such as POS, NEG, or INVALID into the OpenMRS coded answer UUID expected by LIS.
+                  </div>
+                </div>
+
+                @if (draft.answerOptions.length) {
+                  <button mat-stroked-button type="button" (click)="addAnswer(i)">
+                    <mat-icon>add</mat-icon>
+                    Add value
+                  </button>
+                }
+              </div>
+
+              @if (draft.answers.length) {
+                <div class="answer-list">
+                  @for (answer of draft.answers; track $index; let ai = $index) {
+                    <div class="answer-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Analyzer value</mat-label>
+                        <input
+                          matInput
+                          [ngModel]="answer.sourceValue"
+                          (ngModelChange)="updateAnswer(i, ai, { sourceValue: $event })"
+                          placeholder="POS"
+                        />
+                      </mat-form-field>
+
+                      <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>OpenMRS coded answer</mat-label>
+                        <mat-select
+                          [ngModel]="answer.destinationUuid"
+                          (ngModelChange)="updateAnswer(i, ai, { destinationUuid: $event })"
+                        >
+                          @for (option of draft.answerOptions; track option.uuid) {
+                            <mat-option [value]="option.uuid">{{ answerOptionLabel(draft, option.uuid) }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <button mat-icon-button type="button" matTooltip="Remove this coded value" (click)="removeAnswer(i, ai)">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+
+                      <div class="answer-explanation">
+                        {{ answerExplanation(draft, answer) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="empty-answer-note">
+                  <mat-icon>info</mat-icon>
+                  No coded answers were detected for this parameter. Numeric and text values will be sent directly when datatype supports it.
+                </div>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  } @else {
+    <div class="empty-state">
+      <mat-icon>hub</mat-icon>
+      <div>
+        <strong>Start by fetching OpenMRS LIS metadata.</strong>
+        <span>Select the LIS/OpenMRS target and sample label so the assistant can discover allocations, parameters, instruments, coded answers, and tested-by users.</span>
+      </div>
+    </div>
+  }
+
+  <mat-divider></mat-divider>
+
+  <div class="dialog-actions">
+    <button mat-stroked-button type="button" (click)="close()">Close</button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="seedMappings()"
+      [disabled]="seeding() || !metadata() || selectedParameters().length === 0"
+    >
+      <mat-icon>playlist_add_check</mat-icon>
+      {{ seeding() ? 'Creating mappings...' : 'Create/update LIS mappings' }}
+    </button>
+  </div>
+</div>

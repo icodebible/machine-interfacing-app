@@ -67,7 +67,7 @@
 
         <mat-divider></mat-divider>
 
-        <table mat-table [dataSource]="filteredRows()" class="table results-table" multiTemplateDataRows>
+        <table mat-table [dataSource]="pagedRows()" class="table results-table" multiTemplateDataRows>
             <ng-container matColumnDef="message">
                 <th mat-header-cell *matHeaderCellDef>Message</th>
                 <td mat-cell *matCellDef="let row">
@@ -142,6 +142,7 @@
                                     <span class="dot">•</span>
                                     {{ formatDateTime(row.createdAt) }}
                                 </div>
+                                <div class="trace-caption">{{ traceLabel(row) }}</div>
                             </div>
 
                             <div class="expansion-card">
@@ -191,6 +192,15 @@
 
         @if (filteredRows().length === 0 && !loading()) {
         <div class="empty">No parsed results found.</div>
+        } @else {
+        <mat-paginator
+            [length]="filteredRows().length"
+            [pageIndex]="pageIndex()"
+            [pageSize]="pageSize()"
+            [pageSizeOptions]="pageSizeOptions"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+        ></mat-paginator>
         }
     </div>
 </div>

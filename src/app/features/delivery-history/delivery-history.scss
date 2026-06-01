@@ -305,6 +305,17 @@
   gap: 10px 16px;
 }
 
+.trace-actions-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trace-actions-row button {
+  min-height: 36px;
+}
+
 .note-list {
   display: grid;
   gap: 10px;

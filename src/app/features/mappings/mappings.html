@@ -68,7 +68,48 @@
     </article>
   </section>
 
-  <section class="starter-panel card">
+
+
+  @if (showLisAssistant()) {
+    <section class="lis-assistant-card card" aria-label="OpenMRS LIS dynamic mapping workspace">
+      <div class="panel-head lis-assistant-card__head">
+        <div>
+          <div class="section-title">OpenMRS LIS dynamic mapping</div>
+          <div class="section-sub">
+            Configure analyzer-code, allocation, concept, tested-by, instrument, and coded-answer mappings
+            from live OpenMRS metadata without hard coding HPV-specific values.
+          </div>
+        </div>
+
+        <button mat-flat-button color="primary" type="button" (click)="openOpenMrsLisAssistant()">
+          <mat-icon>tune</mat-icon>
+          Configure LIS mappings
+        </button>
+      </div>
+
+      <div class="lis-assistant-summary">
+        <article>
+          <span>Available targets</span>
+          <strong>{{ lisTargets().length }}</strong>
+          <small>LIS/OpenMRS connectors configured in Targets</small>
+        </article>
+        <article>
+          <span>Current rule count</span>
+          <strong>{{ helperCount('LIS') }}</strong>
+          <small>Existing LIS mapping rules</small>
+        </article>
+        <article>
+          <span>Recommended workflow</span>
+          <strong>Metadata-driven</strong>
+          <small>Fetch sample allocations first, then seed mappings</small>
+        </article>
+      </div>
+    </section>
+  }
+
+
+  @if (selectedTargetType() !== 'LIS') {
+    <section class="starter-panel card">
     <div class="panel-head starter-panel__head starter-panel__head--toggle">
       <div>
         <div class="section-title">Starter templates</div>
@@ -223,7 +264,8 @@
         </div>
       }
     }
-  </section>
+    </section>
+  }
 
   @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>

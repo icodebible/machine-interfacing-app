@@ -1,0 +1,50 @@
+[
+  {
+    "concept": { "uuid": "b82c8c16-842b-4450-ad78-659e224500d4" },
+    "testAllocation": { "uuid": "1b76a53a-e874-4ccf-ae47-69668a648b2f" },
+    "valueNumeric": null,
+    "valueText": null,
+    "valueCoded": { "uuid": "661d5907-1baf-4ac9-9db6-a3c4a3f09459" },
+    "abnormal": false,
+    "instrument": { "uuid": "d1217680-41ab-4e5e-bf50-10d780006cf4" },
+    "status": {
+      "category": "RESULT_REMARKS",
+      "status": "REMARKS",
+      "remarks": "Imported from COBAS6800/8800 via machine interfacing simulation"
+    },
+    "testedDate": "2026-05-20T14:30:00.000+0000",
+    "testedBy": "2b54ca73-3e07-487f-a935-d5dfea854f92"
+  },
+  {
+    "concept": { "uuid": "dd9881f8-bb87-4ce1-b8b2-3144f47f3e81" },
+    "testAllocation": { "uuid": "30eaca8a-8638-4aa9-9cbd-965bdc816414" },
+    "valueNumeric": null,
+    "valueText": null,
+    "valueCoded": { "uuid": "ba78d08f-0fe3-4634-80a3-8d0a13bc1ddd" },
+    "abnormal": false,
+    "instrument": { "uuid": "d1217680-41ab-4e5e-bf50-10d780006cf4" },
+    "status": {
+      "category": "RESULT_REMARKS",
+      "status": "REMARKS",
+      "remarks": "Imported from COBAS6800/8800 via machine interfacing simulation"
+    },
+    "testedDate": "2026-05-20T14:30:00.000+0000",
+    "testedBy": "2b54ca73-3e07-487f-a935-d5dfea854f92"
+  },
+  {
+    "concept": { "uuid": "733bfe2b-aeee-4a83-b762-eaf175135491" },
+    "testAllocation": { "uuid": "e512c08a-104a-4ef9-96cb-000d1883d30a" },
+    "valueNumeric": null,
+    "valueText": null,
+    "valueCoded": { "uuid": "661d5907-1baf-4ac9-9db6-a3c4a3f09459" },
+    "abnormal": false,
+    "instrument": { "uuid": "d1217680-41ab-4e5e-bf50-10d780006cf4" },
+    "status": {
+      "category": "RESULT_REMARKS",
+      "status": "REMARKS",
+      "remarks": "Imported from COBAS6800/8800 via machine interfacing simulation"
+    },
+    "testedDate": "2026-05-20T14:30:00.000+0000",
+    "testedBy": "2b54ca73-3e07-487f-a935-d5dfea854f92"
+  }
+]

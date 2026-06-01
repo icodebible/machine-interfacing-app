@@ -123,6 +123,8 @@
                                 <div class="quick-grid">
                                     <div><b>Display:</b> {{ actorDisplay(row) }}</div>
                                     <div><b>Approver ref:</b> {{ row.approver_user_id || '—' }}</div>
+                                    <div><b>Trace:</b> {{ workflowTraceLabel(row) }}</div>
+                                    <div><b>Routing:</b> {{ routingExpectation(row) }}</div>
                                     <div><b>Recorded by:</b> {{ row.created_by_username || '—' }}</div>
                                     <div><b>Updated by:</b> {{ row.updated_by_username || '—' }}</div>
                                 </div>

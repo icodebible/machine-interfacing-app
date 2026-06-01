@@ -170,6 +170,27 @@ export class ApprovalHistory {
     return parts.join(' • ');
   }
 
+
+  routingExpectation(row: any) {
+    if (row?.action === 'APPROVED') {
+      return 'Approved results should leave pending approvals and continue to outbound queue creation when the policy threshold is satisfied.';
+    }
+    if (row?.action === 'REJECTED') {
+      return 'Rejected results should leave pending approvals and remain out of the outbound queue unless a corrective workflow reopens them.';
+    }
+    return 'This decision has no routing expectation recorded.';
+  }
+
+  workflowTraceLabel(row: any) {
+    const parts = [
+      row?.normalized_result_id ? `Result ${row.normalized_result_id}` : null,
+      row?.approval_policy_id ? `Policy ${row.approval_policy_id}` : row?.policy_id ? `Policy ${row.policy_id}` : null,
+      row?.step_order != null ? `Step ${row.step_order}` : row?.step_no != null ? `Step ${row.step_no}` : null,
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(' • ') : 'Workflow trace not fully recorded';
+  }
+
   rowNotes(row: any) {
     const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
 
@@ -184,6 +205,13 @@ export class ApprovalHistory {
       notes.push({
         kind: 'bad',
         text: 'This result was rejected. Review the comment and policy context carefully before any follow-up action.',
+      });
+    }
+
+    if (row?.action === 'APPROVED') {
+      notes.push({
+        kind: 'info',
+        text: 'After approval, this record should no longer appear as pending once the workflow refreshes.',
       });
     }
 

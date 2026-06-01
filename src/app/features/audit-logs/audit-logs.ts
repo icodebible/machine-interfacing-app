@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 
 type AuditScope = 'DELIVERY' | 'SYSTEM';
+type DeliveryNote = { kind: 'info' | 'warn' | 'bad'; text: string };
 
 @Component({
   selector: 'app-audit-logs',
@@ -47,7 +48,16 @@ export class AuditLogs {
     dateTo: '',
     limit: 200,
   });
-  systemFilters = signal({ level: '', source: '', entityType: '', entityId: '', limit: 200 });
+  systemFilters = signal({
+    level: '',
+    source: '',
+    entityType: '',
+    entityId: '',
+    dateFrom: '',
+    dateTo: '',
+    search: '',
+    limit: 200,
+  });
 
   deliveryRows = signal<any[]>([]);
   systemRows = signal<any[]>([]);
@@ -87,13 +97,21 @@ export class AuditLogs {
     const source = q.source.trim().toLowerCase();
     const entityType = q.entityType.trim().toLowerCase();
     const entityId = q.entityId.trim().toLowerCase();
+    const search = q.search.trim().toLowerCase();
+    const fromMs = q.dateFrom ? new Date(q.dateFrom).getTime() : null;
+    const toMs = q.dateTo ? new Date(q.dateTo).getTime() : null;
 
     return rows.filter((row) => {
+      const createdMs = row?.created_at ? new Date(row.created_at).getTime() : null;
       const levelMatch = !level || String(row?.level ?? '').toLowerCase() === level;
       const sourceMatch = !source || String(row?.source ?? '').toLowerCase() === source;
       const entityTypeMatch = !entityType || String(row?.entity_type ?? '').toLowerCase().includes(entityType);
       const entityIdMatch = !entityId || String(row?.entity_id ?? '').toLowerCase().includes(entityId);
-      return levelMatch && sourceMatch && entityTypeMatch && entityIdMatch;
+      const searchMatch = !search || [row?.message, row?.payload_json, row?.entity_type, row?.entity_id]
+        .some((value) => String(value ?? '').toLowerCase().includes(search));
+      const fromMatch = fromMs === null || (createdMs !== null && createdMs >= fromMs);
+      const toMatch = toMs === null || (createdMs !== null && createdMs <= toMs);
+      return levelMatch && sourceMatch && entityTypeMatch && entityIdMatch && searchMatch && fromMatch && toMatch;
     });
   });
 
@@ -184,7 +202,16 @@ export class AuditLogs {
       });
       this.syncSelectedDelivery();
     } else {
-      this.systemFilters.set({ level: '', source: '', entityType: '', entityId: '', limit: 200 });
+      this.systemFilters.set({
+        level: '',
+        source: '',
+        entityType: '',
+        entityId: '',
+        dateFrom: '',
+        dateTo: '',
+        search: '',
+        limit: 200,
+      });
       this.syncSelectedSystem();
     }
     void this.refresh();
@@ -206,15 +233,24 @@ export class AuditLogs {
     return 'status-neutral';
   }
 
-  selectedDeliveryAlerts(row: any) {
-    if (!row) return [] as Array<{ kind: 'info' | 'warn' | 'bad'; text: string }>;
+  selectedDeliveryAlerts(row: any): DeliveryNote[] {
+    if (!row) return [];
 
-    const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
+    const notes: DeliveryNote[] = [];
+    const errors = this.queueErrors(row);
+    const warnings = this.queueWarnings(row);
+
     if (row.status === 'FAILED' && row.error_message) {
       notes.push({ kind: 'bad', text: 'This delivery event ended in failure and should be reviewed before retrying similar traffic.' });
     }
     if (row.status === 'STARTED') {
       notes.push({ kind: 'warn', text: 'This event was recorded as started, but the visible row does not yet show a final outcome.' });
+    }
+    if (errors.length) {
+      notes.push({ kind: 'bad', text: `${errors.length} transformation issue(s) were recorded on the queue item.` });
+    }
+    if (warnings.length) {
+      notes.push({ kind: 'warn', text: `${warnings.length} transformation warning(s) were recorded on the queue item.` });
     }
     if (row.correlation_id) {
       notes.push({ kind: 'info', text: 'Use the correlation ID to follow the same execution path across delivery and downstream traces.' });
@@ -257,6 +293,9 @@ export class AuditLogs {
       source: q.source || undefined,
       entityType: q.entityType || undefined,
       entityId: q.entityId || undefined,
+      dateFrom: q.dateFrom || undefined,
+      dateTo: q.dateTo || undefined,
+      search: q.search || undefined,
       limit: Number(q.limit || 200),
     };
   }
@@ -295,6 +334,30 @@ export class AuditLogs {
     return env?.payload ?? null;
   }
 
+  queuePayload(row: any) {
+    return this.parseJsonSafe(row?.queue_payload_json);
+  }
+
+  queueSourceSnapshot(row: any) {
+    return this.parseJsonSafe(row?.queue_source_snapshot_json);
+  }
+
+  queueTransformSummary(row: any) {
+    return this.parseJsonSafe(row?.queue_transform_summary_json);
+  }
+
+  queueWarnings(row: any): string[] {
+    return this.asStringArray(this.parseJsonSafe(row?.queue_transform_warnings_json));
+  }
+
+  queueErrors(row: any): string[] {
+    return this.asStringArray(this.parseJsonSafe(row?.queue_transform_errors_json));
+  }
+
+  hasDeliveryPayloadSnapshot(row: any) {
+    return !!this.queuePayload(row) || !!this.queueSourceSnapshot(row) || !!this.queueTransformSummary(row);
+  }
+
   chipsOf(value: any) {
     return Array.isArray(value) ? value.filter(Boolean).map((item) => String(item)) : [];
   }
@@ -309,6 +372,12 @@ export class AuditLogs {
       }
     }
     return JSON.stringify(value, null, 2);
+  }
+
+  private asStringArray(value: any): string[] {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean).map((item) => String(item));
+    return [String(value)];
   }
 
   private syncSelectedDelivery() {

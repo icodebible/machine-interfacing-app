@@ -204,6 +204,67 @@
               <div>{{ selectedDelivery()?.error_message }}</div>
             </div>
           }
+
+          @if (selectedDelivery()?.queue_id) {
+            <div class="audit-section">
+              <div class="section-title">Queue and result context</div>
+              <div class="detail-grid compact">
+                <div><span class="k">Queue status</span><span class="v">{{ selectedDelivery()?.queue_delivery_status || '—' }}</span></div>
+                <div><span class="k">Preview</span><span class="v">{{ selectedDelivery()?.queue_preview_name || '—' }}</span></div>
+                <div><span class="k">Retries</span><span class="v">{{ selectedDelivery()?.queue_retry_count ?? 0 }}</span></div>
+                <div><span class="k">Updated</span><span class="v">{{ formatDateTime(selectedDelivery()?.queue_updated_at) }}</span></div>
+                <div><span class="k">Sample</span><span class="v mono">{{ selectedDelivery()?.sample_id || '—' }}</span></div>
+                <div><span class="k">Test</span><span class="v">{{ selectedDelivery()?.test_name || selectedDelivery()?.test_code || '—' }}</span></div>
+                <div><span class="k">Value</span><span class="v">{{ selectedDelivery()?.result_value || '—' }}</span></div>
+                <div><span class="k">Observed</span><span class="v">{{ formatDateTime(selectedDelivery()?.result_observed_at) }}</span></div>
+              </div>
+            </div>
+          }
+
+          @if (queueErrors(selectedDelivery()).length) {
+            <div class="callout error">
+              <div class="callout-title">Transformation errors</div>
+              <ul>
+                @for (error of queueErrors(selectedDelivery()); track error) {
+                  <li>{{ error }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (queueWarnings(selectedDelivery()).length) {
+            <div class="callout warn">
+              <div class="callout-title">Transformation warnings</div>
+              <ul>
+                @for (warning of queueWarnings(selectedDelivery()); track warning) {
+                  <li>{{ warning }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (queueTransformSummary(selectedDelivery())) {
+            <div class="payload light">
+              <div class="payload-title">Transformation summary</div>
+              <pre>{{ formatJson(queueTransformSummary(selectedDelivery())) }}</pre>
+            </div>
+          }
+
+          @if (queuePayload(selectedDelivery())) {
+            <div class="payload">
+              <div class="payload-title">Payload sent / ready for delivery</div>
+              <pre>{{ formatJson(queuePayload(selectedDelivery())) }}</pre>
+            </div>
+          }
+
+          @if (queueSourceSnapshot(selectedDelivery())) {
+            <div class="payload light">
+              <div class="payload-title">Normalized source snapshot</div>
+              <pre>{{ formatJson(queueSourceSnapshot(selectedDelivery())) }}</pre>
+            </div>
+          } @else if (!hasDeliveryPayloadSnapshot(selectedDelivery())) {
+            <div class="empty compact-empty">No queue payload snapshot is available for this event.</div>
+          }
         }
       </div>
     </div>
@@ -275,6 +336,21 @@
           <mat-form-field appearance="outline">
             <mat-label>Entity ID</mat-label>
             <input matInput [ngModel]="systemFilters().entityId" (ngModelChange)="updateSystemFilter('entityId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Search message / payload</mat-label>
+            <input matInput [ngModel]="systemFilters().search" (ngModelChange)="updateSystemFilter('search', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>From</mat-label>
+            <input matInput type="datetime-local" [ngModel]="systemFilters().dateFrom" (ngModelChange)="updateSystemFilter('dateFrom', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>To</mat-label>
+            <input matInput type="datetime-local" [ngModel]="systemFilters().dateTo" (ngModelChange)="updateSystemFilter('dateTo', $event)" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">

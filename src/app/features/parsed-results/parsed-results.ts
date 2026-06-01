@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
@@ -55,6 +56,7 @@ interface ParsedResultViewRow {
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
+    MatPaginatorModule,
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
@@ -72,6 +74,10 @@ export class ParsedResults {
   rows = signal<ParsedResultViewRow[]>([]);
   expandedRowId = signal<string | null>(null);
   showFilters = signal(false);
+
+  pageIndex = signal(0);
+  pageSize = signal(10);
+  readonly pageSizeOptions = [10, 25, 50];
 
   searchTerm = signal('');
   protocolFilter = signal<'ALL' | ParsedResultViewRow['protocol']>('ALL');
@@ -111,6 +117,11 @@ export class ParsedResults {
     });
   });
 
+  pagedRows = computed(() => {
+    const start = this.pageIndex() * this.pageSize();
+    return this.filteredRows().slice(start, start + this.pageSize());
+  });
+
   summaryCards = computed(() => {
     const rows = this.filteredRows();
     return [
@@ -143,14 +154,17 @@ export class ParsedResults {
 
   setSearchTerm(value: string) {
     this.searchTerm.set(value ?? '');
+    this.resetPage();
   }
 
   setProtocolFilter(value: 'ALL' | ParsedResultViewRow['protocol']) {
     this.protocolFilter.set(value ?? 'ALL');
+    this.resetPage();
   }
 
   setStatusFilter(value: 'ALL' | ParsedStatus) {
     this.statusFilter.set(value ?? 'ALL');
+    this.resetPage();
   }
 
   async refresh() {
@@ -181,6 +195,7 @@ export class ParsedResults {
 
       rows.sort((a, b) => this.dateValue(b.createdAt) - this.dateValue(a.createdAt));
       this.rows.set(rows);
+      this.ensureValidPage();
 
       if (this.expandedRowId() && !rows.some((row) => row.id === this.expandedRowId())) {
         this.expandedRowId.set(null);
@@ -252,6 +267,34 @@ export class ParsedResults {
       default:
         return 'idle';
     }
+  }
+
+
+  onPageChange(event: PageEvent) {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.ensureValidPage();
+  }
+
+  traceLabel(row: ParsedResultViewRow): string {
+    const parts = [
+      row.sampleId ? `Sample ${row.sampleId}` : null,
+      row.orderId ? `Order ${row.orderId}` : null,
+      row.patientId ? `Patient ${row.patientId}` : null,
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(' • ') : 'No patient/sample/order trace found in parsed payload';
+  }
+
+  private resetPage() {
+    this.pageIndex.set(0);
+    this.ensureValidPage();
+  }
+
+  private ensureValidPage() {
+    const total = this.filteredRows().length;
+    const maxPage = Math.max(0, Math.ceil(total / this.pageSize()) - 1);
+    if (this.pageIndex() > maxPage) this.pageIndex.set(maxPage);
   }
 
   private toViewRow(machine: any, item: any): ParsedResultViewRow {

@@ -303,6 +303,15 @@
     display: block;
 }
 
+.trace-caption {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.05);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .quick-grid {
     display: grid;
     gap: 8px;

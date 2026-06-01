@@ -1,3 +1,117 @@
+<!-- <h2 mat-dialog-title class="dialog-title-row">
+    <div class="dialog-title-copy">
+        <div class="eyebrow">Outbound queue</div>
+        <div class="title">{{ targetDisplay(data.row) }}</div>
+        <div class="sub">Queue ID: {{ data.row?.id }}</div>
+    </div>
+</h2>
+
+@if (previewLoading()) {
+<mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<div mat-dialog-content class="dialog-shell">
+    <section class="surface-block">
+        <div class="section-title">Operational summary</div>
+        <div class="summary-grid">
+            <div><b>Status:</b> <span class="status-chip" [class]="statusClass(data.row?.delivery_status)">{{ data.row?.delivery_status || '—' }}</span></div>
+            <div><b>Target type:</b> {{ data.row?.target_type || '—' }}</div>
+            <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
+            <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
+            <div><b>Created:</b> {{ formatDateTime(data.row?.created_at) }}</div>
+            <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
+            <div><b>Created by:</b> {{ data.row?.created_by_username || 'SYSTEM' }}</div>
+            <div><b>Updated by:</b> {{ data.row?.updated_by_username || data.row?.created_by_username || 'SYSTEM' }}</div>
+        </div>
+
+        @for (alert of operationalAlerts(data.row); track alert.text) {
+        <div class="context-note" [class.bad]="alert.kind === 'bad'" [class.warn]="alert.kind === 'warn'" [class.info]="alert.kind === 'info'">
+            {{ alert.text }}
+        </div>
+        }
+    </section>
+
+    <section class="surface-block">
+        <div class="section-title">Stored queue payload</div>
+        <div class="dialog-actions">
+            <button mat-stroked-button type="button" (click)="copyJson(data.row?.payload_json)">
+                <mat-icon>content_copy</mat-icon>
+                Copy stored payload
+            </button>
+        </div>
+        <div class="payload mono">{{ prettyJson(data.row?.payload_json) }}</div>
+    </section>
+
+    @if (queuePreview()) {
+    <section class="surface-block">
+        <div class="section-title">Transformed preview</div>
+        <div class="context-note info">
+            <div><b>Preview source</b></div>
+            <div>{{ previewSourceLabel(queuePreview()) }}</div>
+        </div>
+
+        @if (queuePreview()?.summary) {
+        <div class="context-note info">
+            <div><b>Transformation summary</b></div>
+            <div>Rules: {{ queuePreview()?.summary?.ruleCount ?? 0 }}</div>
+            <div>Applied: {{ queuePreview()?.summary?.appliedCount ?? 0 }}</div>
+            <div>Skipped: {{ queuePreview()?.summary?.skippedCount ?? 0 }}</div>
+            <div>Translated: {{ queuePreview()?.summary?.translatedCount ?? 0 }}</div>
+        </div>
+        }
+
+        @if (queuePreview()?.errors?.length) {
+        <div class="context-note bad">
+            <div><b>Errors</b></div>
+            @for (e of queuePreview()?.errors; track e) {
+            <div>- {{ e }}</div>
+            }
+        </div>
+        }
+
+        @if (queuePreview()?.warnings?.length) {
+        <div class="context-note warn">
+            <div><b>Warnings</b></div>
+            @for (w of queuePreview()?.warnings; track w) {
+            <div>- {{ w }}</div>
+            }
+        </div>
+        }
+
+        <div class="dialog-actions">
+            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.payload)">
+                <mat-icon>content_copy</mat-icon>
+                Copy rendered payload
+            </button>
+            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.sourceDocument)">
+                <mat-icon>content_copy</mat-icon>
+                Copy source document
+            </button>
+        </div>
+
+        <div class="section-title">Rendered payload</div>
+        <div class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</div>
+
+        @if (queuePreview()?.sourceDocument) {
+        <div class="section-title">Canonical source document</div>
+        <div class="payload mono">{{ prettyJson(queuePreview()?.sourceDocument) }}</div>
+        }
+    </section>
+    }
+
+    @if (data.row?.last_error) {
+    <section class="surface-block">
+        <div class="section-title">Last error</div>
+        <div class="context-note bad">{{ data.row?.last_error }}</div>
+    </section>
+    }
+</div>
+
+<div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="close()">Close</button>
+</div> -->
+
+
 <h2 mat-dialog-title class="dialog-title-row">
     <div class="dialog-title-copy">
         <div class="eyebrow">Outbound queue</div>

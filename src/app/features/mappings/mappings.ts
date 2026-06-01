@@ -16,10 +16,19 @@ import { PlatformApiService } from '../../core/platform/platform-api.service';
 import { MappingDialog } from '../../shared/dialogs/mapping-dialog/mapping-dialog';
 import { StarterTemplateInfoDialog } from '../../shared/dialogs/starter-template-info-dialog/starter-template-info-dialog';
 import { MappingValueTranslationsDialog } from '../../shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog';
+import { OpenMrsLisMappingAssistantDialog } from '../../shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog';
 
 type MappingTargetType = 'DHIS2' | 'OPENMRS' | 'LIS' | 'CUSTOM_HTTP';
 type TransformKind = 'direct' | 'constant' | 'lookup';
 type UnmappedBehavior = 'PASSTHROUGH' | 'DEFAULT_VALUE' | 'EMPTY' | 'ERROR';
+
+type LisTargetOption = {
+  id: string;
+  name: string;
+  type: MappingTargetType;
+  base_url: string;
+  enabled: number;
+};
 
 type TemplateRule = {
   source_field: string;
@@ -234,40 +243,6 @@ export class Mappings {
       ],
     },
     {
-      id: 'lis-result',
-      targetType: 'LIS',
-      title: 'LIS result starter',
-      description: 'Builds a specimen- and result-focused structure for LIS delivery.',
-      useCase: 'Use when the receiving LIS expects accession-based result payloads.',
-      rules: [
-        {
-          source_field: 'patient.identifier',
-          destination_field: 'patient.identifier',
-          transform_kind: 'direct',
-        },
-        {
-          source_field: 'specimen.accessionNumber',
-          destination_field: 'specimen.accessionNumber',
-          transform_kind: 'direct',
-        },
-        {
-          source_field: 'result.testCode',
-          destination_field: 'result.testCode',
-          transform_kind: 'direct',
-        },
-        {
-          source_field: 'result.value',
-          destination_field: 'result.value',
-          transform_kind: 'direct',
-        },
-        {
-          source_field: 'result.units',
-          destination_field: 'result.units',
-          transform_kind: 'direct',
-        },
-      ],
-    },
-    {
       id: 'custom-http-json',
       targetType: 'CUSTOM_HTTP',
       title: 'Custom HTTP JSON starter',
@@ -319,6 +294,16 @@ export class Mappings {
   readonly pageSizeOptions = [10, 25, 50];
   cols: string[] = ['target', 'destination', 'transform', 'valueMode', 'status', 'actions'];
   detailCols: string[] = ['expandedDetail'];
+
+
+  lisTargets = signal<LisTargetOption[]>([]);
+  lisSelectedTargetId = signal<string>('');
+
+  readonly showLisAssistant = computed(() => this.selectedTargetType() === 'LIS');
+  readonly selectedLisTarget = computed(() => {
+    const id = this.lisSelectedTargetId();
+    return this.lisTargets().find((target) => target.id === id) ?? null;
+  });
 
   readonly filteredRows = computed(() => {
     const type = this.selectedTargetType();
@@ -376,6 +361,7 @@ export class Mappings {
 
   constructor() {
     this.refresh();
+    this.refreshLisTargets();
   }
 
   async refresh() {
@@ -389,6 +375,44 @@ export class Mappings {
       this.snack.open(e?.message ?? 'Failed to load mappings', 'Close', { duration: 3500 });
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async refreshLisTargets() {
+    try {
+      const targets = ((await this.api.targetsList()) ?? []) as LisTargetOption[];
+      const lisTargets = targets.filter((target) => ['LIS', 'OPENMRS'].includes(target.type));
+      this.lisTargets.set(lisTargets);
+      if (!this.lisSelectedTargetId() && lisTargets.length > 0) {
+        this.lisSelectedTargetId.set(lisTargets[0].id);
+      }
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Failed to load LIS targets', 'Close', { duration: 3500 });
+    }
+  }
+
+  async openOpenMrsLisAssistant() {
+    if (this.lisTargets().length === 0) {
+      await this.refreshLisTargets();
+    }
+
+    const ref = this.dialog.open(OpenMrsLisMappingAssistantDialog, {
+      width: '80vw',
+      maxWidth: '80vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      restoreFocus: true,
+      data: {
+        targets: this.lisTargets(),
+        selectedTargetId: this.lisSelectedTargetId(),
+      },
+    });
+
+    const changed = await firstValueFrom(ref.afterClosed());
+    if (changed) {
+      await this.refresh();
+      this.selectedTargetType.set('LIS');
+      this.snack.open('LIS mappings refreshed after configuration update.', 'Close', { duration: 2600 });
     }
   }
 
