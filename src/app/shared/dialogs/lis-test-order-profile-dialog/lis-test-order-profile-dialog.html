@@ -1,0 +1,193 @@
+<div class="dialog-shell">
+  <header class="dialog-header">
+    <div class="header-copy">
+      <div class="eyebrow">LIS test-order profile</div>
+      <h2>{{ data.mode === 'edit' ? 'Edit profile' : 'Configure profile' }}</h2>
+      <div class="subline">
+        {{ data.targetName || 'Selected LIS target' }}
+        <span class="dot">•</span>
+        {{ readinessLabel() }}
+      </div>
+    </div>
+
+    <div class="header-status">
+      <span class="status-pill" [class.success]="readinessLabel() === 'Ready'" [class.warn]="readinessLabel() !== 'Ready'">
+        {{ readinessLabel() }}
+      </span>
+      <span class="status-pill info">{{ form.parameters.length }} parameter{{ form.parameters.length === 1 ? '' : 's' }}</span>
+    </div>
+  </header>
+
+  <mat-dialog-content class="dialog-content">
+    <section class="summary-row compact">
+      <article class="summary-card accent-neutral">
+        <div class="summary-label">Expected codes</div>
+        <div class="summary-value">{{ expectedCodes().length }}</div>
+        <div class="summary-sub">{{ expectedCodes().join(', ') || 'No analyzer codes' }}</div>
+      </article>
+      <article class="summary-card accent-info">
+        <div class="summary-label">Required</div>
+        <div class="summary-value">{{ requiredCodes().length }}</div>
+        <div class="summary-sub">{{ requiredCodes().join(', ') || 'None marked required' }}</div>
+      </article>
+      <article class="summary-card accent-warn" [class.status-enabled]="form.enabled === 1" [class.status-disabled]="form.enabled !== 1">
+        <div class="summary-label">Profile status</div>
+        <div class="summary-value status-summary-value">
+          <mat-icon>{{ form.enabled === 1 ? 'verified' : 'pause_circle' }}</mat-icon>
+          {{ form.enabled === 1 ? 'Enabled' : 'Disabled' }}
+        </div>
+        <div class="summary-sub">{{ form.enabled === 1 ? 'Used during preview/rebuild' : 'Kept for reference only' }}</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Profile identity</div>
+          <div class="section-sub">One profile must represent exactly one LIS test order concept.</div>
+        </div>
+        <mat-checkbox
+          class="enabled-toggle"
+          [class.enabled]="form.enabled === 1"
+          [class.disabled]="form.enabled !== 1"
+          [ngModel]="form.enabled === 1"
+          (ngModelChange)="updateForm({ enabled: $event ? 1 : 0 })"
+        >
+          {{ form.enabled === 1 ? 'Enabled' : 'Disabled' }}
+        </mat-checkbox>
+      </div>
+
+      <div class="editor-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Profile code</mat-label>
+          <input matInput [ngModel]="form.profile_code" (ngModelChange)="updateForm({ profile_code: $event })" placeholder="HPV" />
+          <mat-hint>Short stable key, for example HPV, CBC, or HIV_VL.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Profile name</mat-label>
+          <input matInput [ngModel]="form.profile_name" (ngModelChange)="updateForm({ profile_name: $event })" placeholder="Human Papilloma Virus DNA Test" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Order concept UUID</mat-label>
+          <input matInput class="mono-input" [ngModel]="form.order_concept_uuid" (ngModelChange)="updateForm({ order_concept_uuid: $event })" />
+          <mat-hint>The LIS test order concept UUID, not a parameter concept UUID.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Order display</mat-label>
+          <input matInput [ngModel]="form.order_display" (ngModelChange)="updateForm({ order_display: $event })" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Order name includes</mat-label>
+          <input matInput [ngModel]="form.order_name_includes_text" (ngModelChange)="updateForm({ order_name_includes_text: $event })" />
+          <mat-hint>Comma-separated fallback match terms, such as HPV, Human Papilloma Virus.</mat-hint>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel parameters-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Profile parameters</div>
+          <div class="section-sub">Expected analyzer codes for this exact LIS test order. Mark required values that must appear before delivery.</div>
+        </div>
+        <button mat-stroked-button type="button" (click)="addParameter()">
+          <mat-icon>add</mat-icon>
+          Add parameter
+        </button>
+      </div>
+
+      <div class="profile-guidance">
+        <mat-icon>tips_and_updates</mat-icon>
+        <span>
+          The profile validates completeness only. Existing mappings still translate analyzer codes, coded answers, allocations, instrument, tested-by, duplicate, repeat, and correction behavior.
+        </span>
+      </div>
+
+      <div class="parameter-table material-parameter-table">
+        <div class="parameter-head-row" aria-hidden="true">
+          <div>Analyzer code</div>
+          <div>Concept UUID</div>
+          <div>Value type</div>
+          <div>Required</div>
+          <div>Readiness</div>
+          <div></div>
+        </div>
+
+        @for (param of form.parameters; track $index; let i = $index) {
+          <div class="parameter-row">
+            <mat-form-field appearance="outline" class="parameter-field">
+              <mat-label>Analyzer code</mat-label>
+              <input
+                matInput
+                [ngModel]="param.analyzer_code"
+                (ngModelChange)="updateParameter(i, { analyzer_code: $event })"
+                placeholder="HPV16"
+              />
+              <mat-hint>Analyzer result identifier</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="parameter-field">
+              <mat-label>Concept UUID</mat-label>
+              <input
+                matInput
+                class="mono-input"
+                [ngModel]="param.concept_uuid"
+                (ngModelChange)="updateParameter(i, { concept_uuid: $event })"
+                placeholder="OpenMRS parameter UUID"
+              />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="parameter-field">
+              <mat-label>Value type</mat-label>
+              <mat-select
+                [ngModel]="param.value_type"
+                (ngModelChange)="updateParameter(i, { value_type: $any($event) })"
+              >
+                <mat-option value="coded">Coded</mat-option>
+                <mat-option value="numeric">Numeric</mat-option>
+                <mat-option value="text">Text</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <div class="required-cell">
+              <mat-checkbox
+                [ngModel]="param.required === 1"
+                (ngModelChange)="toggleRequired(i, $event)"
+              >
+                Required
+              </mat-checkbox>
+            </div>
+
+            <div class="readiness-cell">
+              <span class="status-pill" [class.success]="parameterReadiness(param) === 'ok'" [class.warn]="parameterReadiness(param) === 'warn'">
+                {{ parameterReadiness(param) === 'ok' ? 'Ready' : 'Needs review' }}
+              </span>
+            </div>
+
+            <div class="remove-cell">
+              <button mat-icon-button color="warn" type="button" matTooltip="Remove parameter" (click)="removeParameter(i)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (!form.parameters.length) {
+        <div class="empty-state compact">No parameters yet. Add at least one analyzer code for this test-order profile.</div>
+      }
+    </section>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-actions" align="end">
+    <button mat-stroked-button type="button" (click)="close()">Close</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="!canSave()">
+      <mat-icon>save</mat-icon>
+      Save profile
+    </button>
+  </mat-dialog-actions>
+</div>

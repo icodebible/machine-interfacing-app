@@ -5,7 +5,7 @@ import { Labs } from './features/labs/labs';
 import { Machines } from './features/machines/machines';
 import { LiveMonitor } from './features/live-monitor/live-monitor';
 import { Mappings } from './features/mappings/mappings';
-import { RoutesTargets } from './features/routes-targets/routes-targets';
+import { RoutingRules } from './features/routing-rules/routing-rules';
 import { Outbox } from './features/outbox/outbox';
 import { Users } from './features/users/users';
 import { Roles } from './features/roles/roles';
@@ -24,6 +24,7 @@ import { OutboundQueue } from './features/outbound-queue/outbound-queue';
 import { DeliveryHistory } from './features/delivery-history/delivery-history';
 import { ApprovalPolicies } from './features/approval-policies/approval-policies';
 import { Targets } from './features/targets/targets';
+import { LisTestOrderProfiles } from './features/lis-test-order-profiles/lis-test-order-profiles';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'app/dashboard', pathMatch: 'full' },
@@ -39,8 +40,9 @@ export const routes: Routes = [
             { path: 'machines', component: Machines, canActivate: [passwordChangeGuard] },
             { path: 'live-monitor', component: LiveMonitor, canActivate: [passwordChangeGuard] },
             { path: 'mappings', component: Mappings, canActivate: [passwordChangeGuard] },
+            { path: 'lis-test-order-profiles', component: LisTestOrderProfiles, canActivate: [passwordChangeGuard] },
             { path: 'routes', redirectTo: 'routing-rules', pathMatch: 'full' },
-            { path: 'routing-rules', component: RoutesTargets, canActivate: [passwordChangeGuard] },
+            { path: 'routing-rules', component: RoutingRules, canActivate: [passwordChangeGuard] },
             { path: 'targets', component: Targets, canActivate: [passwordChangeGuard] },
 
             { path: 'outbox', component: Outbox, canActivate: [passwordChangeGuard] },

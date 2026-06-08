@@ -2458,8 +2458,8 @@
 //   return firstNonEmpty(
 //     sourceDocument?.raw?.lis?.defaultRemarks,
 //     sourceDocument?.raw?.remarks,
-//     'Machine interfaced result',
-//   ) ?? 'Machine interfaced result';
+//     'Machine interfaced result 1',
+//   ) ?? 'Machine interfaced result 1';
 // }
 
 // function codeLookupCandidates(code: any, display: string | null): string[] {
@@ -2597,6 +2597,23 @@ type TranslationIndex = {
     allocationRuleCount: number;
 };
 
+
+type LisTestOrderProfileMatch = {
+    matched: boolean;
+    profileId?: string | null;
+    profileCode?: string | null;
+    profileName?: string | null;
+    orderConceptUuid?: string | null;
+    orderDisplay?: string | null;
+    expectedAnalyzerCodes: string[];
+    requiredAnalyzerCodes: string[];
+    receivedAnalyzerCodes: string[];
+    missingRequiredCodes: string[];
+    unexpectedAnalyzerCodes: string[];
+    parameterCount: number;
+    message?: string | null;
+};
+
 export type OpenMrsLisPayloadBuildResult = {
     payload: any | null;
     warnings: string[];
@@ -2609,6 +2626,8 @@ export type OpenMrsLisPayloadBuildResult = {
         lisRows: number;
         observationCount: number;
         compositeExpandedCount: number;
+        lisResultHandling?: Record<string, any>;
+        lisTestOrderProfile?: Record<string, any>;
     };
 };
 
@@ -2628,6 +2647,12 @@ class OpenMrsLisPayloadBuilder {
     private readonly warnings: string[] = [];
     private readonly errors: string[] = [];
     private readonly rows: any[] = [];
+    private readonly resultHandlingRows: any[] = [];
+    private skippedDuplicateCount = 0;
+    private blockedExistingCount = 0;
+    private existingMatchCount = 0;
+    private correctionCount = 0;
+    private repeatCount = 0;
     private compositeExpandedCount = 0;
 
     constructor(
@@ -2641,6 +2666,8 @@ class OpenMrsLisPayloadBuilder {
         const observations = this.extractAnalyzerObservations(this.sourceDocument);
         const allocationByConceptUuid = this.extractAllocationIndex(this.sourceDocument);
         const context = this.extractContext(this.sourceDocument, translations.directValuesByDestination);
+        const testOrderProfile = this.resolveTestOrderProfile(context.order, observations);
+        this.validateTestOrderProfile(testOrderProfile);
 
         for (const observation of observations) {
             const mappedConceptUuid = this.lookupConceptUuid(observation, translations);
@@ -2694,6 +2721,9 @@ class OpenMrsLisPayloadBuilder {
                 testedBy: context.testedBy,
             };
 
+            const handlingDecision = this.evaluateResultHandling(row, observation);
+            if (!handlingDecision.shouldInclude) continue;
+
             this.rows.push(this.removeUndefined(row));
         }
 
@@ -2727,6 +2757,8 @@ class OpenMrsLisPayloadBuilder {
                           resultCount: this.rows.length,
                           observationCount: observations.length,
                           compositeExpandedCount: this.compositeExpandedCount,
+                          resultHandling: this.resultHandlingSummary(observations.length),
+                          testOrderProfile,
                       },
                   }
                 : null,
@@ -2743,8 +2775,398 @@ class OpenMrsLisPayloadBuilder {
                 lisRows: this.rows.length,
                 observationCount: observations.length,
                 compositeExpandedCount: this.compositeExpandedCount,
+                lisResultHandling: this.resultHandlingSummary(observations.length),
+                lisTestOrderProfile: testOrderProfile,
             },
         };
+    }
+
+
+    private resolveTestOrderProfile(order: any, observations: AnalyzerObservation[]): LisTestOrderProfileMatch {
+        const receivedAnalyzerCodes = this.unique(observations.map((item) => String(item.code ?? '').trim()).filter(Boolean));
+        const empty: LisTestOrderProfileMatch = {
+            matched: false,
+            expectedAnalyzerCodes: [],
+            requiredAnalyzerCodes: [],
+            receivedAnalyzerCodes,
+            missingRequiredCodes: [],
+            unexpectedAnalyzerCodes: [],
+            parameterCount: 0,
+        };
+
+        if (!this.target?.id || !this.tableExists('lis_test_order_profiles') || !this.tableExists('lis_test_order_profile_parameters')) {
+            return {
+                ...empty,
+                message: 'No LIS test-order profile metadata table is available. Payload generation will continue using mapping rules only.',
+            };
+        }
+
+        const db = getDb();
+        const profiles = db
+            .prepare(
+                `
+                    SELECT *
+                    FROM lis_test_order_profiles
+                    WHERE target_id = ? AND enabled = 1
+                    ORDER BY profile_name ASC, profile_code ASC
+                `,
+            )
+            .all(this.target.id) as any[];
+
+        if (!profiles.length) {
+            return {
+                ...empty,
+                message: 'No LIS test-order profiles are configured for this target. Payload generation will continue using mapping rules only.',
+            };
+        }
+
+        const orderConceptUuid = this.firstText(
+            order?.concept?.uuid,
+            order?.orderConceptUuid,
+            order?.conceptUuid,
+            order?.testOrderConceptUuid,
+            order?.concept?.conceptUuid,
+        );
+        const orderDisplay = this.firstText(
+            order?.concept?.display,
+            order?.concept?.name,
+            order?.display,
+            order?.name,
+            order?.orderDisplay,
+            order?.testName,
+        );
+        const normalizedOrderDisplay = this.key(orderDisplay ?? '');
+
+        let selected = profiles.find((profile) => {
+            const configuredUuid = String(profile?.order_concept_uuid ?? '').trim();
+            return !!configuredUuid && !!orderConceptUuid && configuredUuid === orderConceptUuid;
+        });
+
+        if (!selected && normalizedOrderDisplay) {
+            selected = profiles.find((profile) => {
+                const terms = this.parseStringArray(profile?.order_name_includes_json);
+                const profileName = this.key(`${profile?.profile_name ?? ''} ${profile?.order_display ?? ''}`);
+                return terms.some((term) => normalizedOrderDisplay.includes(this.key(term))) ||
+                    (!!profileName && normalizedOrderDisplay.includes(profileName));
+            });
+        }
+
+        if (!selected) {
+            selected = this.matchProfileByAnalyzerCodes(profiles, receivedAnalyzerCodes);
+        }
+
+        if (!selected) {
+            return {
+                ...empty,
+                message: 'No LIS test-order profile matched this result. Payload generation will continue using mapping rules only.',
+            };
+        }
+
+        const parameters = db
+            .prepare(
+                `
+                    SELECT *
+                    FROM lis_test_order_profile_parameters
+                    WHERE profile_id = ?
+                    ORDER BY sort_order ASC, analyzer_code ASC
+                `,
+            )
+            .all(selected.id) as any[];
+
+        const expectedAnalyzerCodes = this.unique(parameters.map((item) => String(item?.analyzer_code ?? '').trim()).filter(Boolean));
+        const requiredAnalyzerCodes = this.unique(
+            parameters
+                .filter((item) => Number(item?.required ?? 0) === 1)
+                .map((item) => String(item?.analyzer_code ?? '').trim())
+                .filter(Boolean),
+        );
+
+        const receivedKeys = new Set(receivedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
+        const expectedKeys = new Set(expectedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
+        const missingRequiredCodes = requiredAnalyzerCodes.filter((code) =>
+            this.codeAliases(code).every((alias) => !receivedKeys.has(alias)),
+        );
+        const unexpectedAnalyzerCodes = receivedAnalyzerCodes.filter((code) =>
+            this.codeAliases(code).every((alias) => !expectedKeys.has(alias)),
+        );
+
+        return {
+            matched: true,
+            profileId: selected.id,
+            profileCode: selected.profile_code ?? null,
+            profileName: selected.profile_name ?? null,
+            orderConceptUuid: selected.order_concept_uuid ?? null,
+            orderDisplay: selected.order_display ?? null,
+            expectedAnalyzerCodes,
+            requiredAnalyzerCodes,
+            receivedAnalyzerCodes,
+            missingRequiredCodes,
+            unexpectedAnalyzerCodes,
+            parameterCount: parameters.length,
+            message: `Matched LIS test-order profile ${selected.profile_code ?? selected.profile_name}.`,
+        };
+    }
+
+
+    private matchProfileByAnalyzerCodes(profiles: any[], receivedAnalyzerCodes: string[]): any | null {
+        if (!profiles.length || !receivedAnalyzerCodes.length) return null;
+        const receivedKeys = new Set(receivedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
+        let best: { profile: any; score: number } | null = null;
+        let ambiguous = false;
+
+        for (const profile of profiles) {
+            const parameters = getDb()
+                .prepare(
+                    `SELECT analyzer_code FROM lis_test_order_profile_parameters WHERE profile_id = ?`,
+                )
+                .all(profile.id) as Array<{ analyzer_code?: string | null }>;
+            const expectedAliases = parameters.flatMap((param) => this.codeAliases(param.analyzer_code));
+            const score = expectedAliases.filter((alias) => receivedKeys.has(alias)).length;
+            if (score <= 0) continue;
+            if (!best || score > best.score) {
+                best = { profile, score };
+                ambiguous = false;
+            } else if (best && score === best.score) {
+                ambiguous = true;
+            }
+        }
+
+        if (!best || ambiguous) return null;
+        this.warnings.push(
+            `LIS test-order profile ${best.profile.profile_code ?? best.profile.profile_name} was matched by analyzer-code overlap because order concept metadata was not available in the source document.`,
+        );
+        return best.profile;
+    }
+
+    private validateTestOrderProfile(profile: LisTestOrderProfileMatch) {
+        if (!profile.matched) {
+            if (profile.message) this.warnings.push(profile.message);
+            return;
+        }
+
+        if (profile.missingRequiredCodes.length) {
+            this.warnings.push(
+                `LIS test-order profile ${profile.profileCode ?? profile.profileName} is missing required analyzer code(s): ${profile.missingRequiredCodes.join(', ')}.`,
+            );
+        }
+
+        if (profile.unexpectedAnalyzerCodes.length) {
+            this.warnings.push(
+                `LIS test-order profile ${profile.profileCode ?? profile.profileName} received unexpected analyzer code(s): ${profile.unexpectedAnalyzerCodes.join(', ')}.`,
+            );
+        }
+    }
+
+    private tableExists(table: string): boolean {
+        const row = getDb()
+            .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`)
+            .get(table) as { name?: string } | undefined;
+        return !!row?.name;
+    }
+
+    private parseStringArray(value: any): string[] {
+        if (Array.isArray(value)) return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+        if (typeof value === 'string') {
+            const raw = value.trim();
+            if (!raw) return [];
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return this.parseStringArray(parsed);
+            } catch {
+                // comma-separated fallback below
+            }
+            return raw.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+    }
+
+    private evaluateResultHandling(row: Record<string, any>, observation: AnalyzerObservation): { shouldInclude: boolean } {
+        const existing = this.findExistingResultsForRow(row);
+        const sameValueExisting = existing.filter((result) => this.valueSignature(row) === this.valueSignature(result));
+        const mode = this.resolveResultHandlingMode(observation);
+        const label = observation.code || row?.concept?.uuid || 'LIS result row';
+        const summary = {
+            index: this.resultHandlingRows.length,
+            label,
+            mode,
+            decision: 'READY_INITIAL',
+            analyzerCode: observation.code,
+            conceptUuid: row?.concept?.uuid ?? null,
+            allocationUuid: row?.testAllocation?.uuid ?? null,
+            incomingValue: this.valueSignature(row),
+            existingResultCount: existing.length,
+            sameValueExistingCount: sameValueExisting.length,
+            existingResultUuids: existing.map((result) => result?.uuid).filter(Boolean),
+        };
+
+        if (existing.length) this.existingMatchCount += existing.length;
+
+        if (mode === 'CORRECTION') {
+            this.correctionCount += existing.length ? 1 : 0;
+            if (existing.length) {
+                summary.decision = 'READY_CORRECTION';
+                this.warnings.push(
+                    `Correction result detected for ${label}. ${existing.length} existing LIS result(s) were found and the corrected value will be prepared as a new /lab/multipleresults row.`,
+                );
+            }
+            this.resultHandlingRows.push(summary);
+            return { shouldInclude: true };
+        }
+
+        if (mode === 'REPEAT') {
+            this.repeatCount += existing.length ? 1 : 0;
+            if (existing.length) {
+                summary.decision = 'READY_REPEAT';
+                this.warnings.push(
+                    `Repeat/rerun result detected for ${label}. ${existing.length} existing LIS result(s) were found and this repeat result will be prepared as a new /lab/multipleresults row.`,
+                );
+            }
+            this.resultHandlingRows.push(summary);
+            return { shouldInclude: true };
+        }
+
+        if (sameValueExisting.length) {
+            this.skippedDuplicateCount += 1;
+            summary.decision = 'SKIPPED_DUPLICATE';
+            this.warnings.push(
+                `Skipped duplicate LIS result for ${label}; the same value already exists in LIS. Mark the message as repeat/rerun or correction if it must be submitted again.`,
+            );
+            this.resultHandlingRows.push(summary);
+            return { shouldInclude: false };
+        }
+
+        if (existing.length) {
+            this.blockedExistingCount += 1;
+            summary.decision = 'BLOCKED_EXISTING_RESULT';
+            this.errors.push(
+                `Existing LIS result found for ${label}, but the analyzer message is not marked as repeat/rerun or correction.`,
+            );
+            this.resultHandlingRows.push(summary);
+            return { shouldInclude: false };
+        }
+
+        this.resultHandlingRows.push(summary);
+        return { shouldInclude: true };
+    }
+
+    private resultHandlingSummary(originalRowCount: number): Record<string, any> {
+        return {
+            mode: this.resolveResultHandlingMode(),
+            originalRowCount,
+            readyRowCount: this.rows.length,
+            skippedDuplicateCount: this.skippedDuplicateCount,
+            blockedExistingCount: this.blockedExistingCount,
+            existingMatchCount: this.existingMatchCount,
+            correctionCount: this.correctionCount,
+            repeatCount: this.repeatCount,
+            hasExistingLisResults: this.existingMatchCount > 0,
+            warnings: this.warnings.filter((item) => /duplicate|repeat|rerun|correction|Existing LIS result/i.test(item)),
+            errors: this.errors.filter((item) => /duplicate|repeat|rerun|correction|Existing LIS result/i.test(item)),
+            rows: this.resultHandlingRows,
+        };
+    }
+
+    private findExistingResultsForRow(row: Record<string, any>): any[] {
+        const allocationUuid = String(row?.testAllocation?.uuid ?? '').trim();
+        const conceptUuid = String(row?.concept?.uuid ?? '').trim();
+        const allocations = this.extractExistingAllocations(this.sourceDocument);
+        if (!allocations.length || (!allocationUuid && !conceptUuid)) return [];
+
+        const existing: any[] = [];
+        for (const allocation of allocations) {
+            const candidateAllocationUuid = String(allocation?.uuid ?? allocation?.testAllocation?.uuid ?? '').trim();
+            const candidateConceptUuid = String(allocation?.concept?.uuid ?? allocation?.parameter?.uuid ?? '').trim();
+            const allocationMatches = !!allocationUuid && candidateAllocationUuid === allocationUuid;
+            const conceptMatches = !!conceptUuid && candidateConceptUuid === conceptUuid;
+            if (!allocationMatches && !conceptMatches) continue;
+
+            const results = Array.isArray(allocation?.results)
+                ? allocation.results
+                : Array.isArray(allocation?.testResults)
+                  ? allocation.testResults
+                  : [];
+            for (const result of results) {
+                const resultConceptUuid = String(result?.concept?.uuid ?? '').trim();
+                if (conceptUuid && resultConceptUuid && resultConceptUuid !== conceptUuid) continue;
+                if (result?.voided === true) continue;
+                existing.push(result);
+            }
+        }
+
+        return existing;
+    }
+
+    private extractExistingAllocations(sourceDocument: Record<string, any>): any[] {
+        const raw = sourceDocument?.raw ?? sourceDocument;
+        const candidates = [
+            sourceDocument?.lis?.allocations,
+            raw?.lis?.allocations,
+            raw?.lis?.metadata?.allocations,
+            raw?.openmrs?.allocations,
+            raw?.allocations,
+            raw?.sample?.allocations,
+        ];
+        for (const candidate of candidates) {
+            if (Array.isArray(candidate)) return candidate;
+            if (Array.isArray(candidate?.results)) return candidate.results;
+        }
+        return [];
+    }
+
+    private resolveResultHandlingMode(observation?: AnalyzerObservation): 'INITIAL' | 'REPEAT' | 'CORRECTION' {
+        const raw = this.sourceDocument?.raw ?? this.sourceDocument;
+        const values = [
+            (observation as any)?.resultIntent,
+            (observation as any)?.resultMode,
+            (observation as any)?.resultAction,
+            (observation as any)?.obxStatus,
+            (observation as any)?.resultStatus,
+            raw?.lis?.resultHandling?.mode,
+            raw?.lis?.resultIntent,
+            raw?.resultIntent,
+            raw?.resultMode,
+            raw?.resultAction,
+            raw?.obxStatus,
+            raw?.resultStatus,
+        ];
+
+        for (const value of values) {
+            const normalized = String(value ?? '').trim().toUpperCase();
+            if (!normalized) continue;
+            if (['C', 'CORRECTED', 'CORRECTION', 'AMENDED', 'CORRECTED_RESULT'].includes(normalized)) return 'CORRECTION';
+            if (['R', 'REPEAT', 'RERUN', 'RETEST', 'REPEATED', 'REPEAT_RESULT'].includes(normalized)) return 'REPEAT';
+            if (normalized.includes('CORRECT')) return 'CORRECTION';
+            if (normalized.includes('RERUN') || normalized.includes('REPEAT') || normalized.includes('RETEST')) return 'REPEAT';
+        }
+
+        return 'INITIAL';
+    }
+
+    private valueSignature(row: any): string {
+        const codedUuid = row?.valueCoded?.uuid ?? row?.valueCodedUuid;
+        if (codedUuid !== undefined && codedUuid !== null && codedUuid !== '') return `coded:${String(codedUuid).trim()}`;
+
+        const codedDisplay = row?.valueCoded?.display ?? row?.valueCoded?.name;
+        if (codedDisplay !== undefined && codedDisplay !== null && codedDisplay !== '') {
+            return `coded-display:${String(codedDisplay).trim().toUpperCase()}`;
+        }
+
+        const numeric = row?.valueNumeric;
+        if (numeric !== undefined && numeric !== null && numeric !== '') {
+            const n = Number(numeric);
+            return Number.isFinite(n) ? `numeric:${n}` : `numeric:${String(numeric).trim()}`;
+        }
+
+        const text = row?.valueText;
+        if (text !== undefined && text !== null && text !== '') return `text:${String(text).trim()}`;
+
+        const booleanValue = row?.valueBoolean;
+        if (booleanValue !== undefined && booleanValue !== null && booleanValue !== '') return `boolean:${String(booleanValue)}`;
+
+        const dateValue = row?.valueDateTime;
+        if (dateValue !== undefined && dateValue !== null && dateValue !== '') return `datetime:${String(dateValue).trim()}`;
+
+        return '';
     }
 
     private readLisTranslations(): TranslationIndex {
@@ -3118,7 +3540,7 @@ class OpenMrsLisPayloadBuilder {
             testedDate: this.firstText(raw?.testedDate, lis?.testedDate, source?.result?.observedAt, source?.normalized?.observedAt),
             statusCategory: this.firstText(directValues.get('lis.status.category'), lis?.status?.category) ?? 'RESULT_REMARKS',
             status: this.firstText(directValues.get('lis.status.status'), lis?.status?.status) ?? 'REMARKS',
-            remarks: this.firstText(directValues.get('lis.status.remarks'), lis?.defaultRemarks, raw?.remarks) ?? 'Machine interfaced result',
+            remarks: this.firstText(directValues.get('lis.status.remarks'), lis?.defaultRemarks, raw?.remarks) ?? 'Machine interfaced result 1',
         };
     }
 

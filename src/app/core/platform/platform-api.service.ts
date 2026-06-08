@@ -1,371 +1,1847 @@
-import { Injectable } from "@angular/core";
-import {
-  AppAPI,
-  ApprovalPolicy,
-  MachineSimulationScenario,
-} from "../../../../electron/src/preload/api/types";
+// import { Injectable } from '@angular/core';
+// import { AppAPI, ApprovalPolicy } from '../../../../electron/src/preload/api/types';
+
+// declare global {
+//   interface Window {
+//     appAPI: AppAPI;
+//     platform: {
+//       copyToClipboard: (text: string) => Promise<void>;
+//     };
+//   }
+// }
+
+// @Injectable({ providedIn: 'root' })
+// export class PlatformApiService {
+//   get api() {
+//     if (!window.appAPI) throw new Error('window.appAPI not available (preload not loaded)');
+//     return window.appAPI;
+//   }
+
+//   authCurrentUser() {
+//     return this.api.authCurrentUser();
+//   }
+
+//   // ✅ Clipboard helper
+//   copy(text: string) {
+//     // return window.platform.copyToClipboard(text);
+//     return this.api.copyToClipboard(text);
+//   }
+
+//   usersList() {
+//     return this.api.usersList();
+//   }
+//   usersCreate(dto: any) {
+//     return this.api.usersCreate(dto);
+//   }
+//   usersUpdate(id: string, dto: any) {
+//     return this.api.usersUpdate(id, dto);
+//   }
+//   usersResetPassword(id: string, newPassword: string) {
+//     return this.api.usersResetPassword(id, newPassword);
+//   }
+//   usersDelete(id: string) {
+//     return this.api.usersDelete(id);
+//   }
+
+//   rolesList() {
+//     return this.api.rolesList();
+//   }
+//   rolesAuthoritiesCatalog() {
+//     return this.api.rolesAuthoritiesCatalog();
+//   }
+//   rolesCreate(dto: any) {
+//     return this.api.rolesCreate(dto);
+//   }
+//   rolesUpdate(id: string, dto: any) {
+//     return this.api.rolesUpdate(id, dto);
+//   }
+//   rolesDelete(id: string) {
+//     return this.api.rolesDelete(id);
+//   }
+
+//   // Labs
+//   labsList() {
+//     return this.api.labsList();
+//   }
+//   labsCreate(dto: any) {
+//     return this.api.labsCreate(dto);
+//   }
+//   labsUpdate(id: string, dto: any) {
+//     return this.api.labsUpdate(id, dto);
+//   }
+//   labsDelete(id: string) {
+//     return this.api.labsDelete(id);
+//   }
+
+//   // Machines
+//   machinesList() {
+//     return this.api.machinesList();
+//   }
+//   machinesCreate(dto: any) {
+//     return this.api.machinesCreate(dto);
+//   }
+//   machinesUpdate(id: string, dto: any) {
+//     return this.api.machinesUpdate(id, dto);
+//   }
+//   machinesDelete(id: string) {
+//     return this.api.machinesDelete(id);
+//   }
+//   machinesConnect(id: string) {
+//     return this.api.machinesConnect(id);
+//   }
+//   machinesDisconnect(id: string) {
+//     return this.api.machinesDisconnect(id);
+//   }
+
+//   machinesTest(machine: any) {
+//     return this.api.machinesTest(machine);
+//   }
+
+//   // Targets
+//   targetsList() {
+//     return this.api.targetsList();
+//   }
+//   targetsCreate(dto: any) {
+//     return this.api.targetsCreate(dto);
+//   }
+//   targetsUpdate(id: string, dto: any) {
+//     return this.api.targetsUpdate(id, dto);
+//   }
+//   targetsDelete(id: string) {
+//     return this.api.targetsDelete(id);
+//   }
+//   targetsTest(id: string) {
+//     return this.api.targetsTest(id);
+//   }
+
+//   // Logs
+//   logsQuery(q: any) {
+//     return this.api.logsQuery(q);
+//   }
+
+//   deliveryAuditList(q: any = {}) {
+//     return this.api.deliveryAuditList(q);
+//   }
+
+//   machinesRuntimeStart(id: string) {
+//     return this.api.machinesRuntimeStart(id);
+//   }
+
+//   machinesRuntimeStop(id: string) {
+//     return this.api.machinesRuntimeStop(id);
+//   }
+
+//   machinesRuntimeRestart(id: string) {
+//     return this.api.machinesRuntimeRestart(id);
+//   }
+
+//   machinesRuntimeState(id: string) {
+//     return this.api.machinesRuntimeState(id);
+//   }
+
+//   machinesRuntimeStates() {
+//     return this.api.machinesRuntimeStates();
+//   }
+
+//   onMachinesRuntimeEvent(cb: (event: any) => void) {
+//     return this.api.onMachinesRuntimeEvent(cb);
+//   }
+
+//   machinesLogsList(machineId: string, limit = 50) {
+//     return this.api.machinesLogsList(machineId, limit);
+//   }
+
+//   machinesLogsClear(machineId: string) {
+//     return this.api.machinesLogsClear(machineId);
+//   }
+
+//   machinesSimStart(
+//     machineId: string,
+//     scenario:
+//       | 'HL7_COBAS_HPV_FINAL_RESULT'
+//       | 'ASTM_COBAS_HPV_FINAL_RESULT'
+//       | 'ASTM_BASIC'
+//       | 'HL7_ORU'
+//       | 'RAW_PING' = 'ASTM_BASIC',
+//     intervalMs = 5000,
+//   ) {
+//     return this.api.machinesSimStart(machineId, scenario, intervalMs);
+//   }
+
+//   machinesSimStop(machineId: string) {
+//     return this.api.machinesSimStop(machineId);
+//   }
+
+//   machinesSimRestart(
+//     machineId: string,
+//     scenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+//     intervalMs = 5000,
+//   ) {
+//     return this.api.machinesSimRestart(machineId, scenario, intervalMs);
+//   }
+
+//   machinesSimState(machineId: string) {
+//     return this.api.machinesSimState(machineId);
+//   }
+
+//   machinesSimStates() {
+//     return this.api.machinesSimStates();
+//   }
+
+//   machinesParsedList(machineId: string, limit = 50) {
+//     return this.api.machinesParsedList(machineId, limit);
+//   }
+
+//   machinesNormalizedList(machineId: string, limit = 50) {
+//     return this.api.machinesNormalizedList(machineId, limit);
+//   }
+
+//   approvalPoliciesList() {
+//     return this.api.approvalPoliciesList();
+//   }
+
+//   approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
+//     return this.api.approvalPoliciesCreate(dto);
+//   }
+
+//   approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
+//     return this.api.approvalPoliciesUpdate(id, dto);
+//   }
+
+//   approvalPoliciesDelete(id: string) {
+//     return this.api.approvalPoliciesDelete(id);
+//   }
+
+//   resultsPendingApprovals(limit = 100) {
+//     return this.api.resultsPendingApprovals(limit);
+//   }
+
+//   resultApprove(dto: {
+//     normalizedResultId: string;
+//     policyId: string;
+//     stepOrder: number;
+//     approverUserId: string;
+//     comment?: string | null;
+//   }) {
+//     return this.api.resultApprove(dto);
+//   }
+
+//   resultReject(dto: {
+//     normalizedResultId: string;
+//     policyId: string;
+//     stepOrder: number;
+//     approverUserId: string;
+//     comment?: string | null;
+//   }) {
+//     return this.api.resultReject(dto);
+//   }
+
+//   resultApprovalsList(normalizedResultId: string) {
+//     return this.api.resultApprovalsList(normalizedResultId);
+//   }
+
+//   resultApprovalsAll(limit = 100) {
+//     return this.api.resultApprovalsAll(limit);
+//   }
+
+//   outboundQueueList(limit = 100) {
+//     return this.api.outboundQueueList(limit);
+//   }
+
+//   outboundQueuePending(limit = 100) {
+//     return this.api.outboundQueuePending(limit);
+//   }
+
+//   deliveryHistoryList(limit = 100) {
+//     return this.api.deliveryHistoryList(limit);
+//   }
+
+//   deliveryAuditQuery(q: any) {
+//     return this.api.deliveryAuditQuery(q);
+//   }
+
+//   targetTransformPreview(targetId: string, normalizedResultId: string) {
+//     return this.api.targetTransformPreview(targetId, normalizedResultId);
+//   }
+
+//   outboundQueueRetry(queueId: string) {
+//     return this.api.outboundQueueRetry(queueId);
+//   }
+
+//   outboundQueueRequeue(queueId: string) {
+//     return this.api.outboundQueueRequeue(queueId);
+//   }
+
+//   outboundQueueSendNow(queueId: string) {
+//     return this.api.outboundQueueSendNow(queueId);
+//   }
+
+//   targetSecretsGet(targetId: string) {
+//     return this.api.targetSecretsGet(targetId);
+//   }
+
+//   targetSecretsSave(
+//     targetId: string,
+//     dto: {
+//       authType: 'none' | 'bearer' | 'basic' | 'api_key';
+//       username?: string | null;
+//       password?: string | null;
+//       token?: string | null;
+//       apiKeyName?: string | null;
+//       apiKeyValue?: string | null;
+//       allowInsecureTls: boolean;
+//     },
+//   ) {
+//     return this.api.targetSecretsSave(targetId, dto);
+//   }
+
+//   mappingsList() {
+//     return this.api.mappingsList();
+//   }
+
+//   mappingsCreate(dto: any) {
+//     return this.api.mappingsCreate(dto);
+//   }
+
+//   mappingsUpdate(id: string, dto: any) {
+//     return this.api.mappingsUpdate(id, dto);
+//   }
+
+//   mappingsDelete(id: string) {
+//     return this.api.mappingsDelete(id);
+//   }
+
+//   mappingsValidate(targetType: string) {
+//     return this.api.mappingsValidate(targetType);
+//   }
+
+//   mappingsOpenMrsLisDiscover(dto: {
+//     targetId: string;
+//     sampleId?: string | null;
+//     sampleUuid?: string | null;
+//     includeConceptDetails?: boolean;
+//     userQuery?: string | null;
+//   }) {
+//     return this.api.mappingsOpenMrsLisDiscover(dto);
+//   }
+
+//   mappingsOpenMrsLisSeed(dto: any) {
+//     return this.api.mappingsOpenMrsLisSeed(dto);
+//   }
+
+//   mappingValueTranslationsList(mappingRuleId: string) {
+//     return this.api.mappingValueTranslationsList(mappingRuleId);
+//   }
+
+//   mappingValueTranslationsCreate(dto: any) {
+//     return this.api.mappingValueTranslationsCreate(dto);
+//   }
+
+//   mappingValueTranslationsUpdate(id: string, dto: any) {
+//     return this.api.mappingValueTranslationsUpdate(id, dto);
+//   }
+
+//   mappingValueTranslationsDelete(id: string) {
+//     return this.api.mappingValueTranslationsDelete(id);
+//   }
+
+//   mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
+//     return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
+//   }
+
+//   targetTransformPreviewFromQueue(queueId: string) {
+//     return this.api.targetTransformPreviewFromQueue(queueId);
+//   }
+
+//   targetTransformPreviewFromDeliveryHistory(queueId: string) {
+//     return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
+//   }
+
+//   // platform-api.service.ts
+//   targetsHarnessSend(targetId: string, payload: unknown, previewName?: string | null) {
+//     return this.api.targetsHarnessSend(targetId, payload, previewName);
+//   }
+
+//   routingRulesList() {
+//     return this.api.routingRulesList();
+//   }
+
+//   routingRulesCreate(payload: Record<string, unknown>) {
+//     return this.api.routingRulesCreate(payload);
+//   }
+
+//   routingRulesUpdate(id: string, payload: Record<string, unknown>) {
+//     return this.api.routingRulesUpdate(id, payload);
+//   }
+
+//   routingRulesDelete(id: string) {
+//     return this.api.routingRulesDelete(id);
+//   }
+
+//   routingRulesPreviewResult(normalizedResultId: string, fallbackTargetIds: string[] = []) {
+//     return this.api.routingRulesPreviewResult(normalizedResultId, fallbackTargetIds);
+//   }
+
+//   resultReevaluatePolicy(normalizedResultId: string) {
+//     return this.api.resultReevaluatePolicy(normalizedResultId);
+//   }
+// }
+
+
+
+// import { Injectable } from '@angular/core';
+// import { AppAPI, ApprovalPolicy } from '../../../../electron/src/preload/api/types';
+
+// declare global {
+//     interface Window {
+//         appAPI: AppAPI;
+//         platform: {
+//             copyToClipboard: (text: string) => Promise<void>;
+//         };
+//     }
+// }
+
+// @Injectable({ providedIn: 'root' })
+// export class PlatformApiService {
+//     get api() {
+//         if (!window.appAPI) throw new Error('window.appAPI not available (preload not loaded)');
+//         return window.appAPI;
+//     }
+
+//     authCurrentUser() {
+//         return this.api.authCurrentUser();
+//     }
+
+//     // ✅ Clipboard helper
+//     copy(text: string) {
+//         // return window.platform.copyToClipboard(text);
+//         return this.api.copyToClipboard(text);
+//     }
+
+//     usersList() {
+//         return this.api.usersList();
+//     }
+//     usersCreate(dto: any) {
+//         return this.api.usersCreate(dto);
+//     }
+//     usersUpdate(id: string, dto: any) {
+//         return this.api.usersUpdate(id, dto);
+//     }
+//     usersResetPassword(id: string, newPassword: string) {
+//         return this.api.usersResetPassword(id, newPassword);
+//     }
+//     usersDelete(id: string) {
+//         return this.api.usersDelete(id);
+//     }
+
+//     rolesList() {
+//         return this.api.rolesList();
+//     }
+//     rolesAuthoritiesCatalog() {
+//         return this.api.rolesAuthoritiesCatalog();
+//     }
+//     rolesCreate(dto: any) {
+//         return this.api.rolesCreate(dto);
+//     }
+//     rolesUpdate(id: string, dto: any) {
+//         return this.api.rolesUpdate(id, dto);
+//     }
+//     rolesDelete(id: string) {
+//         return this.api.rolesDelete(id);
+//     }
+
+//     // Labs
+//     labsList() {
+//         return this.api.labsList();
+//     }
+//     labsCreate(dto: any) {
+//         return this.api.labsCreate(dto);
+//     }
+//     labsUpdate(id: string, dto: any) {
+//         return this.api.labsUpdate(id, dto);
+//     }
+//     labsDelete(id: string) {
+//         return this.api.labsDelete(id);
+//     }
+
+//     // Machines
+//     machinesList() {
+//         return this.api.machinesList();
+//     }
+//     machinesCreate(dto: any) {
+//         return this.api.machinesCreate(dto);
+//     }
+//     machinesUpdate(id: string, dto: any) {
+//         return this.api.machinesUpdate(id, dto);
+//     }
+//     machinesDelete(id: string) {
+//         return this.api.machinesDelete(id);
+//     }
+//     machinesConnect(id: string) {
+//         return this.api.machinesConnect(id);
+//     }
+//     machinesDisconnect(id: string) {
+//         return this.api.machinesDisconnect(id);
+//     }
+
+//     machinesTest(machine: any) {
+//         return this.api.machinesTest(machine);
+//     }
+
+//     // Targets
+//     targetsList() {
+//         return this.api.targetsList();
+//     }
+//     targetsCreate(dto: any) {
+//         return this.api.targetsCreate(dto);
+//     }
+//     targetsUpdate(id: string, dto: any) {
+//         return this.api.targetsUpdate(id, dto);
+//     }
+//     targetsDelete(id: string) {
+//         return this.api.targetsDelete(id);
+//     }
+//     targetsTest(id: string) {
+//         return this.api.targetsTest(id);
+//     }
+
+//     // Logs
+//     logsQuery(q: any) {
+//         return this.api.logsQuery(q);
+//     }
+
+//     deliveryAuditList(q: any = {}) {
+//         return this.api.deliveryAuditList(q);
+//     }
+
+//     machinesRuntimeStart(id: string) {
+//         return this.api.machinesRuntimeStart(id);
+//     }
+
+//     machinesRuntimeStop(id: string) {
+//         return this.api.machinesRuntimeStop(id);
+//     }
+
+//     machinesRuntimeRestart(id: string) {
+//         return this.api.machinesRuntimeRestart(id);
+//     }
+
+//     machinesRuntimeState(id: string) {
+//         return this.api.machinesRuntimeState(id);
+//     }
+
+//     machinesRuntimeStates() {
+//         return this.api.machinesRuntimeStates();
+//     }
+
+//     onMachinesRuntimeEvent(cb: (event: any) => void) {
+//         return this.api.onMachinesRuntimeEvent(cb);
+//     }
+
+//     machinesLogsList(machineId: string, limit = 50) {
+//         return this.api.machinesLogsList(machineId, limit);
+//     }
+
+//     machinesLogsClear(machineId: string) {
+//         return this.api.machinesLogsClear(machineId);
+//     }
+
+//     machinesSimStart(
+//         machineId: string,
+//         scenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+//         intervalMs = 5000,
+//     ) {
+//         return this.api.machinesSimStart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimStop(machineId: string) {
+//         return this.api.machinesSimStop(machineId);
+//     }
+
+//     machinesSimRestart(
+//         machineId: string,
+//         scenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+//         intervalMs = 5000,
+//     ) {
+//         return this.api.machinesSimRestart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimState(machineId: string) {
+//         return this.api.machinesSimState(machineId);
+//     }
+
+//     machinesSimStates() {
+//         return this.api.machinesSimStates();
+//     }
+
+//     machinesParsedList(machineId: string, limit = 50) {
+//         return this.api.machinesParsedList(machineId, limit);
+//     }
+
+//     machinesNormalizedList(machineId: string, limit = 50) {
+//         return this.api.machinesNormalizedList(machineId, limit);
+//     }
+
+//     approvalPoliciesList() {
+//         return this.api.approvalPoliciesList();
+//     }
+
+//     approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesCreate(dto);
+//     }
+
+//     approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesUpdate(id, dto);
+//     }
+
+//     approvalPoliciesDelete(id: string) {
+//         return this.api.approvalPoliciesDelete(id);
+//     }
+
+//     resultsPendingApprovals(limit = 100) {
+//         return this.api.resultsPendingApprovals(limit);
+//     }
+
+//     resultApprove(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }) {
+//         return this.api.resultApprove(dto);
+//     }
+
+//     resultReject(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }) {
+//         return this.api.resultReject(dto);
+//     }
+
+//     resultApprovalsList(normalizedResultId: string) {
+//         return this.api.resultApprovalsList(normalizedResultId);
+//     }
+
+//     resultApprovalsAll(limit = 100) {
+//         return this.api.resultApprovalsAll(limit);
+//     }
+
+//     outboundQueueList(limit = 100) {
+//         return this.api.outboundQueueList(limit);
+//     }
+
+//     outboundQueuePending(limit = 100) {
+//         return this.api.outboundQueuePending(limit);
+//     }
+
+//     deliveryHistoryList(limit = 100) {
+//         return this.api.deliveryHistoryList(limit);
+//     }
+
+//     deliveryAuditQuery(q: any) {
+//         return this.api.deliveryAuditQuery(q);
+//     }
+
+//     targetTransformPreview(targetId: string, normalizedResultId: string) {
+//         return this.api.targetTransformPreview(targetId, normalizedResultId);
+//     }
+
+//     outboundQueueRetry(queueId: string) {
+//         return this.api.outboundQueueRetry(queueId);
+//     }
+
+//     outboundQueueRequeue(queueId: string) {
+//         return this.api.outboundQueueRequeue(queueId);
+//     }
+
+//     outboundQueueSendNow(queueId: string) {
+//         return this.api.outboundQueueSendNow(queueId);
+//     }
+
+//     targetSecretsGet(targetId: string) {
+//         return this.api.targetSecretsGet(targetId);
+//     }
+
+//     targetSecretsSave(
+//         targetId: string,
+//         dto: {
+//             authType: 'none' | 'bearer' | 'basic' | 'api_key';
+//             username?: string | null;
+//             password?: string | null;
+//             token?: string | null;
+//             apiKeyName?: string | null;
+//             apiKeyValue?: string | null;
+//             allowInsecureTls: boolean;
+//         },
+//     ) {
+//         return this.api.targetSecretsSave(targetId, dto);
+//     }
+
+//     mappingsList() {
+//         return this.api.mappingsList();
+//     }
+
+//     mappingsCreate(dto: any) {
+//         return this.api.mappingsCreate(dto);
+//     }
+
+//     mappingsUpdate(id: string, dto: any) {
+//         return this.api.mappingsUpdate(id, dto);
+//     }
+
+//     mappingsDelete(id: string) {
+//         return this.api.mappingsDelete(id);
+//     }
+
+//     mappingsValidate(targetType: string) {
+//         return this.api.mappingsValidate(targetType);
+//     }
+
+//     mappingValueTranslationsList(mappingRuleId: string) {
+//         return this.api.mappingValueTranslationsList(mappingRuleId);
+//     }
+
+//     mappingValueTranslationsCreate(dto: any) {
+//         return this.api.mappingValueTranslationsCreate(dto);
+//     }
+
+//     mappingValueTranslationsUpdate(id: string, dto: any) {
+//         return this.api.mappingValueTranslationsUpdate(id, dto);
+//     }
+
+//     mappingValueTranslationsDelete(id: string) {
+//         return this.api.mappingValueTranslationsDelete(id);
+//     }
+
+//     mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
+//         return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
+//     }
+
+//     targetTransformPreviewFromQueue(queueId: string) {
+//         return this.api.targetTransformPreviewFromQueue(queueId);
+//     }
+
+//     targetTransformPreviewFromDeliveryHistory(queueId: string) {
+//         return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
+//     }
+
+//     // platform-api.service.ts
+//     targetsHarnessSend(targetId: string, payload: unknown, previewName?: string | null) {
+//         return this.api.targetsHarnessSend(targetId, payload, previewName);
+//     }
+
+//     resultReevaluatePolicy(normalizedResultId: string) {
+//         return this.api.resultReevaluatePolicy(normalizedResultId);
+//     }
+// }
+
+
+// import { Injectable } from '@angular/core';
+// import {
+//     AppAPI,
+//     ApprovalPolicy,
+//     MachineSimulationScenario,
+// } from '../../../../electron/src/preload/api/types';
+
+// declare global {
+//     interface Window {
+//         appAPI: AppAPI;
+//         platform: {
+//             copyToClipboard: (text: string) => Promise<void>;
+//         };
+//     }
+// }
+
+// @Injectable({ providedIn: 'root' })
+// export class PlatformApiService {
+//     get api() {
+//         if (!window.appAPI) throw new Error('window.appAPI not available (preload not loaded)');
+//         return window.appAPI;
+//     }
+
+//     authCurrentUser() {
+//         return this.api.authCurrentUser();
+//     }
+
+//     // ✅ Clipboard helper
+//     copy(text: string) {
+//         // return window.platform.copyToClipboard(text);
+//         return this.api.copyToClipboard(text);
+//     }
+
+//     usersList() {
+//         return this.api.usersList();
+//     }
+//     usersCreate(dto: any) {
+//         return this.api.usersCreate(dto);
+//     }
+//     usersUpdate(id: string, dto: any) {
+//         return this.api.usersUpdate(id, dto);
+//     }
+//     usersResetPassword(id: string, newPassword: string) {
+//         return this.api.usersResetPassword(id, newPassword);
+//     }
+//     usersDelete(id: string) {
+//         return this.api.usersDelete(id);
+//     }
+
+//     rolesList() {
+//         return this.api.rolesList();
+//     }
+//     rolesAuthoritiesCatalog() {
+//         return this.api.rolesAuthoritiesCatalog();
+//     }
+//     rolesCreate(dto: any) {
+//         return this.api.rolesCreate(dto);
+//     }
+//     rolesUpdate(id: string, dto: any) {
+//         return this.api.rolesUpdate(id, dto);
+//     }
+//     rolesDelete(id: string) {
+//         return this.api.rolesDelete(id);
+//     }
+
+//     // Labs
+//     labsList() {
+//         return this.api.labsList();
+//     }
+//     labsCreate(dto: any) {
+//         return this.api.labsCreate(dto);
+//     }
+//     labsUpdate(id: string, dto: any) {
+//         return this.api.labsUpdate(id, dto);
+//     }
+//     labsDelete(id: string) {
+//         return this.api.labsDelete(id);
+//     }
+
+//     // Machines
+//     machinesList() {
+//         return this.api.machinesList();
+//     }
+//     machinesCreate(dto: any) {
+//         return this.api.machinesCreate(dto);
+//     }
+//     machinesUpdate(id: string, dto: any) {
+//         return this.api.machinesUpdate(id, dto);
+//     }
+//     machinesDelete(id: string) {
+//         return this.api.machinesDelete(id);
+//     }
+//     machinesConnect(id: string) {
+//         return this.api.machinesConnect(id);
+//     }
+//     machinesDisconnect(id: string) {
+//         return this.api.machinesDisconnect(id);
+//     }
+
+//     machinesTest(machine: any) {
+//         return this.api.machinesTest(machine);
+//     }
+
+//     // Targets
+//     targetsList() {
+//         return this.api.targetsList();
+//     }
+//     targetsCreate(dto: any) {
+//         return this.api.targetsCreate(dto);
+//     }
+//     targetsUpdate(id: string, dto: any) {
+//         return this.api.targetsUpdate(id, dto);
+//     }
+//     targetsDelete(id: string) {
+//         return this.api.targetsDelete(id);
+//     }
+//     targetsTest(id: string) {
+//         return this.api.targetsTest(id);
+//     }
+
+//     // Logs
+//     logsQuery(q: any) {
+//         return this.api.logsQuery(q);
+//     }
+
+//     deliveryAuditList(q: any = {}) {
+//         return this.api.deliveryAuditList(q);
+//     }
+
+//     machinesRuntimeStart(id: string) {
+//         return this.api.machinesRuntimeStart(id);
+//     }
+
+//     machinesRuntimeStop(id: string) {
+//         return this.api.machinesRuntimeStop(id);
+//     }
+
+//     machinesRuntimeRestart(id: string) {
+//         return this.api.machinesRuntimeRestart(id);
+//     }
+
+//     machinesRuntimeState(id: string) {
+//         return this.api.machinesRuntimeState(id);
+//     }
+
+//     machinesRuntimeStates() {
+//         return this.api.machinesRuntimeStates();
+//     }
+
+//     onMachinesRuntimeEvent(cb: (event: any) => void) {
+//         return this.api.onMachinesRuntimeEvent(cb);
+//     }
+
+//     machinesLogsList(machineId: string, limit = 50) {
+//         return this.api.machinesLogsList(machineId, limit);
+//     }
+
+//     machinesLogsClear(machineId: string) {
+//         return this.api.machinesLogsClear(machineId);
+//     }
+
+//     machinesSimStart(machineId: string, scenario?: MachineSimulationScenario, intervalMs = 5000) {
+//         return this.api.machinesSimStart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimStop(machineId: string) {
+//         return this.api.machinesSimStop(machineId);
+//     }
+
+//     machinesSimRestart(machineId: string, scenario?: MachineSimulationScenario, intervalMs = 5000) {
+//         return this.api.machinesSimRestart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimState(machineId: string) {
+//         return this.api.machinesSimState(machineId);
+//     }
+
+//     machinesSimStates() {
+//         return this.api.machinesSimStates();
+//     }
+
+//     machinesParsedList(machineId: string, limit = 50) {
+//         return this.api.machinesParsedList(machineId, limit);
+//     }
+
+//     machinesNormalizedList(machineId: string, limit = 50) {
+//         return this.api.machinesNormalizedList(machineId, limit);
+//     }
+
+//     approvalPoliciesList() {
+//         return this.api.approvalPoliciesList();
+//     }
+
+//     approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesCreate(dto);
+//     }
+
+//     approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesUpdate(id, dto);
+//     }
+
+//     approvalPoliciesDelete(id: string) {
+//         return this.api.approvalPoliciesDelete(id);
+//     }
+
+//     resultsPendingApprovals(limit = 100) {
+//         return this.api.resultsPendingApprovals(limit);
+//     }
+
+//     resultApprove(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }) {
+//         return this.api.resultApprove(dto);
+//     }
+
+//     resultReject(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }) {
+//         return this.api.resultReject(dto);
+//     }
+
+//     resultApprovalsList(normalizedResultId: string) {
+//         return this.api.resultApprovalsList(normalizedResultId);
+//     }
+
+//     resultApprovalsAll(limit = 100) {
+//         return this.api.resultApprovalsAll(limit);
+//     }
+
+//     outboundQueueList(limit = 100) {
+//         return this.api.outboundQueueList(limit);
+//     }
+
+//     outboundQueuePending(limit = 100) {
+//         return this.api.outboundQueuePending(limit);
+//     }
+
+//     deliveryHistoryList(limit = 100) {
+//         return this.api.deliveryHistoryList(limit);
+//     }
+
+//     deliveryAuditQuery(q: any) {
+//         return this.api.deliveryAuditQuery(q);
+//     }
+
+//     targetTransformPreview(targetId: string, normalizedResultId: string) {
+//         return this.api.targetTransformPreview(targetId, normalizedResultId);
+//     }
+
+//     outboundQueueRetry(queueId: string) {
+//         return this.api.outboundQueueRetry(queueId);
+//     }
+
+//     outboundQueueRequeue(queueId: string) {
+//         return this.api.outboundQueueRequeue(queueId);
+//     }
+
+//     outboundQueueSendNow(queueId: string) {
+//         return this.api.outboundQueueSendNow(queueId);
+//     }
+
+//     targetSecretsGet(targetId: string) {
+//         return this.api.targetSecretsGet(targetId);
+//     }
+
+//     targetSecretsSave(
+//         targetId: string,
+//         dto: {
+//             authType: 'none' | 'bearer' | 'basic' | 'api_key';
+//             username?: string | null;
+//             password?: string | null;
+//             token?: string | null;
+//             apiKeyName?: string | null;
+//             apiKeyValue?: string | null;
+//             allowInsecureTls: boolean;
+//         },
+//     ) {
+//         return this.api.targetSecretsSave(targetId, dto);
+//     }
+
+//     mappingsList() {
+//         return this.api.mappingsList();
+//     }
+
+//     mappingsCreate(dto: any) {
+//         return this.api.mappingsCreate(dto);
+//     }
+
+//     mappingsUpdate(id: string, dto: any) {
+//         return this.api.mappingsUpdate(id, dto);
+//     }
+
+//     mappingsDelete(id: string) {
+//         return this.api.mappingsDelete(id);
+//     }
+
+//     mappingsValidate(targetType: string) {
+//         return this.api.mappingsValidate(targetType);
+//     }
+
+//     mappingValueTranslationsList(mappingRuleId: string) {
+//         return this.api.mappingValueTranslationsList(mappingRuleId);
+//     }
+
+//     mappingValueTranslationsCreate(dto: any) {
+//         return this.api.mappingValueTranslationsCreate(dto);
+//     }
+
+//     mappingValueTranslationsUpdate(id: string, dto: any) {
+//         return this.api.mappingValueTranslationsUpdate(id, dto);
+//     }
+
+//     mappingValueTranslationsDelete(id: string) {
+//         return this.api.mappingValueTranslationsDelete(id);
+//     }
+
+//     mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
+//         return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
+//     }
+
+//     targetTransformPreviewFromQueue(queueId: string) {
+//         return this.api.targetTransformPreviewFromQueue(queueId);
+//     }
+
+//     targetTransformPreviewFromDeliveryHistory(queueId: string) {
+//         return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
+//     }
+
+//     // platform-api.service.ts
+//     targetsHarnessSend(targetId: string, payload: unknown, previewName?: string | null) {
+//         return this.api.targetsHarnessSend(targetId, payload, previewName);
+//     }
+
+//     resultReevaluatePolicy(normalizedResultId: string) {
+//         return this.api.resultReevaluatePolicy(normalizedResultId);
+//     }
+// }
+
+
+// import { Injectable } from '@angular/core';
+// import { AppAPI, ApprovalPolicy, MachineSimulationScenario, ResultApprovalActionResult } from '../../../../electron/src/preload/api/types';
+
+// declare global {
+//     interface Window {
+//         appAPI: AppAPI;
+//         platform: {
+//             copyToClipboard: (text: string) => Promise<void>;
+//         };
+//     }
+// }
+
+// @Injectable({ providedIn: 'root' })
+// export class PlatformApiService {
+//     get api() {
+//         if (!window.appAPI) throw new Error('window.appAPI not available (preload not loaded)');
+//         return window.appAPI;
+//     }
+
+//     authCurrentUser() {
+//         return this.api.authCurrentUser();
+//     }
+
+//     // ✅ Clipboard helper
+//     copy(text: string) {
+//         // return window.platform.copyToClipboard(text);
+//         return this.api.copyToClipboard(text);
+//     }
+
+//     usersList() {
+//         return this.api.usersList();
+//     }
+//     usersCreate(dto: any) {
+//         return this.api.usersCreate(dto);
+//     }
+//     usersUpdate(id: string, dto: any) {
+//         return this.api.usersUpdate(id, dto);
+//     }
+//     usersResetPassword(id: string, newPassword: string) {
+//         return this.api.usersResetPassword(id, newPassword);
+//     }
+//     usersDelete(id: string) {
+//         return this.api.usersDelete(id);
+//     }
+
+//     rolesList() {
+//         return this.api.rolesList();
+//     }
+//     rolesAuthoritiesCatalog() {
+//         return this.api.rolesAuthoritiesCatalog();
+//     }
+//     rolesCreate(dto: any) {
+//         return this.api.rolesCreate(dto);
+//     }
+//     rolesUpdate(id: string, dto: any) {
+//         return this.api.rolesUpdate(id, dto);
+//     }
+//     rolesDelete(id: string) {
+//         return this.api.rolesDelete(id);
+//     }
+
+//     // Labs
+//     labsList() {
+//         return this.api.labsList();
+//     }
+//     labsCreate(dto: any) {
+//         return this.api.labsCreate(dto);
+//     }
+//     labsUpdate(id: string, dto: any) {
+//         return this.api.labsUpdate(id, dto);
+//     }
+//     labsDelete(id: string) {
+//         return this.api.labsDelete(id);
+//     }
+
+//     // Machines
+//     machinesList() {
+//         return this.api.machinesList();
+//     }
+//     machinesCreate(dto: any) {
+//         return this.api.machinesCreate(dto);
+//     }
+//     machinesUpdate(id: string, dto: any) {
+//         return this.api.machinesUpdate(id, dto);
+//     }
+//     machinesDelete(id: string) {
+//         return this.api.machinesDelete(id);
+//     }
+//     machinesConnect(id: string) {
+//         return this.api.machinesConnect(id);
+//     }
+//     machinesDisconnect(id: string) {
+//         return this.api.machinesDisconnect(id);
+//     }
+
+//     machinesTest(machine: any) {
+//         return this.api.machinesTest(machine);
+//     }
+
+//     // Targets
+//     targetsList() {
+//         return this.api.targetsList();
+//     }
+//     targetsCreate(dto: any) {
+//         return this.api.targetsCreate(dto);
+//     }
+//     targetsUpdate(id: string, dto: any) {
+//         return this.api.targetsUpdate(id, dto);
+//     }
+//     targetsDelete(id: string) {
+//         return this.api.targetsDelete(id);
+//     }
+//     targetsTest(id: string) {
+//         return this.api.targetsTest(id);
+//     }
+
+//     // Logs
+//     logsQuery(q: any) {
+//         return this.api.logsQuery(q);
+//     }
+
+//     deliveryAuditList(q: any = {}) {
+//         return this.api.deliveryAuditList(q);
+//     }
+
+//     machinesRuntimeStart(id: string) {
+//         return this.api.machinesRuntimeStart(id);
+//     }
+
+//     machinesRuntimeStop(id: string) {
+//         return this.api.machinesRuntimeStop(id);
+//     }
+
+//     machinesRuntimeRestart(id: string) {
+//         return this.api.machinesRuntimeRestart(id);
+//     }
+
+//     machinesRuntimeState(id: string) {
+//         return this.api.machinesRuntimeState(id);
+//     }
+
+//     machinesRuntimeStates() {
+//         return this.api.machinesRuntimeStates();
+//     }
+
+//     onMachinesRuntimeEvent(cb: (event: any) => void) {
+//         return this.api.onMachinesRuntimeEvent(cb);
+//     }
+
+//     machinesLogsList(machineId: string, limit = 50) {
+//         return this.api.machinesLogsList(machineId, limit);
+//     }
+
+//     machinesLogsClear(machineId: string) {
+//         return this.api.machinesLogsClear(machineId);
+//     }
+
+//     machinesSimStart(
+//         machineId: string,
+//         scenario: MachineSimulationScenario = 'ASTM_BASIC',
+//         intervalMs = 5000,
+//     ) {
+//         return this.api.machinesSimStart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimStop(machineId: string) {
+//         return this.api.machinesSimStop(machineId);
+//     }
+
+//     machinesSimRestart(
+//         machineId: string,
+//         scenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+//         intervalMs = 5000,
+//     ) {
+//         return this.api.machinesSimRestart(machineId, scenario, intervalMs);
+//     }
+
+//     machinesSimState(machineId: string) {
+//         return this.api.machinesSimState(machineId);
+//     }
+
+//     machinesSimStates() {
+//         return this.api.machinesSimStates();
+//     }
+
+//     machinesParsedList(machineId: string, limit = 50) {
+//         return this.api.machinesParsedList(machineId, limit);
+//     }
+
+//     machinesNormalizedList(machineId: string, limit = 50) {
+//         return this.api.machinesNormalizedList(machineId, limit);
+//     }
+
+//     approvalPoliciesList() {
+//         return this.api.approvalPoliciesList();
+//     }
+
+//     approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesCreate(dto);
+//     }
+
+//     approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
+//         return this.api.approvalPoliciesUpdate(id, dto);
+//     }
+
+//     approvalPoliciesDelete(id: string) {
+//         return this.api.approvalPoliciesDelete(id);
+//     }
+
+//     resultsPendingApprovals(limit = 100) {
+//         return this.api.resultsPendingApprovals(limit);
+//     }
+
+//     resultApprove(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }): Promise<ResultApprovalActionResult> {
+//         return this.api.resultApprove(dto);
+//     }
+
+//     resultReject(dto: {
+//         normalizedResultId: string;
+//         policyId: string;
+//         stepOrder: number;
+//         approverUserId: string;
+//         comment?: string | null;
+//     }): Promise<ResultApprovalActionResult> {
+//         return this.api.resultReject(dto);
+//     }
+
+//     resultApprovalsList(normalizedResultId: string) {
+//         return this.api.resultApprovalsList(normalizedResultId);
+//     }
+
+//     resultApprovalsAll(limit = 100) {
+//         return this.api.resultApprovalsAll(limit);
+//     }
+
+//     outboundQueueList(limit = 100) {
+//         return this.api.outboundQueueList(limit);
+//     }
+
+//     outboundQueuePending(limit = 100) {
+//         return this.api.outboundQueuePending(limit);
+//     }
+
+//     deliveryHistoryList(limit = 100) {
+//         return this.api.deliveryHistoryList(limit);
+//     }
+
+//     deliveryAuditQuery(q: any) {
+//         return this.api.deliveryAuditQuery(q);
+//     }
+
+//     targetTransformPreview(targetId: string, normalizedResultId: string) {
+//         return this.api.targetTransformPreview(targetId, normalizedResultId);
+//     }
+
+//     outboundQueueRetry(queueId: string) {
+//         return this.api.outboundQueueRetry(queueId);
+//     }
+
+//     outboundQueueRequeue(queueId: string) {
+//         return this.api.outboundQueueRequeue(queueId);
+//     }
+
+//     outboundQueueSendNow(queueId: string) {
+//         return this.api.outboundQueueSendNow(queueId);
+//     }
+
+//     targetSecretsGet(targetId: string) {
+//         return this.api.targetSecretsGet(targetId);
+//     }
+
+//     targetSecretsSave(
+//         targetId: string,
+//         dto: {
+//             authType: 'none' | 'bearer' | 'basic' | 'api_key';
+//             username?: string | null;
+//             password?: string | null;
+//             token?: string | null;
+//             apiKeyName?: string | null;
+//             apiKeyValue?: string | null;
+//             allowInsecureTls: boolean;
+//         },
+//     ) {
+//         return this.api.targetSecretsSave(targetId, dto);
+//     }
+
+//     mappingsList() {
+//         return this.api.mappingsList();
+//     }
+
+//     mappingsCreate(dto: any) {
+//         return this.api.mappingsCreate(dto);
+//     }
+
+//     mappingsUpdate(id: string, dto: any) {
+//         return this.api.mappingsUpdate(id, dto);
+//     }
+
+//     mappingsDelete(id: string) {
+//         return this.api.mappingsDelete(id);
+//     }
+
+//     mappingsValidate(targetType: string) {
+//         return this.api.mappingsValidate(targetType);
+//     }
+
+//     mappingValueTranslationsList(mappingRuleId: string) {
+//         return this.api.mappingValueTranslationsList(mappingRuleId);
+//     }
+
+//     mappingValueTranslationsCreate(dto: any) {
+//         return this.api.mappingValueTranslationsCreate(dto);
+//     }
+
+//     mappingValueTranslationsUpdate(id: string, dto: any) {
+//         return this.api.mappingValueTranslationsUpdate(id, dto);
+//     }
+
+//     mappingValueTranslationsDelete(id: string) {
+//         return this.api.mappingValueTranslationsDelete(id);
+//     }
+
+//     mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
+//         return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
+//     }
+
+//     targetTransformPreviewFromQueue(queueId: string) {
+//         return this.api.targetTransformPreviewFromQueue(queueId);
+//     }
+
+//     targetTransformPreviewFromDeliveryHistory(queueId: string) {
+//         return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
+//     }
+
+//     // platform-api.service.ts
+//     targetsHarnessSend(targetId: string, payload: unknown, previewName?: string | null) {
+//         return this.api.targetsHarnessSend(targetId, payload, previewName);
+//     }
+
+//     resultReevaluatePolicy(normalizedResultId: string) {
+//         return this.api.resultReevaluatePolicy(normalizedResultId);
+//     }
+// }
+
+import { Injectable } from '@angular/core';
+import { AppAPI, ApprovalPolicy } from '../../../../electron/src/preload/api/types';
 
 declare global {
-  interface Window {
-    appAPI: AppAPI;
-    platform: {
-      copyToClipboard: (text: string) => Promise<void>;
-    };
-  }
+    interface Window {
+        appAPI: AppAPI;
+        platform: {
+            copyToClipboard: (text: string) => Promise<void>;
+        };
+    }
 }
 
-@Injectable({ providedIn: "root" })
+@Injectable({ providedIn: 'root' })
 export class PlatformApiService {
-  get api() {
-    if (!window.appAPI)
-      throw new Error("window.appAPI not available (preload not loaded)");
-    return window.appAPI;
-  }
+    get api() {
+        if (!window.appAPI) throw new Error('window.appAPI not available (preload not loaded)');
+        return window.appAPI;
+    }
 
-  authCurrentUser() {
-    return this.api.authCurrentUser();
-  }
+    authCurrentUser() {
+        return this.api.authCurrentUser();
+    }
 
-  // ✅ Clipboard helper
-  copy(text: string) {
-    // return window.platform.copyToClipboard(text);
-    return this.api.copyToClipboard(text);
-  }
+    // ✅ Clipboard helper
+    copy(text: string) {
+        // return window.platform.copyToClipboard(text);
+        return this.api.copyToClipboard(text);
+    }
 
-  usersList() {
-    return this.api.usersList();
-  }
-  usersCreate(dto: any) {
-    return this.api.usersCreate(dto);
-  }
-  usersUpdate(id: string, dto: any) {
-    return this.api.usersUpdate(id, dto);
-  }
-  usersResetPassword(id: string, newPassword: string) {
-    return this.api.usersResetPassword(id, newPassword);
-  }
-  usersDelete(id: string) {
-    return this.api.usersDelete(id);
-  }
+    usersList() {
+        return this.api.usersList();
+    }
+    usersCreate(dto: any) {
+        return this.api.usersCreate(dto);
+    }
+    usersUpdate(id: string, dto: any) {
+        return this.api.usersUpdate(id, dto);
+    }
+    usersResetPassword(id: string, newPassword: string) {
+        return this.api.usersResetPassword(id, newPassword);
+    }
+    usersDelete(id: string) {
+        return this.api.usersDelete(id);
+    }
 
-  rolesList() {
-    return this.api.rolesList();
-  }
-  rolesAuthoritiesCatalog() {
-    return this.api.rolesAuthoritiesCatalog();
-  }
-  rolesCreate(dto: any) {
-    return this.api.rolesCreate(dto);
-  }
-  rolesUpdate(id: string, dto: any) {
-    return this.api.rolesUpdate(id, dto);
-  }
-  rolesDelete(id: string) {
-    return this.api.rolesDelete(id);
-  }
+    rolesList() {
+        return this.api.rolesList();
+    }
+    rolesAuthoritiesCatalog() {
+        return this.api.rolesAuthoritiesCatalog();
+    }
+    rolesCreate(dto: any) {
+        return this.api.rolesCreate(dto);
+    }
+    rolesUpdate(id: string, dto: any) {
+        return this.api.rolesUpdate(id, dto);
+    }
+    rolesDelete(id: string) {
+        return this.api.rolesDelete(id);
+    }
 
-  // Labs
-  labsList() {
-    return this.api.labsList();
-  }
-  labsCreate(dto: any) {
-    return this.api.labsCreate(dto);
-  }
-  labsUpdate(id: string, dto: any) {
-    return this.api.labsUpdate(id, dto);
-  }
-  labsDelete(id: string) {
-    return this.api.labsDelete(id);
-  }
+    // Labs
+    labsList() {
+        return this.api.labsList();
+    }
+    labsCreate(dto: any) {
+        return this.api.labsCreate(dto);
+    }
+    labsUpdate(id: string, dto: any) {
+        return this.api.labsUpdate(id, dto);
+    }
+    labsDelete(id: string) {
+        return this.api.labsDelete(id);
+    }
 
-  // Machines
-  machinesList() {
-    return this.api.machinesList();
-  }
-  machinesCreate(dto: any) {
-    return this.api.machinesCreate(dto);
-  }
-  machinesUpdate(id: string, dto: any) {
-    return this.api.machinesUpdate(id, dto);
-  }
-  machinesDelete(id: string) {
-    return this.api.machinesDelete(id);
-  }
-  machinesConnect(id: string) {
-    return this.api.machinesConnect(id);
-  }
-  machinesDisconnect(id: string) {
-    return this.api.machinesDisconnect(id);
-  }
+    // Machines
+    machinesList() {
+        return this.api.machinesList();
+    }
+    machinesCreate(dto: any) {
+        return this.api.machinesCreate(dto);
+    }
+    machinesUpdate(id: string, dto: any) {
+        return this.api.machinesUpdate(id, dto);
+    }
+    machinesDelete(id: string) {
+        return this.api.machinesDelete(id);
+    }
+    machinesConnect(id: string) {
+        return this.api.machinesConnect(id);
+    }
+    machinesDisconnect(id: string) {
+        return this.api.machinesDisconnect(id);
+    }
 
-  machinesTest(machine: any) {
-    return this.api.machinesTest(machine);
-  }
+    machinesTest(machine: any) {
+        return this.api.machinesTest(machine);
+    }
 
-  // Targets
-  targetsList() {
-    return this.api.targetsList();
-  }
-  targetsCreate(dto: any) {
-    return this.api.targetsCreate(dto);
-  }
-  targetsUpdate(id: string, dto: any) {
-    return this.api.targetsUpdate(id, dto);
-  }
-  targetsDelete(id: string) {
-    return this.api.targetsDelete(id);
-  }
-  targetsTest(id: string) {
-    return this.api.targetsTest(id);
-  }
+    // Targets
+    targetsList() {
+        return this.api.targetsList();
+    }
+    targetsCreate(dto: any) {
+        return this.api.targetsCreate(dto);
+    }
+    targetsUpdate(id: string, dto: any) {
+        return this.api.targetsUpdate(id, dto);
+    }
+    targetsDelete(id: string) {
+        return this.api.targetsDelete(id);
+    }
+    targetsTest(id: string) {
+        return this.api.targetsTest(id);
+    }
 
-  // Logs
-  logsQuery(q: any) {
-    return this.api.logsQuery(q);
-  }
+    // Logs
+    logsQuery(q: any) {
+        return this.api.logsQuery(q);
+    }
 
-  deliveryAuditList(q: any = {}) {
-    return this.api.deliveryAuditList(q);
-  }
+    deliveryAuditList(q: any = {}) {
+        return this.api.deliveryAuditList(q);
+    }
 
-  machinesRuntimeStart(id: string) {
-    return this.api.machinesRuntimeStart(id);
-  }
+    machinesRuntimeStart(id: string) {
+        return this.api.machinesRuntimeStart(id);
+    }
 
-  machinesRuntimeStop(id: string) {
-    return this.api.machinesRuntimeStop(id);
-  }
+    machinesRuntimeStop(id: string) {
+        return this.api.machinesRuntimeStop(id);
+    }
 
-  machinesRuntimeRestart(id: string) {
-    return this.api.machinesRuntimeRestart(id);
-  }
+    machinesRuntimeRestart(id: string) {
+        return this.api.machinesRuntimeRestart(id);
+    }
 
-  machinesRuntimeState(id: string) {
-    return this.api.machinesRuntimeState(id);
-  }
+    machinesRuntimeState(id: string) {
+        return this.api.machinesRuntimeState(id);
+    }
 
-  machinesRuntimeStates() {
-    return this.api.machinesRuntimeStates();
-  }
+    machinesRuntimeStates() {
+        return this.api.machinesRuntimeStates();
+    }
 
-  onMachinesRuntimeEvent(cb: (event: any) => void) {
-    return this.api.onMachinesRuntimeEvent(cb);
-  }
+    onMachinesRuntimeEvent(cb: (event: any) => void) {
+        return this.api.onMachinesRuntimeEvent(cb);
+    }
 
-  machinesLogsList(machineId: string, limit = 50) {
-    return this.api.machinesLogsList(machineId, limit);
-  }
+    machinesLogsList(machineId: string, limit = 50) {
+        return this.api.machinesLogsList(machineId, limit);
+    }
 
-  machinesLogsClear(machineId: string) {
-    return this.api.machinesLogsClear(machineId);
-  }
+    machinesLogsClear(machineId: string) {
+        return this.api.machinesLogsClear(machineId);
+    }
 
-  machinesSimStart(
-    machineId: string,
-    scenario?: MachineSimulationScenario,
-    intervalMs = 5000,
-  ) {
-    return this.api.machinesSimStart(machineId, scenario, intervalMs);
-  }
+    machinesSimStart(
+        machineId: string,
+        scenario: 'HL7_COBAS_HPV_FINAL_RESULT' | 'ASTM_COBAS_HPV_FINAL_RESULT' | 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+        intervalMs = 5000,
+    ) {
+        return this.api.machinesSimStart(machineId, scenario, intervalMs);
+    }
 
-  machinesSimStop(machineId: string) {
-    return this.api.machinesSimStop(machineId);
-  }
+    machinesSimStop(machineId: string) {
+        return this.api.machinesSimStop(machineId);
+    }
 
-  machinesSimRestart(
-    machineId: string,
-    scenario?: MachineSimulationScenario,
-    intervalMs = 5000,
-  ) {
-    return this.api.machinesSimRestart(machineId, scenario, intervalMs);
-  }
+    machinesSimRestart(
+        machineId: string,
+        scenario: 'ASTM_BASIC' | 'HL7_ORU' | 'RAW_PING' = 'ASTM_BASIC',
+        intervalMs = 5000,
+    ) {
+        return this.api.machinesSimRestart(machineId, scenario, intervalMs);
+    }
 
-  machinesSimState(machineId: string) {
-    return this.api.machinesSimState(machineId);
-  }
+    machinesSimState(machineId: string) {
+        return this.api.machinesSimState(machineId);
+    }
 
-  machinesSimStates() {
-    return this.api.machinesSimStates();
-  }
+    machinesSimStates() {
+        return this.api.machinesSimStates();
+    }
 
-  machinesParsedList(machineId: string, limit = 50) {
-    return this.api.machinesParsedList(machineId, limit);
-  }
+    machinesParsedList(machineId: string, limit = 50) {
+        return this.api.machinesParsedList(machineId, limit);
+    }
 
-  machinesNormalizedList(machineId: string, limit = 50) {
-    return this.api.machinesNormalizedList(machineId, limit);
-  }
+    machinesNormalizedList(machineId: string, limit = 50) {
+        return this.api.machinesNormalizedList(machineId, limit);
+    }
 
-  approvalPoliciesList() {
-    return this.api.approvalPoliciesList();
-  }
+    approvalPoliciesList() {
+        return this.api.approvalPoliciesList();
+    }
 
-  approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
-    return this.api.approvalPoliciesCreate(dto);
-  }
+    approvalPoliciesCreate(dto: Partial<ApprovalPolicy>) {
+        return this.api.approvalPoliciesCreate(dto);
+    }
 
-  approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
-    return this.api.approvalPoliciesUpdate(id, dto);
-  }
+    approvalPoliciesUpdate(id: string, dto: Partial<ApprovalPolicy>) {
+        return this.api.approvalPoliciesUpdate(id, dto);
+    }
 
-  approvalPoliciesDelete(id: string) {
-    return this.api.approvalPoliciesDelete(id);
-  }
+    approvalPoliciesDelete(id: string) {
+        return this.api.approvalPoliciesDelete(id);
+    }
 
-  resultsPendingApprovals(limit = 100) {
-    return this.api.resultsPendingApprovals(limit);
-  }
+    resultsPendingApprovals(limit = 100) {
+        return this.api.resultsPendingApprovals(limit);
+    }
 
-  resultApprove(dto: {
-    normalizedResultId: string;
-    policyId: string;
-    stepOrder: number;
-    approverUserId: string;
-    comment?: string | null;
-  }) {
-    return this.api.resultApprove(dto);
-  }
+    resultApprove(dto: {
+        normalizedResultId: string;
+        policyId: string;
+        stepOrder: number;
+        approverUserId: string;
+        comment?: string | null;
+    }) {
+        return this.api.resultApprove(dto);
+    }
 
-  resultReject(dto: {
-    normalizedResultId: string;
-    policyId: string;
-    stepOrder: number;
-    approverUserId: string;
-    comment?: string | null;
-  }) {
-    return this.api.resultReject(dto);
-  }
+    resultReject(dto: {
+        normalizedResultId: string;
+        policyId: string;
+        stepOrder: number;
+        approverUserId: string;
+        comment?: string | null;
+    }) {
+        return this.api.resultReject(dto);
+    }
 
-  resultApprovalsList(normalizedResultId: string) {
-    return this.api.resultApprovalsList(normalizedResultId);
-  }
+    resultApprovalsList(normalizedResultId: string) {
+        return this.api.resultApprovalsList(normalizedResultId);
+    }
 
-  resultApprovalsAll(limit = 100) {
-    return this.api.resultApprovalsAll(limit);
-  }
+    resultApprovalsAll(limit = 100) {
+        return this.api.resultApprovalsAll(limit);
+    }
 
-  outboundQueueList(limit = 100) {
-    return this.api.outboundQueueList(limit);
-  }
+    outboundQueueList(limit = 100) {
+        return this.api.outboundQueueList(limit);
+    }
 
-  outboundQueuePending(limit = 100) {
-    return this.api.outboundQueuePending(limit);
-  }
+    outboundQueuePending(limit = 100) {
+        return this.api.outboundQueuePending(limit);
+    }
 
-  deliveryHistoryList(limit = 100) {
-    return this.api.deliveryHistoryList(limit);
-  }
+    deliveryHistoryList(limit = 100) {
+        return this.api.deliveryHistoryList(limit);
+    }
 
-  deliveryAuditQuery(q: any) {
-    return this.api.deliveryAuditQuery(q);
-  }
+    deliveryAuditQuery(q: any) {
+        return this.api.deliveryAuditQuery(q);
+    }
 
-  targetTransformPreview(targetId: string, normalizedResultId: string) {
-    return this.api.targetTransformPreview(targetId, normalizedResultId);
-  }
+    targetTransformPreview(targetId: string, normalizedResultId: string) {
+        return this.api.targetTransformPreview(targetId, normalizedResultId);
+    }
 
-  outboundQueueRetry(queueId: string) {
-    return this.api.outboundQueueRetry(queueId);
-  }
+    outboundQueueRetry(queueId: string) {
+        return this.api.outboundQueueRetry(queueId);
+    }
 
-  outboundQueueRequeue(queueId: string) {
-    return this.api.outboundQueueRequeue(queueId);
-  }
+    outboundQueueRequeue(queueId: string) {
+        return this.api.outboundQueueRequeue(queueId);
+    }
 
-  outboundQueueSendNow(queueId: string) {
-    return this.api.outboundQueueSendNow(queueId);
-  }
+    outboundQueueSendNow(queueId: string) {
+        return this.api.outboundQueueSendNow(queueId);
+    }
 
-  targetSecretsGet(targetId: string) {
-    return this.api.targetSecretsGet(targetId);
-  }
+    outboundQueueRebuildPayload(queueId: string) {
+        return this.api.outboundQueueRebuildPayload(queueId);
+    }
 
-  targetSecretsSave(
-    targetId: string,
-    dto: {
-      authType: "none" | "bearer" | "basic" | "api_key";
-      username?: string | null;
-      password?: string | null;
-      token?: string | null;
-      apiKeyName?: string | null;
-      apiKeyValue?: string | null;
-      allowInsecureTls: boolean;
-    },
-  ) {
-    return this.api.targetSecretsSave(targetId, dto);
-  }
+    targetSecretsGet(targetId: string) {
+        return this.api.targetSecretsGet(targetId);
+    }
 
-  mappingsList() {
-    return this.api.mappingsList();
-  }
+    targetSecretsSave(
+        targetId: string,
+        dto: {
+            authType: 'none' | 'bearer' | 'basic' | 'api_key';
+            username?: string | null;
+            password?: string | null;
+            token?: string | null;
+            apiKeyName?: string | null;
+            apiKeyValue?: string | null;
+            allowInsecureTls: boolean;
+        },
+    ) {
+        return this.api.targetSecretsSave(targetId, dto);
+    }
 
-  mappingsCreate(dto: any) {
-    return this.api.mappingsCreate(dto);
-  }
+    mappingsList() {
+        return this.api.mappingsList();
+    }
 
-  mappingsUpdate(id: string, dto: any) {
-    return this.api.mappingsUpdate(id, dto);
-  }
+    mappingsCreate(dto: any) {
+        return this.api.mappingsCreate(dto);
+    }
 
-  mappingsDelete(id: string) {
-    return this.api.mappingsDelete(id);
-  }
+    mappingsUpdate(id: string, dto: any) {
+        return this.api.mappingsUpdate(id, dto);
+    }
 
-  mappingsValidate(targetType: string) {
-    return this.api.mappingsValidate(targetType);
-  }
+    mappingsDelete(id: string) {
+        return this.api.mappingsDelete(id);
+    }
 
-  mappingsOpenMrsLisDiscover(dto: {
-    targetId: string;
-    sampleId?: string | null;
-    sampleUuid?: string | null;
-    includeConceptDetails?: boolean;
-  }) {
-    return this.api.mappingsOpenMrsLisDiscover(dto);
-  }
+    mappingsValidate(targetType: string) {
+        return this.api.mappingsValidate(targetType);
+    }
 
-  mappingsOpenMrsLisSeed(dto: any) {
-    return this.api.mappingsOpenMrsLisSeed(dto);
-  }
+    mappingsOpenMrsLisDiscover(dto: {
+        targetId: string;
+        sampleId?: string | null;
+        sampleUuid?: string | null;
+        includeConceptDetails?: boolean;
+        userQuery?: string | null;
+    }) {
+        return this.api.mappingsOpenMrsLisDiscover(dto);
+    }
 
-  mappingValueTranslationsList(mappingRuleId: string) {
-    return this.api.mappingValueTranslationsList(mappingRuleId);
-  }
+    mappingsOpenMrsLisSeed(dto: any) {
+        return this.api.mappingsOpenMrsLisSeed(dto);
+    }
 
-  mappingValueTranslationsCreate(dto: any) {
-    return this.api.mappingValueTranslationsCreate(dto);
-  }
+    lisTestOrderProfilesList(targetId?: string | null) {
+        return this.api.lisTestOrderProfilesList(targetId ?? null);
+    }
 
-  mappingValueTranslationsUpdate(id: string, dto: any) {
-    return this.api.mappingValueTranslationsUpdate(id, dto);
-  }
+    lisTestOrderProfileGet(id: string) {
+        return this.api.lisTestOrderProfileGet(id);
+    }
 
-  mappingValueTranslationsDelete(id: string) {
-    return this.api.mappingValueTranslationsDelete(id);
-  }
+    lisTestOrderProfileSave(payload: any) {
+        return this.api.lisTestOrderProfileSave(payload);
+    }
 
-  mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
-    return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
-  }
+    lisTestOrderProfileSetEnabled(id: string, enabled: number) {
+        return this.api.lisTestOrderProfileSetEnabled(id, enabled);
+    }
 
-  targetTransformPreviewFromQueue(queueId: string) {
-    return this.api.targetTransformPreviewFromQueue(queueId);
-  }
+    lisTestOrderProfileDelete(id: string) {
+        return this.api.lisTestOrderProfileDelete(id);
+    }
 
-  targetTransformPreviewFromDeliveryHistory(queueId: string) {
-    return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
-  }
+    mappingValueTranslationsList(mappingRuleId: string) {
+        return this.api.mappingValueTranslationsList(mappingRuleId);
+    }
 
-  // platform-api.service.ts
-  targetsHarnessSend(
-    targetId: string,
-    payload: unknown,
-    previewName?: string | null,
-  ) {
-    return this.api.targetsHarnessSend(targetId, payload, previewName);
-  }
+    mappingValueTranslationsCreate(dto: any) {
+        return this.api.mappingValueTranslationsCreate(dto);
+    }
 
-  resultReevaluatePolicy(normalizedResultId: string) {
-    return this.api.resultReevaluatePolicy(normalizedResultId);
-  }
+    mappingValueTranslationsUpdate(id: string, dto: any) {
+        return this.api.mappingValueTranslationsUpdate(id, dto);
+    }
+
+    mappingValueTranslationsDelete(id: string) {
+        return this.api.mappingValueTranslationsDelete(id);
+    }
+
+    mappingValueTranslationsSaveConfig(mappingRuleId: string, dto: any) {
+        return this.api.mappingValueTranslationsSaveConfig(mappingRuleId, dto);
+    }
+
+    targetTransformPreviewFromQueue(queueId: string) {
+        return this.api.targetTransformPreviewFromQueue(queueId);
+    }
+
+    targetTransformPreviewFromDeliveryHistory(queueId: string) {
+        return this.api.targetTransformPreviewFromDeliveryHistory(queueId);
+    }
+
+
+    routingRulesList() {
+        return this.api.routingRulesList();
+    }
+
+    routingRulesCreate(payload: any) {
+        return this.api.routingRulesCreate(payload);
+    }
+
+    routingRulesUpdate(id: string, patch: any) {
+        return this.api.routingRulesUpdate(id, patch);
+    }
+
+    routingRulesDelete(id: string) {
+        return this.api.routingRulesDelete(id);
+    }
+
+    routingRulesPreviewResult(normalizedResultId: string, fallbackTargetIds: string[] = []) {
+        return this.api.routingRulesPreviewResult(normalizedResultId, fallbackTargetIds);
+    }
+
+    // platform-api.service.ts
+    targetsHarnessSend(targetId: string, payload: unknown, previewName?: string | null) {
+        return this.api.targetsHarnessSend(targetId, payload, previewName);
+    }
+
+    resultReevaluatePolicy(normalizedResultId: string) {
+        return this.api.resultReevaluatePolicy(normalizedResultId);
+    }
 }

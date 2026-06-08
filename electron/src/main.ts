@@ -26,6 +26,8 @@ import { registerDeliveryAuditIpc } from './main/ipc/delivery-audit.ipc';
 import { registerMappingValueTranslationsIpc } from './main/ipc/mapping-value-translations.ipc';
 import { registerUsersIpc } from './main/ipc/users.ipc';
 import { registerRolesIpc } from './main/ipc/roles.ipc';
+import { registerRoutingRulesIpc } from './main/ipc/routing-rules.ipc';
+import { registerLisTestOrderProfilesIpc } from './main/ipc/lis-test-order-profiles.ipc';
 
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger.error('uncaughtException', err));
@@ -94,6 +96,8 @@ app.whenReady().then(async () => {
   registerMachinesCrudIpc();
   registerMachinesLogsIpc();
 
+  registerRoutingRulesIpc();
+  registerLisTestOrderProfilesIpc();
   // ✅ Window
   const win = createMainWindow();
 

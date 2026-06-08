@@ -28,6 +28,8 @@ const delivery_audit_ipc_1 = require("./main/ipc/delivery-audit.ipc");
 const mapping_value_translations_ipc_1 = require("./main/ipc/mapping-value-translations.ipc");
 const users_ipc_1 = require("./main/ipc/users.ipc");
 const roles_ipc_1 = require("./main/ipc/roles.ipc");
+const routing_rules_ipc_1 = require("./main/ipc/routing-rules.ipc");
+const lis_test_order_profiles_ipc_1 = require("./main/ipc/lis-test-order-profiles.ipc");
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger_1.logger.error('uncaughtException', err));
 process.on('unhandledRejection', (err) => logger_1.logger.error('unhandledRejection', err));
@@ -84,6 +86,8 @@ electron_1.app.whenReady().then(async () => {
     (0, mapping_value_translations_ipc_1.registerMappingValueTranslationsIpc)();
     (0, machines_crud_ipc_1.registerMachinesCrudIpc)();
     (0, machines_logs_ipc_1.registerMachinesLogsIpc)();
+    (0, routing_rules_ipc_1.registerRoutingRulesIpc)();
+    (0, lis_test_order_profiles_ipc_1.registerLisTestOrderProfilesIpc)();
     // ✅ Window
     const win = (0, main_window_1.createMainWindow)();
     // auto-start active machines marked auto_connect

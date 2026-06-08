@@ -1,0 +1,172 @@
+<div class="dialog-shell">
+    <header class="dialog-header">
+        <div>
+            <div class="eyebrow">Routing rule</div>
+            <h2>{{ data.rule ? 'Edit routing rule' : 'Add routing rule' }}</h2>
+            <p>Define when an approved result should be queued to a specific LIS/OpenMRS target.</p>
+        </div>
+    </header>
+
+    <section class="dialog-content" [formGroup]="form">
+        <section class="section-block">
+            <div class="section-title">Rule identity</div>
+            <div class="form-grid two-one">
+                <mat-form-field appearance="outline">
+                    <mat-label>Rule name</mat-label>
+                    <input matInput formControlName="name" placeholder="Route HPV results to OpenMRS LIS" />
+                    <mat-error>Rule name is required.</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Priority</mat-label>
+                    <input matInput type="number" formControlName="priority" />
+                    <mat-hint>Lower number is evaluated first.</mat-hint>
+                </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <textarea matInput rows="2" formControlName="description" placeholder="Optional operational note"></textarea>
+            </mat-form-field>
+        </section>
+
+        <section class="section-block">
+            <div class="section-head-inline">
+                <div>
+                    <div class="section-title">Destination</div>
+                    <div class="micro-copy">Target must be selected from existing enabled targets to avoid foreign-key errors.</div>
+                </div>
+                <mat-slide-toggle formControlName="enabled">Enable rule</mat-slide-toggle>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Search targets</mat-label>
+                <input matInput [value]="targetSearch()" (input)="targetSearch.set($any($event.target).value)" placeholder="Search by target name, type, URL, or ID" />
+                <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Destination target</mat-label>
+                <mat-select formControlName="target_id" required>
+                    @for (target of filteredTargets(); track target.id) {
+                        <mat-option [value]="target.id">
+                            <div class="option-title">{{ targetLabel(target) }}</div>
+                            <div class="option-hint">{{ target.base_url || target.id }}</div>
+                        </mat-option>
+                    }
+                </mat-select>
+                <mat-error>Destination target is required.</mat-error>
+            </mat-form-field>
+        </section>
+
+        <section class="section-block">
+            <div class="section-title">Routing conditions</div>
+            <div class="micro-copy section-copy">
+                Leave a field empty to match any value. Combine fields for stricter rules, for example: Machine + Test code + Message type.
+            </div>
+
+            <div class="form-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>Lab</mat-label>
+                    <mat-select formControlName="lab_id">
+                        <mat-option value="">Any lab</mat-option>
+                        @for (lab of labsList(); track lab.id) {
+                            <mat-option [value]="lab.id">{{ labLabel(lab) }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Search machines</mat-label>
+                    <input matInput [value]="machineSearch()" (input)="machineSearch.set($any($event.target).value)" placeholder="Name, code, protocol, or ID" />
+                    <mat-icon matPrefix>search</mat-icon>
+                </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Machine</mat-label>
+                <mat-select formControlName="machine_id">
+                    <mat-option value="">Any machine</mat-option>
+                    @for (machine of filteredMachines(); track machine.id) {
+                        <mat-option [value]="machine.id">
+                            <div class="option-title">{{ machineLabel(machine) }}</div>
+                            <div class="option-hint">{{ machine.protocol || machine.id }}</div>
+                        </mat-option>
+                    }
+                </mat-select>
+            </mat-form-field>
+
+            <div class="form-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>Protocol</mat-label>
+                    <input matInput formControlName="protocol" placeholder="HL7, ASTM, TCP, FILE" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Message type</mat-label>
+                    <input matInput formControlName="source_message_type" placeholder="HL7_ORU, ASTM_RESULT" />
+                </mat-form-field>
+            </div>
+
+            <div class="form-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>Test / analyzer code</mat-label>
+                    <input matInput formControlName="test_code" placeholder="HPV16, HRHPV, CBC*, 71432-9" />
+                    <mat-hint>Supports exact match and * wildcard.</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Order number</mat-label>
+                    <input matInput formControlName="order_id" placeholder="ORD-124985" />
+                    <mat-hint>Supports exact match and * wildcard.</mat-hint>
+                </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Sample pattern</mat-label>
+                <input matInput formControlName="sample_id_pattern" placeholder="NPHL/22/*" />
+                <mat-hint>Use * for wildcard matching.</mat-hint>
+            </mat-form-field>
+        </section>
+
+        <section class="section-block">
+            <div class="section-title">Advanced matcher</div>
+            <div class="micro-copy section-copy">
+                Keep this as “Any approved result” when the explicit fields above are enough. Use it only for backward-compatible matching behavior.
+            </div>
+
+            <div class="form-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>Quick matcher</mat-label>
+                    <mat-select formControlName="match_type">
+                        @for (type of matchTypes; track type.value) {
+                            <mat-option [value]="type.value">
+                                <div class="option-title">{{ type.label }}</div>
+                                <div class="option-hint">{{ type.hint }}</div>
+                            </mat-option>
+                        }
+                    </mat-select>
+                    <mat-hint>{{ selectedMatchType.hint }}</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Quick match value</mat-label>
+                    <input matInput formControlName="match_value" />
+                    <mat-hint>Required only when quick matcher is not “Any”.</mat-hint>
+                    <mat-error>Match value is required for the selected quick matcher.</mat-error>
+                </mat-form-field>
+            </div>
+
+            <mat-slide-toggle formControlName="stop_on_match">
+                Stop evaluating lower priority rules after this rule matches
+            </mat-slide-toggle>
+        </section>
+    </section>
+
+    <footer class="dialog-actions">
+        <button mat-button type="button" (click)="close()">Close</button>
+        <button mat-flat-button color="primary" type="button" (click)="submit()">
+            {{ data.rule ? 'Save changes' : 'Create rule' }}
+        </button>
+    </footer>
+</div>

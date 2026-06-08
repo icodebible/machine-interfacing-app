@@ -775,3 +775,30 @@ mat-form-field {
 .alias-chip.muted {
   background: rgba(148, 163, 184, 0.1);
 }
+
+.profile-guidance-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  margin: 18px 0;
+  border: 1px solid rgba(25, 118, 210, 0.18);
+  border-radius: 18px;
+  background: rgba(25, 118, 210, 0.06);
+  color: #17365d;
+
+  mat-icon {
+    color: #0b65c2;
+    margin-top: 2px;
+  }
+
+  strong,
+  span {
+    display: block;
+  }
+
+  span {
+    margin-top: 4px;
+    line-height: 1.45;
+  }
+}

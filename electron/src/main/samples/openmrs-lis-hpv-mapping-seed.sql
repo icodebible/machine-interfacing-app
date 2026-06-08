@@ -1,6 +1,6 @@
 -- Optional seed for testing the configurable OpenMRS LIS HPV mapping flow.
 -- Update UUID values from your live LIS metadata when sample allocations or coded answers differ.
--- This seed uses the example metadata shared for NPHL/22/0000001.
+-- This seed uses the example metadata shared for NPHL/22/0000027.
 
 INSERT OR REPLACE INTO target_mappings (
   id, target_type, source_field, destination_field, transform_kind, constant_value,

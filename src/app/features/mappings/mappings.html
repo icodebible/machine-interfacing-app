@@ -104,6 +104,52 @@
           <small>Fetch sample allocations first, then seed mappings</small>
         </article>
       </div>
+
+      <div class="lis-profile-panel">
+        <div class="lis-profile-panel__copy">
+          <div class="section-title">LIS test-order profiles</div>
+          <div class="section-sub">
+            Profiles group analyzer codes by LIS order such as HPV, HIV Viral Load, or CBC. The OpenMRS LIS transformer uses the active profile to warn about missing or unexpected analyzer codes without changing the current delivery flow.
+          </div>
+        </div>
+
+        <div class="lis-profile-metrics">
+          <article>
+            <span>Profiles</span>
+            <strong>{{ lisProfileReadiness().profileCount }}</strong>
+          </article>
+          <article>
+            <span>Analyzer codes</span>
+            <strong>{{ lisProfileReadiness().analyzerCodeCount }}</strong>
+          </article>
+          <article>
+            <span>Required codes</span>
+            <strong>{{ lisProfileReadiness().requiredCodeCount }}</strong>
+          </article>
+          <article>
+            <span>Profile parameters</span>
+            <strong>{{ lisProfileReadiness().parameterCount }}</strong>
+          </article>
+        </div>
+
+        @if (lisProfiles().length) {
+          <div class="lis-profile-list">
+            @for (profile of lisProfiles(); track profile.code || profile.name || profile.orderConceptUuid) {
+              <article class="lis-profile-card">
+                <div>
+                  <strong>{{ profile.name || profile.code || 'LIS profile' }}</strong>
+                  <small>{{ profile.orderConceptUuid || 'Order concept UUID not set' }}</small>
+                </div>
+                <span class="status-pill info">{{ profile.analyzerCodes.length }} code{{ profile.analyzerCodes.length === 1 ? '' : 's' }}</span>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="empty-state-inline">
+            No LIS test-order profile has been seeded yet. Use the LIS Mapping Assistant with test-order details, or add a constant mapping for <span class="mono">lis.testOrderProfiles</span>.
+          </div>
+        }
+      </div>
     </section>
   }
 

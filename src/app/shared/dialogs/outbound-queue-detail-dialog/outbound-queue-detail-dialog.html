@@ -1,226 +1,232 @@
-<!-- <h2 mat-dialog-title class="dialog-title-row">
-    <div class="dialog-title-copy">
-        <div class="eyebrow">Outbound queue</div>
-        <div class="title">{{ targetDisplay(data.row) }}</div>
-        <div class="sub">Queue ID: {{ data.row?.id }}</div>
-    </div>
-</h2>
-
-@if (previewLoading()) {
-<mat-progress-bar mode="indeterminate"></mat-progress-bar>
-}
-
-<div mat-dialog-content class="dialog-shell">
-    <section class="surface-block">
-        <div class="section-title">Operational summary</div>
-        <div class="summary-grid">
-            <div><b>Status:</b> <span class="status-chip" [class]="statusClass(data.row?.delivery_status)">{{ data.row?.delivery_status || '—' }}</span></div>
-            <div><b>Target type:</b> {{ data.row?.target_type || '—' }}</div>
-            <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
-            <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
-            <div><b>Created:</b> {{ formatDateTime(data.row?.created_at) }}</div>
-            <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
-            <div><b>Created by:</b> {{ data.row?.created_by_username || 'SYSTEM' }}</div>
-            <div><b>Updated by:</b> {{ data.row?.updated_by_username || data.row?.created_by_username || 'SYSTEM' }}</div>
+<div class="dialog-shell">
+    <header class="dialog-header">
+        <div class="dialog-title-copy">
+            <div class="eyebrow">Outbound queue</div>
+            <h2>{{ targetDisplay(data.row) }}</h2>
+            <div class="subline">
+                Queue ID: <span class="mono">{{ data.row?.id || '—' }}</span>
+                <span class="dot">•</span>
+                {{ data.row?.target_type || 'Unknown target type' }}
+            </div>
         </div>
 
-        @for (alert of operationalAlerts(data.row); track alert.text) {
-        <div class="context-note" [class.bad]="alert.kind === 'bad'" [class.warn]="alert.kind === 'warn'" [class.info]="alert.kind === 'info'">
-            {{ alert.text }}
+        <div class="header-status">
+            <span class="status-chip" [ngClass]="readinessClass()">{{ readinessLabel() }}</span>
+            <span class="status-chip" [ngClass]="statusClass(data.row?.delivery_status)">{{ data.row?.delivery_status || '—' }}</span>
         </div>
-        }
-    </section>
+    </header>
 
-    <section class="surface-block">
-        <div class="section-title">Stored queue payload</div>
-        <div class="dialog-actions">
-            <button mat-stroked-button type="button" (click)="copyJson(data.row?.payload_json)">
-                <mat-icon>content_copy</mat-icon>
-                Copy stored payload
-            </button>
-        </div>
-        <div class="payload mono">{{ prettyJson(data.row?.payload_json) }}</div>
-    </section>
-
-    @if (queuePreview()) {
-    <section class="surface-block">
-        <div class="section-title">Transformed preview</div>
-        <div class="context-note info">
-            <div><b>Preview source</b></div>
-            <div>{{ previewSourceLabel(queuePreview()) }}</div>
-        </div>
-
-        @if (queuePreview()?.summary) {
-        <div class="context-note info">
-            <div><b>Transformation summary</b></div>
-            <div>Rules: {{ queuePreview()?.summary?.ruleCount ?? 0 }}</div>
-            <div>Applied: {{ queuePreview()?.summary?.appliedCount ?? 0 }}</div>
-            <div>Skipped: {{ queuePreview()?.summary?.skippedCount ?? 0 }}</div>
-            <div>Translated: {{ queuePreview()?.summary?.translatedCount ?? 0 }}</div>
-        </div>
-        }
-
-        @if (queuePreview()?.errors?.length) {
-        <div class="context-note bad">
-            <div><b>Errors</b></div>
-            @for (e of queuePreview()?.errors; track e) {
-            <div>- {{ e }}</div>
-            }
-        </div>
-        }
-
-        @if (queuePreview()?.warnings?.length) {
-        <div class="context-note warn">
-            <div><b>Warnings</b></div>
-            @for (w of queuePreview()?.warnings; track w) {
-            <div>- {{ w }}</div>
-            }
-        </div>
-        }
-
-        <div class="dialog-actions">
-            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.payload)">
-                <mat-icon>content_copy</mat-icon>
-                Copy rendered payload
-            </button>
-            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.sourceDocument)">
-                <mat-icon>content_copy</mat-icon>
-                Copy source document
-            </button>
-        </div>
-
-        <div class="section-title">Rendered payload</div>
-        <div class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</div>
-
-        @if (queuePreview()?.sourceDocument) {
-        <div class="section-title">Canonical source document</div>
-        <div class="payload mono">{{ prettyJson(queuePreview()?.sourceDocument) }}</div>
-        }
-    </section>
+    @if (previewLoading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
 
-    @if (data.row?.last_error) {
-    <section class="surface-block">
-        <div class="section-title">Last error</div>
-        <div class="context-note bad">{{ data.row?.last_error }}</div>
-    </section>
-    }
-</div>
+    <mat-dialog-content class="dialog-content">
+        <section class="summary-grid" aria-label="Outbound queue summary">
+            <article class="summary-card emphasis">
+                <div class="card-label">Delivery status</div>
+                <div class="card-value">{{ data.row?.delivery_status || '—' }}</div>
+                <div class="card-meta">{{ statusText(data.row) }}</div>
+            </article>
 
-<div mat-dialog-actions align="end" class="dialog-actions">
-    <button mat-button type="button" (click)="close()">Close</button>
-</div> -->
+            <article class="summary-card">
+                <div class="card-label">Payload rows</div>
+                <div class="card-value">{{ payloadRowsCount() }}</div>
+                <div class="card-meta">{{ payloadKind() }}</div>
+            </article>
 
+            <article class="summary-card">
+                <div class="card-label">Retry profile</div>
+                <div class="card-value">{{ data.row?.retry_count ?? 0 }}</div>
+                <div class="card-meta">Next retry: {{ formatDateTime(data.row?.next_retry_at) }}</div>
+            </article>
 
-<h2 mat-dialog-title class="dialog-title-row">
-    <div class="dialog-title-copy">
-        <div class="eyebrow">Outbound queue</div>
-        <div class="title">{{ targetDisplay(data.row) }}</div>
-        <div class="sub">Queue ID: {{ data.row?.id }}</div>
-    </div>
-</h2>
+            <article class="summary-card">
+                <div class="card-label">Preview source</div>
+                <div class="card-value">{{ queuePreview() ? previewSourceLabel(queuePreview()) : 'Stored queue payload' }}</div>
+                <div class="card-meta">Updated {{ formatDateTime(data.row?.updated_at) }}</div>
+            </article>
+        </section>
 
-@if (previewLoading()) {
-<mat-progress-bar mode="indeterminate"></mat-progress-bar>
-}
+        <section class="panel">
+            <div class="panel-head">
+                <div>
+                    <div class="section-title">Operational summary</div>
+                    <div class="section-sub">Queue lifecycle, ownership, retry scheduling, and operational warnings.</div>
+                </div>
+                <button mat-stroked-button type="button" (click)="loadPreview()" [disabled]="previewLoading()">
+                    <mat-icon>refresh</mat-icon>
+                    Refresh preview
+                </button>
+            </div>
 
-<div mat-dialog-content class="dialog-shell">
-    <section class="surface-block">
-        <div class="section-title">Operational summary</div>
-        <div class="summary-grid">
-            <div><b>Status:</b> <span class="status-chip" [class]="statusClass(data.row?.delivery_status)">{{ data.row?.delivery_status || '—' }}</span></div>
-            <div><b>Target type:</b> {{ data.row?.target_type || '—' }}</div>
-            <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
-            <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
-            <div><b>Created:</b> {{ formatDateTime(data.row?.created_at) }}</div>
-            <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
-            <div><b>Created by:</b> {{ data.row?.created_by_username || 'SYSTEM' }}</div>
-            <div><b>Updated by:</b> {{ data.row?.updated_by_username || data.row?.created_by_username || 'SYSTEM' }}</div>
-        </div>
+            <div class="context-grid">
+                <div><b>Status:</b> <span class="status-chip inline" [ngClass]="statusClass(data.row?.delivery_status)">{{ data.row?.delivery_status || '—' }}</span></div>
+                <div><b>Target:</b> {{ targetDisplay(data.row) }}</div>
+                <div><b>Target type:</b> {{ data.row?.target_type || '—' }}</div>
+                <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
+                <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
+                <div><b>Created:</b> {{ formatDateTime(data.row?.created_at) }}</div>
+                <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
+                <div><b>Created by:</b> {{ data.row?.created_by_username || 'SYSTEM' }}</div>
+                <div><b>Updated by:</b> {{ data.row?.updated_by_username || data.row?.created_by_username || 'SYSTEM' }}</div>
+            </div>
 
-        @for (alert of operationalAlerts(data.row); track alert.text) {
-        <div class="context-note" [class.bad]="alert.kind === 'bad'" [class.warn]="alert.kind === 'warn'" [class.info]="alert.kind === 'info'">
-            {{ alert.text }}
-        </div>
-        }
-    </section>
-
-    <section class="surface-block">
-        <div class="section-title">Stored queue payload</div>
-        <div class="dialog-actions">
-            <button mat-stroked-button type="button" (click)="copyJson(data.row?.payload_json)">
-                <mat-icon>content_copy</mat-icon>
-                Copy stored payload
-            </button>
-        </div>
-        <div class="payload mono">{{ prettyJson(data.row?.payload_json) }}</div>
-    </section>
-
-    @if (queuePreview()) {
-    <section class="surface-block">
-        <div class="section-title">Transformed preview</div>
-        <div class="context-note info">
-            <div><b>Preview source</b></div>
-            <div>{{ previewSourceLabel(queuePreview()) }}</div>
-        </div>
-
-        @if (queuePreview()?.summary) {
-        <div class="context-note info">
-            <div><b>Transformation summary</b></div>
-            <div>Rules: {{ queuePreview()?.summary?.ruleCount ?? 0 }}</div>
-            <div>Applied: {{ queuePreview()?.summary?.appliedCount ?? 0 }}</div>
-            <div>Skipped: {{ queuePreview()?.summary?.skippedCount ?? 0 }}</div>
-            <div>Translated: {{ queuePreview()?.summary?.translatedCount ?? 0 }}</div>
-        </div>
-        }
-
-        @if (queuePreview()?.errors?.length) {
-        <div class="context-note bad">
-            <div><b>Errors</b></div>
-            @for (e of queuePreview()?.errors; track e) {
-            <div>- {{ e }}</div>
+            @for (alert of operationalAlerts(data.row); track alert.text) {
+                <div class="context-note" [class.bad]="alert.kind === 'bad'" [class.warn]="alert.kind === 'warn'" [class.info]="alert.kind === 'info'">
+                    <mat-icon>{{ alert.kind === 'bad' ? 'error' : alert.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
+                    <span>{{ alert.text }}</span>
+                </div>
             }
-        </div>
+        </section>
+
+        @if (resultHandling()) {
+            <section class="panel handling-panel">
+                <div class="panel-head">
+                    <div>
+                        <div class="section-title">Duplicate / repeat / correction handling</div>
+                        <div class="section-sub">How existing LIS results were considered when this queue item was prepared.</div>
+                    </div>
+                    <span class="status-chip" [ngClass]="readinessClass()">{{ resultHandlingLabel() }}</span>
+                </div>
+
+                <div class="handling-summary">
+                    <div><b>Mode:</b> {{ resultHandling()?.mode || 'INITIAL' }}</div>
+                    <div><b>Original rows:</b> {{ resultHandling()?.originalRowCount ?? 0 }}</div>
+                    <div><b>Ready rows:</b> {{ resultHandling()?.readyRowCount ?? 0 }}</div>
+                    <div><b>Skipped duplicates:</b> {{ resultHandling()?.skippedDuplicateCount ?? 0 }}</div>
+                    <div><b>Blocked existing:</b> {{ resultHandling()?.blockedExistingCount ?? 0 }}</div>
+                    <div><b>Existing matches:</b> {{ resultHandling()?.existingMatchCount ?? 0 }}</div>
+                    <div><b>Corrections:</b> {{ resultHandling()?.correctionCount ?? 0 }}</div>
+                    <div><b>Repeats:</b> {{ resultHandling()?.repeatCount ?? 0 }}</div>
+                </div>
+
+                @if (resultHandlingRows().length) {
+                    <div class="handling-table-wrap">
+                        <table class="handling-table">
+                            <thead>
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Mode</th>
+                                    <th>Decision</th>
+                                    <th>Existing</th>
+                                    <th>Incoming value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of resultHandlingRows(); track row.index) {
+                                    <tr>
+                                        <td>
+                                            <div class="cell-title">{{ row.label || ('Row ' + ((row.index ?? 0) + 1)) }}</div>
+                                            <div class="cell-sub mono">{{ row.analyzerCode || row.conceptUuid || '—' }}</div>
+                                        </td>
+                                        <td>{{ row.mode || 'INITIAL' }}</td>
+                                        <td><span class="decision-pill" [ngClass]="handlingDecisionClass(row)">{{ row.decision || 'READY' }}</span></td>
+                                        <td>{{ row.existingResultCount ?? 0 }}</td>
+                                        <td class="mono">{{ row.incomingValue || '—' }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
         }
 
-        @if (queuePreview()?.warnings?.length) {
-        <div class="context-note warn">
-            <div><b>Warnings</b></div>
-            @for (w of queuePreview()?.warnings; track w) {
-            <div>- {{ w }}</div>
-            }
-        </div>
+        <section class="panel">
+            <div class="panel-head payload-head">
+                <div>
+                    <div class="section-title">Stored queue payload</div>
+                    <div class="section-sub">Payload currently persisted on this queue row.</div>
+                </div>
+                <button mat-stroked-button type="button" (click)="copyJson(data.row?.payload_json)">
+                    <mat-icon>content_copy</mat-icon>
+                    Copy stored payload
+                </button>
+            </div>
+            <pre class="payload mono">{{ prettyJson(data.row?.payload_json) }}</pre>
+        </section>
+
+        @if (queuePreview()) {
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <div class="section-title">Transformed preview</div>
+                        <div class="section-sub">Rendered with the current mapping engine for comparison with the stored queue payload.</div>
+                    </div>
+                    <span class="status-chip" [ngClass]="readinessClass()">{{ previewSourceLabel(queuePreview()) }}</span>
+                </div>
+
+                @if (previewErrors().length) {
+                    <div class="context-note bad">
+                        <mat-icon>error</mat-icon>
+                        <span>
+                            <b>Errors</b><br />
+                            @for (e of previewErrors(); track e) {
+                                <span>- {{ e }}<br /></span>
+                            }
+                        </span>
+                    </div>
+                }
+
+                @if (previewWarnings().length) {
+                    <div class="context-note warn">
+                        <mat-icon>warning</mat-icon>
+                        <span>
+                            <b>Warnings</b><br />
+                            @for (w of previewWarnings(); track w) {
+                                <span>- {{ w }}<br /></span>
+                            }
+                        </span>
+                    </div>
+                }
+
+                @if (previewSummary()) {
+                    <div class="context-note info">
+                        <mat-icon>summarize</mat-icon>
+                        <span>
+                            <b>Transformation summary</b><br />
+                            Rules: {{ previewSummary()?.ruleCount ?? 0 }} ·
+                            Applied: {{ previewSummary()?.appliedCount ?? 0 }} ·
+                            Skipped: {{ previewSummary()?.skippedCount ?? 0 }} ·
+                            Translated: {{ previewSummary()?.translatedCount ?? 0 }}
+                        </span>
+                    </div>
+                }
+
+                <div class="panel-head payload-head sub-panel-head">
+                    <div class="section-title">Rendered payload</div>
+                    <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.payload)">
+                        <mat-icon>content_copy</mat-icon>
+                        Copy rendered payload
+                    </button>
+                </div>
+                <pre class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</pre>
+
+                @if (queuePreview()?.sourceDocument) {
+                    <div class="panel-head payload-head sub-panel-head">
+                        <div class="section-title">Canonical source document</div>
+                        <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.sourceDocument)">
+                            <mat-icon>content_copy</mat-icon>
+                            Copy source document
+                        </button>
+                    </div>
+                    <pre class="payload source mono">{{ prettyJson(queuePreview()?.sourceDocument) }}</pre>
+                }
+            </section>
         }
 
-        <div class="dialog-actions">
-            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.payload)">
-                <mat-icon>content_copy</mat-icon>
-                Copy rendered payload
-            </button>
-            <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.sourceDocument)">
-                <mat-icon>content_copy</mat-icon>
-                Copy source document
-            </button>
-        </div>
-
-        <div class="section-title">Rendered payload</div>
-        <div class="payload mono">{{ prettyJson(queuePreview()?.payload) }}</div>
-
-        @if (queuePreview()?.sourceDocument) {
-        <div class="section-title">Canonical source document</div>
-        <div class="payload mono">{{ prettyJson(queuePreview()?.sourceDocument) }}</div>
+        @if (data.row?.last_error) {
+            <section class="panel error-panel">
+                <div class="section-title">Last error</div>
+                <div class="context-note bad">
+                    <mat-icon>error</mat-icon>
+                    <span>{{ data.row?.last_error }}</span>
+                </div>
+            </section>
         }
-    </section>
-    }
+    </mat-dialog-content>
 
-    @if (data.row?.last_error) {
-    <section class="surface-block">
-        <div class="section-title">Last error</div>
-        <div class="context-note bad">{{ data.row?.last_error }}</div>
-    </section>
-    }
-</div>
-
-<div mat-dialog-actions align="end" class="dialog-actions">
-    <button mat-button type="button" (click)="close()">Close</button>
+    <mat-dialog-actions align="end" class="dialog-actions">
+        <button mat-stroked-button type="button" (click)="close()">Close</button>
+    </mat-dialog-actions>
 </div>

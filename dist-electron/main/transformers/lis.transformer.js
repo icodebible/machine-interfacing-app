@@ -1,10 +1,10 @@
 "use strict";
-// import {
-//     NormalizedResultRecord,
-//     TargetRecord,
-//     TargetTransformer,
-//     TransformPreviewResult,
-// } from './target-transformer.interface';
+// // import {
+// //     NormalizedResultRecord,
+// //     TargetRecord,
+// //     TargetTransformer,
+// //     TransformPreviewResult,
+// // } from './target-transformer.interface';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LisTransformer = void 0;
 class LisTransformer {
@@ -15,7 +15,12 @@ class LisTransformer {
         if (!result.test_code)
             warnings.push('Test code is missing.');
         const rawData = this.tryParse(result.data_json) ?? {};
-        const lisBody = Array.isArray(rawData?.lis?.body) ? rawData.lis.body : null;
+        const lisBodySource = Array.isArray(rawData?.lis?.body)
+            ? rawData.lis.body
+            : Array.isArray(rawData?.lis?.multipleResultsPayload)
+                ? rawData.lis.multipleResultsPayload
+                : null;
+        const lisBody = lisBodySource?.length ? this.enrichRows(lisBodySource, rawData, result) : null;
         if (!lisBody?.length) {
             warnings.push('No LIS multiple-results payload was generated from the normalized result. Review parser, normalizer, and mapping configuration.');
         }
@@ -30,6 +35,10 @@ class LisTransformer {
                     method: rawData.lis.method ?? 'POST',
                     endpoint: rawData.lis.endpoint ?? '/openmrs/ws/rest/v1/lab/multipleresults',
                     body: lisBody,
+                    context: {
+                        instrument: rawData?.lis?.instrument ?? rawData?.instrument ?? null,
+                        testedBy: rawData?.lis?.defaults?.testedBy ?? rawData?.lis?.testedBy ?? rawData?.testedBy ?? null,
+                    },
                 }
                 : {
                     accessionNumber: result.order_id ?? null,
@@ -53,6 +62,26 @@ class LisTransformer {
                     },
                 },
         };
+    }
+    enrichRows(rows, rawData, result) {
+        const lis = rawData?.lis ?? {};
+        const instrumentUuid = this.firstText(lis?.defaults?.instrumentUuid, lis?.instrument?.uuid, rawData?.instrument?.uuid, rawData?.instrumentUuid, rawData?.instrument_uuid);
+        const testedBy = this.firstText(lis?.defaults?.testedBy, lis?.testedBy, rawData?.testedBy, rawData?.tested_by);
+        const testedDate = this.firstText(lis?.defaults?.testedDate, lis?.testedDate, rawData?.testedDate, result.observed_at, result.created_at);
+        return rows.map((row) => ({
+            ...row,
+            instrument: row?.instrument ?? (instrumentUuid ? { uuid: instrumentUuid } : undefined),
+            testedDate: this.firstText(row?.testedDate, row?.observedAt, testedDate),
+            testedBy: this.firstText(row?.testedBy, testedBy),
+        }));
+    }
+    firstText(...values) {
+        for (const value of values) {
+            const text = String(value ?? '').trim();
+            if (text)
+                return text;
+        }
+        return null;
     }
     tryParse(value) {
         if (!value)

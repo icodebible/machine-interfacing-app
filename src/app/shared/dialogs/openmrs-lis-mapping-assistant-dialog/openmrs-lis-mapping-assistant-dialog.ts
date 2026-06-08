@@ -107,7 +107,7 @@
 //   readonly selectedTargetId = signal<string>(
 //     this.data.selectedTargetId ?? this.targets()[0]?.id ?? '',
 //   );
-//   readonly sampleId = signal('NPHL/22/0000001');
+//   readonly sampleId = signal('NPHL/22/0000027');
 //   readonly metadata = signal<OpenMrsLisMetadata | null>(null);
 //   readonly parameterDrafts = signal<LisParameterDraft[]>([]);
 //   readonly metadataLoading = signal(false);
@@ -539,7 +539,7 @@ export class OpenMrsLisMappingAssistantDialog {
   readonly selectedTargetId = signal<string>(
     this.data.selectedTargetId ?? this.targets()[0]?.id ?? '',
   );
-  readonly sampleId = signal('NPHL/22/0000001');
+  readonly sampleId = signal('NPHL/22/0000027');
   readonly metadata = signal<OpenMrsLisMetadata | null>(null);
   readonly parameterDrafts = signal<LisParameterDraft[]>([]);
   readonly metadataLoading = signal(false);

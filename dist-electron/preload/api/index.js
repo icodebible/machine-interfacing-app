@@ -126,6 +126,10 @@ exports.api = void 0;
 //     mappingsDelete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_DELETE, id),
 //     mappingsValidate: (targetType: string) =>
 //         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_VALIDATE, targetType),
+//     mappingsOpenMrsLisDiscover: (dto: any) =>
+//         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_DISCOVER, dto),
+//     mappingsOpenMrsLisSeed: (dto: any) =>
+//         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_SEED, dto),
 //     mappingValueTranslationsList: (mappingRuleId: string) =>
 //         ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST, mappingRuleId),
 //     mappingValueTranslationsCreate: (dto: any) =>
@@ -143,6 +147,12 @@ exports.api = void 0;
 //     // preload index.ts
 //     targetsHarnessSend: (targetId, payload, previewName) =>
 //         ipcRenderer.invoke(IPC_CHANNELS.TARGETS_HARNESS_SEND, targetId, payload, previewName),
+//     routingRulesList: () => ipcRenderer.invoke(IPC_CHANNELS.ROUTING_RULES_LIST),
+//     routingRulesCreate: (payload: any) => ipcRenderer.invoke(IPC_CHANNELS.ROUTING_RULES_CREATE, payload),
+//     routingRulesUpdate: (id: any, payload: any) => ipcRenderer.invoke(IPC_CHANNELS.ROUTING_RULES_UPDATE, id, payload),
+//     routingRulesDelete: (id: any) => ipcRenderer.invoke(IPC_CHANNELS.ROUTING_RULES_DELETE, id),
+//     routingRulesPreviewResult: (normalizedResultId: any, fallbackTargetIds: any) =>
+//         ipcRenderer.invoke(IPC_CHANNELS.ROUTING_RULES_PREVIEW_RESULT, normalizedResultId, fallbackTargetIds ?? []),
 //     usersList: () => ipcRenderer.invoke(IPC_CHANNELS.USERS_LIST),
 //     usersCreate: (dto) => ipcRenderer.invoke(IPC_CHANNELS.USERS_CREATE, dto),
 //     usersUpdate: (id, dto) => ipcRenderer.invoke(IPC_CHANNELS.USERS_UPDATE, id, dto),
@@ -282,10 +292,6 @@ exports.api = void 0;
 //     mappingsDelete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_DELETE, id),
 //     mappingsValidate: (targetType: string) =>
 //         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_VALIDATE, targetType),
-//     mappingsOpenMrsLisDiscover: (dto: any) =>
-//         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_DISCOVER, dto),
-//     mappingsOpenMrsLisSeed: (dto: any) =>
-//         ipcRenderer.invoke(IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_SEED, dto),
 //     mappingValueTranslationsList: (mappingRuleId: string) =>
 //         ipcRenderer.invoke(IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST, mappingRuleId),
 //     mappingValueTranslationsCreate: (dto: any) =>
@@ -407,6 +413,7 @@ exports.api = {
     outboundQueueRetry: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.OUTBOUND_QUEUE_RETRY, queueId),
     outboundQueueRequeue: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.OUTBOUND_QUEUE_REQUEUE, queueId),
     outboundQueueSendNow: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.OUTBOUND_QUEUE_SEND_NOW, queueId),
+    outboundQueueRebuildPayload: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.OUTBOUND_QUEUE_REBUILD_PAYLOAD, queueId),
     resultApprovalsAll: (limit) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.RESULT_APPROVALS_ALL, limit),
     deliveryHistoryList: (limit) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.DELIVERY_HISTORY_LIST, limit),
     deliveryAuditQuery: (q) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.DELIVERY_AUDIT_QUERY, q),
@@ -420,6 +427,11 @@ exports.api = {
     mappingsValidate: (targetType) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPINGS_VALIDATE, targetType),
     mappingsOpenMrsLisDiscover: (dto) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_DISCOVER, dto),
     mappingsOpenMrsLisSeed: (dto) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPINGS_OPENMRS_LIS_SEED, dto),
+    lisTestOrderProfilesList: (targetId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.LIS_TEST_ORDER_PROFILES_LIST, targetId),
+    lisTestOrderProfileGet: (id) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.LIS_TEST_ORDER_PROFILES_GET, id),
+    lisTestOrderProfileSave: (payload) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.LIS_TEST_ORDER_PROFILES_SAVE, payload),
+    lisTestOrderProfileSetEnabled: (id, enabled) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.LIS_TEST_ORDER_PROFILES_SET_ENABLED, id, enabled),
+    lisTestOrderProfileDelete: (id) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.LIS_TEST_ORDER_PROFILES_DELETE, id),
     mappingValueTranslationsList: (mappingRuleId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_LIST, mappingRuleId),
     mappingValueTranslationsCreate: (dto) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_CREATE, dto),
     mappingValueTranslationsUpdate: (id, dto) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_UPDATE, id, dto),
@@ -427,6 +439,11 @@ exports.api = {
     mappingValueTranslationsSaveConfig: (mappingRuleId, dto) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.MAPPING_VALUE_TRANSLATIONS_SAVE_CONFIG, mappingRuleId, dto),
     targetTransformPreviewFromQueue: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_QUEUE, queueId),
     targetTransformPreviewFromDeliveryHistory: (queueId) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.TARGET_TRANSFORM_PREVIEW_FROM_DELIVERY_HISTORY, queueId),
+    routingRulesList: () => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.ROUTING_RULES_LIST),
+    routingRulesCreate: (payload) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.ROUTING_RULES_CREATE, payload),
+    routingRulesUpdate: (id, patch) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.ROUTING_RULES_UPDATE, id, patch),
+    routingRulesDelete: (id) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.ROUTING_RULES_DELETE, id),
+    routingRulesPreviewResult: (normalizedResultId, fallbackTargetIds = []) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.ROUTING_RULES_PREVIEW_RESULT, normalizedResultId, fallbackTargetIds),
     // preload index.ts
     targetsHarnessSend: (targetId, payload, previewName) => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.TARGETS_HARNESS_SEND, targetId, payload, previewName),
     usersList: () => electron_1.ipcRenderer.invoke(channels_1.IPC_CHANNELS.USERS_LIST),

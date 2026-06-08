@@ -1,0 +1,463 @@
+<div class="content lis-profile-page">
+  <div class="page-toolbar">
+    <div class="title-wrap">
+      <h2>LIS Test-Order Profiles</h2>
+      <div class="sub">
+        Manage one metadata profile per LIS test order. Profiles are evaluated during LIS preview,
+        payload rebuild, and delivery validation before mappings build OpenMRS LIS payloads.
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button mat-stroked-button type="button" (click)="toggleFilters()">
+        <mat-icon>{{ filtersOpen() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        {{ filtersOpen() ? 'Hide filters' : 'Filters' }}
+      </button>
+      <button mat-stroked-button type="button" (click)="refresh()" [disabled]="loading() || metadataLoading()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-flat-button color="primary" type="button" (click)="openManualProfileDialog()" [disabled]="!selectedTargetId()">
+        <mat-icon>add</mat-icon>
+        New profile
+      </button>
+    </div>
+  </div>
+
+  @if (loading() || metadataLoading() || saving()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <div class="summary-row">
+    <div class="summary-card accent-neutral">
+      <div class="summary-label">Configured profiles</div>
+      <div class="summary-value">{{ summary().profiles }}</div>
+      <div class="summary-sub">Profiles for the selected LIS target</div>
+    </div>
+    <div class="summary-card accent-info">
+      <div class="summary-label">Enabled</div>
+      <div class="summary-value">{{ summary().enabled }}</div>
+      <div class="summary-sub">Active for preview and rebuild</div>
+    </div>
+    <div class="summary-card accent-warn">
+      <div class="summary-label">Discovered orders</div>
+      <div class="summary-value">{{ summary().discovered }}</div>
+      <div class="summary-sub">Fetched from the representative sample</div>
+    </div>
+    <div class="summary-card accent-bad">
+      <div class="summary-label">Unconfigured</div>
+      <div class="summary-value">{{ summary().unconfigured }}</div>
+      <div class="summary-sub">Orders still needing profiles</div>
+    </div>
+    <div class="summary-card accent-stop">
+      <div class="summary-label">Required params</div>
+      <div class="summary-value">{{ summary().requiredParameters }}</div>
+      <div class="summary-sub">Must appear in analyzer results</div>
+    </div>
+  </div>
+
+  <div class="card discovery-card">
+    <div class="discovery-head">
+      <div class="discovery-title-wrap">
+        <div class="section-title">Discover LIS test orders</div>
+        <div class="micro-copy">
+          Fetch a representative sample/order from OpenMRS LIS. Discovered test orders are grouped before profile creation,
+          so HPV, Urinalysis, and susceptibility tests are never mixed into one profile.
+        </div>
+      </div>
+      <span class="count-pill warning">{{ unconfiguredOrders().length }} unconfigured</span>
+    </div>
+
+    <div class="discovery-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>LIS/OpenMRS target</mat-label>
+        <mat-select [ngModel]="selectedTargetId()" (ngModelChange)="onTargetChange($event)">
+          @for (target of lisTargets(); track target.id) {
+            <mat-option [value]="target.id">{{ target.name }} · {{ target.type }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Sample barcode / label</mat-label>
+        <input matInput [ngModel]="sampleId()" (ngModelChange)="sampleId.set($event)" placeholder="NPHL/22/0000027" />
+        <mat-hint>Use a sample that represents the LIS test orders you want to configure.</mat-hint>
+      </mat-form-field>
+
+      <div class="discovery-actions">
+        <button mat-flat-button color="primary" type="button" (click)="discoverOrders()" [disabled]="metadataLoading() || !selectedTargetId()">
+          <mat-icon>cloud_sync</mat-icon>
+          Fetch test orders
+        </button>
+      </div>
+    </div>
+
+    @if (selectedTarget()) {
+      <div class="target-note">
+        <mat-icon>dns</mat-icon>
+        <div>
+          <strong>{{ selectedTarget()?.name }}</strong>
+          <span>{{ selectedTarget()?.base_url || 'Base URL not shown' }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (filtersOpen()) {
+    <div class="card filter-card">
+      <div class="filter-header">
+        <div>
+          <div class="section-title">Filter profile metadata</div>
+          <div class="micro-copy">
+            Filter the selected target's profiles without hiding the test-order discovery workflow above.
+          </div>
+        </div>
+        <button mat-button type="button" (click)="clearFilters()">Clear</button>
+      </div>
+
+      <div class="filter-grid profile-filter-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Search</mat-label>
+          <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Profile, order, UUID, analyzer code..." />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            <mat-option value="ALL">All statuses</mat-option>
+            <mat-option value="ENABLED">Enabled only</mat-option>
+            <mat-option value="DISABLED">Disabled only</mat-option>
+            <mat-option value="READY">Ready profiles</mat-option>
+            <mat-option value="NEEDS_REVIEW">Needs review</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  }
+
+  <div class="card table-card">
+    <div class="table-toolbar">
+      <div>
+        <div class="section-title">Configured test-order profiles</div>
+        <div class="micro-copy">
+          Keep one profile per LIS test order concept. Expand a row to inspect scope, readiness, and expected analyzer codes.
+        </div>
+      </div>
+      <span class="count-pill">{{ filteredProfiles().length }} visible</span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <table mat-table [dataSource]="filteredProfiles()" class="table profile-table" multiTemplateDataRows>
+      <ng-container matColumnDef="profile">
+        <th mat-header-cell *matHeaderCellDef>Profile</th>
+        <td mat-cell *matCellDef="let profile">
+          <div class="row-main-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="expander"
+              [attr.aria-label]="isExpanded(profile) ? 'Collapse profile' : 'Expand profile'"
+              (click)="toggleProfileRow(profile); $event.stopPropagation()"
+            >
+              <mat-icon>{{ isExpanded(profile) ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+
+            <div>
+              <div class="cell-title">{{ profile.profile_name }}</div>
+              <div class="cell-sub">
+                <span class="mono">{{ profile.profile_code }}</span>
+                <span class="dot">•</span>
+                <span>{{ profile.parameters.length }} parameter{{ profile.parameters.length === 1 ? '' : 's' }}</span>
+              </div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="order">
+        <th mat-header-cell *matHeaderCellDef>Test order</th>
+        <td mat-cell *matCellDef="let profile">
+          <div class="cell-title small">{{ profile.order_display || profile.profile_name }}</div>
+          <div class="micro-copy mono">{{ profile.order_concept_uuid || 'No order concept UUID' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="parameters">
+        <th mat-header-cell *matHeaderCellDef>Parameters</th>
+        <td mat-cell *matCellDef="let profile">
+          <div class="cell-title small">Required {{ requiredCount(profile) }}</div>
+          <div class="micro-copy">Optional {{ optionalCount(profile) }} · {{ profile.parameters.length }} total</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let profile">
+          <div class="status-stack">
+            <span class="profile-state-pill" [class.enabled]="profile.enabled === 1" [class.disabled]="profile.enabled !== 1">
+              <mat-icon>{{ profile.enabled === 1 ? 'verified' : 'pause_circle' }}</mat-icon>
+              {{ profile.enabled === 1 ? 'Enabled' : 'Disabled' }}
+            </span>
+            <!-- <div class="micro-copy">{{ profileReadinessLabel(profile) }}</div> -->
+             <!-- <mat-hint>{{ profileReadinessLabel(profile) }}</mat-hint> -->
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="updated">
+        <th mat-header-cell *matHeaderCellDef>Updated</th>
+        <td mat-cell *matCellDef="let profile">
+          <div>{{ formatDateTime(profile.updated_at) }}</div>
+          <div class="micro-copy">{{ profile.updated_by_username || profile.created_by_username || 'SYSTEM' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let profile" class="actions-col">
+          <button mat-icon-button type="button" matTooltip="Edit profile" (click)="editProfile(profile); $event.stopPropagation()">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            class="status-toggle-button"
+            [class.enabled]="profile.enabled === 1"
+            [class.disabled]="profile.enabled !== 1"
+            [matTooltip]="profile.enabled === 1 ? 'Disable profile' : 'Enable profile'"
+            (click)="toggleProfile(profile); $event.stopPropagation()"
+          >
+            <mat-icon>{{ profile.enabled === 1 ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+          </button>
+          <button mat-icon-button type="button" color="warn" matTooltip="Delete profile" (click)="deleteProfile(profile); $event.stopPropagation()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let profile" [attr.colspan]="displayedColumns.length" class="expanded-cell">
+          @if (isExpanded(profile)) {
+            <div class="row-expansion-shell">
+              <div class="expansion-grid">
+                <div class="expansion-card emphasis">
+                  <div class="expansion-label">Profile readiness</div>
+                  <div class="expansion-value">{{ profileReadinessLabel(profile) }}</div>
+                  <div class="expansion-meta">
+                    {{ profile.profile_code }}
+                    <span class="dot">•</span>
+                    <span class="inline-state" [class.enabled]="profile.enabled === 1" [class.disabled]="profile.enabled !== 1">
+                      {{ profile.enabled === 1 ? 'Enabled' : 'Disabled' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="expansion-card">
+                  <div class="expansion-label">Order scope</div>
+                  <div class="quick-grid">
+                    <div><b>Target:</b> {{ profile.target_name || selectedTarget()?.name || profile.target_id }}</div>
+                    <div><b>Order:</b> {{ profile.order_display || profile.profile_name }}</div>
+                    <div><b>Order UUID:</b> <span class="mono">{{ profile.order_concept_uuid || '—' }}</span></div>
+                    <div><b>Name match:</b> {{ (profile.order_name_includes || []).join(', ') || '—' }}</div>
+                  </div>
+                </div>
+
+                <div class="expansion-card">
+                  <div class="expansion-label">Operational behavior</div>
+                  <div class="note-list">
+                    <div class="context-note info">
+                      This profile validates completeness only. Mapping rules still translate concept, allocation, coded-answer, instrument, tested-by, duplicate, repeat, and correction data.
+                    </div>
+                    <div class="context-note" [class.warn]="profileReadiness(profile) !== 'ok'">
+                      {{ profileReadiness(profile) === 'ok' ? 'All configured parameters have analyzer codes and concept UUIDs.' : 'Review analyzer codes, order concept UUID, concept UUIDs, and required flags before production use.' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="parameter-chip-panel">
+                <div class="section-title small-title">Expected analyzer codes</div>
+                <div class="chip-row">
+                  @for (param of profile.parameters; track param.analyzer_code) {
+                    <span class="chip" [class.required]="param.required === 1" [title]="param.concept_uuid || ''">
+                      {{ param.analyzer_code }} · {{ param.value_type }}{{ param.required === 1 ? ' · required' : '' }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="expansion-actions">
+                <button mat-stroked-button type="button" (click)="editProfile(profile); $event.stopPropagation()">
+                  <mat-icon>edit</mat-icon>
+                  Edit profile
+                </button>
+                <button mat-stroked-button type="button" (click)="toggleProfile(profile); $event.stopPropagation()">
+                  <mat-icon>{{ profile.enabled === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                  {{ profile.enabled === 1 ? 'Disable' : 'Enable' }}
+                </button>
+                <button mat-stroked-button color="warn" type="button" (click)="deleteProfile(profile); $event.stopPropagation()">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </div>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; trackBy: rowTrackBy"
+        class="row-clickable main-row"
+        [class.row-selected]="isExpanded(row)"
+        (click)="toggleProfileRow(row)"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: detailColumns; trackBy: rowTrackBy"
+        class="detail-row"
+        [class.detail-row-open]="isExpanded(row)"
+      ></tr>
+    </table>
+
+    @if (!loading() && filteredProfiles().length === 0) {
+      <div class="empty-state">
+        <mat-icon>science</mat-icon>
+        <h3>No LIS test-order profiles found</h3>
+        <p>Fetch test orders and configure one profile per LIS order, or create a profile manually.</p>
+        <button mat-flat-button color="primary" type="button" (click)="openManualProfileDialog()" [disabled]="!selectedTargetId()">Add first profile</button>
+      </div>
+    }
+  </div>
+
+  <div class="card table-card unconfigured-card">
+    <div class="table-toolbar">
+      <div>
+        <div class="section-title">Unconfigured discovered test orders</div>
+        <div class="micro-copy">
+          Expand an order to inspect the configured LIS test parameters discovered for that exact test order before creating its profile.
+        </div>
+      </div>
+      <span class="count-pill warning">{{ unconfiguredOrders().length }} remaining</span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    @if (unconfiguredOrders().length) {
+      <div class="order-list">
+        @for (order of unconfiguredOrders(); track order.key) {
+          <article class="order-card" [class.expanded]="isOrderExpanded(order)">
+            <div class="order-row">
+              <div class="order-main">
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="expander"
+                  [attr.aria-label]="isOrderExpanded(order) ? 'Collapse discovered test order' : 'Expand discovered test order'"
+                  (click)="toggleOrderRow(order); $event.stopPropagation()"
+                >
+                  <mat-icon>{{ isOrderExpanded(order) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+
+                <div class="order-copy">
+                  <div class="cell-title">{{ order.orderDisplay }}</div>
+                  <div class="micro-copy mono">{{ order.orderConceptUuid || 'No order concept UUID detected' }}</div>
+                  <div class="micro-copy">
+                    {{ order.parameters.length }} configured LIS parameter{{ order.parameters.length === 1 ? '' : 's' }} discovered
+                    <span class="dot">•</span>
+                    {{ orderReadinessLabel(order) }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="order-status-actions">
+                <span class="status-pill" [class.success]="orderReadinessClass(order) === 'success'" [class.warn]="orderReadinessClass(order) !== 'success'">
+                  {{ orderReadinessLabel(order) }}
+                </span>
+                <button mat-stroked-button type="button" (click)="configureOrder(order)">
+                  <mat-icon>add_task</mat-icon>
+                  Configure profile
+                </button>
+              </div>
+            </div>
+
+            <div class="order-code-preview">
+              <span class="chip summary-chip">{{ orderReadyParameterCount(order) }} ready</span>
+              <span class="chip" [class.warn]="orderNeedsReviewParameterCount(order) > 0">{{ orderNeedsReviewParameterCount(order) }} needs review</span>
+              @for (code of orderCodes(order).slice(0, 8); track code) {
+                <span class="chip">{{ code }}</span>
+              }
+              @if (orderCodes(order).length > 8) {
+                <span class="chip more">+{{ orderCodes(order).length - 8 }} more</span>
+              }
+            </div>
+
+            @if (isOrderExpanded(order)) {
+              <div class="order-parameter-panel">
+                <div class="parameter-panel-head">
+                  <div>
+                    <div class="section-title small-title">Configured test parameters from LIS</div>
+                    <div class="micro-copy">
+                      These parameters were grouped under this test order from the fetched LIS metadata. The profile dialog will be pre-filled with this same list.
+                    </div>
+                  </div>
+                  <button mat-stroked-button type="button" (click)="configureOrder(order)">
+                    <mat-icon>edit_note</mat-icon>
+                    Review in dialog
+                  </button>
+                </div>
+
+                @if (order.parameters.length) {
+                  <div class="discovered-parameter-table">
+                    <div class="parameter-header">
+                      <div>Parameter</div>
+                      <div>Analyzer code</div>
+                      <div>Concept UUID</div>
+                      <div>Allocation UUID</div>
+                      <div>Type</div>
+                      <div>Readiness</div>
+                    </div>
+
+                    @for (param of order.parameters; track $index) {
+                      <div class="parameter-line">
+                        <div>
+                          <strong>{{ param.display_name || param.analyzer_code }}</strong>
+                          <div class="micro-copy">Aliases: {{ parameterAliasLabel(param) }}</div>
+                        </div>
+                        <div class="mono">{{ param.analyzer_code || '—' }}</div>
+                        <div class="mono breakable">{{ param.concept_uuid || '—' }}</div>
+                        <div class="mono breakable">{{ param.allocation_uuid || '—' }}</div>
+                        <div>
+                          <span class="status-pill info">{{ param.value_type || 'text' }}</span>
+                          <div class="micro-copy">{{ param.datatype || 'Datatype not detected' }}</div>
+                        </div>
+                        <div>
+                          <span class="status-pill" [class.success]="parameterReadiness(param) === 'ok'" [class.warn]="parameterReadiness(param) !== 'ok'">
+                            {{ parameterReadiness(param) === 'ok' ? 'Ready' : 'Needs review' }}
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="empty-state compact">
+                    No parameters were grouped under this test order. Review the LIS metadata response or configure the profile manually.
+                  </div>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state compact">
+        <mat-icon>task_alt</mat-icon>
+        <h3>No unconfigured discovered orders</h3>
+        <p>Fetch sample metadata, or confirm that every discovered order already has a profile.</p>
+      </div>
+    }
+  </div>
+</div>

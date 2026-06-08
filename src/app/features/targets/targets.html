@@ -1,4 +1,4 @@
-<section class="content">
+<!-- <section class="content">
   <div class="page-toolbar">
     <div class="title-wrap">
       <h2 class="title">Targets</h2>
@@ -50,6 +50,468 @@
       <div class="summary-sub">Targets with retry enabled</div>
     </article>
   </section>
+
+  <section class="template-toggle-card card">
+    <div class="template-toggle-copy">
+      <div class="template-toggle-title">Starter templates</div>
+      <div class="template-toggle-sub">
+        Templates stay hidden by default so the operations table remains visible. Open them only when you need a guided starting point.
+      </div>
+    </div>
+
+    <div class="template-toggle-actions">
+      <span class="status-pill info">{{ starters.length }} available</span>
+      <button mat-button type="button" (click)="toggleStarters()">
+        {{ showStarters() ? 'Collapse' : 'Open templates' }}
+      </button>
+    </div>
+  </section>
+
+  @if (showStarters()) {
+    <section class="starter-panel card">
+      <div class="panel-head">
+        <div>
+          <div class="section-title">Target starter templates</div>
+          <div class="meta">Compact templates for faster setup without hiding the target table below.</div>
+        </div>
+      </div>
+
+      <div class="starter-grid">
+        @for (starter of starters; track starter.type) {
+          <article class="starter-card">
+            <div class="starter-head-row">
+              <div>
+                <div class="starter-label">{{ starter.label }}</div>
+                <div class="starter-description">{{ starter.description }}</div>
+              </div>
+              <span class="starter-chip">{{ starter.type }}</span>
+            </div>
+
+            <div class="starter-url mono">{{ starter.defaultBaseUrl }}</div>
+
+            <div class="starter-mini-grid">
+              <div>
+                <div class="mini-label">Timeout</div>
+                <div class="mini-value">{{ starter.operationalDefaults.requestTimeoutMs | number }} ms</div>
+              </div>
+              <div>
+                <div class="mini-label">Retry profile</div>
+                <div class="mini-value">{{ starter.operationalDefaults.maxAttempts }} · {{ starter.operationalDefaults.backoffStrategy }}</div>
+              </div>
+            </div>
+
+            <div class="starter-notes">
+              {{ starter.metadataNotes[0] }}
+            </div>
+
+            <div class="starter-actions">
+              <button mat-stroked-button type="button" (click)="openCreate(starter)">
+                <mat-icon>auto_awesome</mat-icon>
+                Use template
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="card table-card">
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    <table mat-table [dataSource]="rows()" multiTemplateDataRows class="table">
+      <ng-container matColumnDef="target">
+        <th mat-header-cell *matHeaderCellDef>Target</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-main-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="expander"
+              matTooltip="Expand quick details"
+              [attr.aria-label]="expandedId() === row.id ? 'Collapse target row' : 'Expand target row'"
+              (click)="toggleExpanded(row); $event.stopPropagation()"
+            >
+              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+
+            <div>
+              <div class="cell-title">{{ row.name }}</div>
+              <div class="cell-sub">{{ row.type }} <span class="dot">•</span> {{ row.base_url }}</div>
+              <div class="meta">Updated {{ relativeTime(row.updated_at) }}</div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="delivery">
+        <th mat-header-cell *matHeaderCellDef>Delivery profile</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="cell-title">{{ formatTimeout(row) }}</div>
+          <div class="cell-sub">{{ formatRetry(row) }}</div>
+          <div class="meta">Backoff: {{ formatBackoff(row) }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="status-line">
+            <span class="status-dot" [ngClass]="statusClass(row.enabled)"></span>
+            <span class="status-pill" [ngClass]="statusClass(row.enabled)">
+              {{ row.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </div>
+          <div class="meta">
+            {{ row.updated_by_username || row.created_by_username || 'System managed' }}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-col">
+          <div class="row-actions">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Overview"
+              aria-label="Open target overview"
+              (click)="openWorkspace(row, 'overview'); $event.stopPropagation()"
+            >
+              <mat-icon>edit_note</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Security and test"
+              aria-label="Open target security and test"
+              (click)="openWorkspace(row, 'security'); $event.stopPropagation()"
+            >
+              <mat-icon>shield</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              matTooltip="Delete target"
+              aria-label="Delete target"
+              (click)="remove(row); $event.stopPropagation()"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="cols.length" class="expanded-cell">
+          @if (expandedId() === row.id) {
+            <div class="expanded-panel">
+              <div class="expanded-grid">
+                <section class="section-block">
+                  <div class="section-head-inline">
+                    <div class="section-title">Connector overview</div>
+                    <span class="status-pill" [ngClass]="statusClass(row.enabled)">
+                      {{ row.enabled ? 'Enabled' : 'Disabled' }}
+                    </span>
+                  </div>
+
+                  <div class="summary-grid-mini compact">
+                    <div>
+                      <strong>Type</strong>
+                      <div class="meta">{{ row.type }}</div>
+                    </div>
+                    <div>
+                      <strong>Base URL</strong>
+                      <div class="meta mono">{{ row.base_url }}</div>
+                    </div>
+                    <div>
+                      <strong>Created</strong>
+                      <div class="meta">{{ formatDateTime(row.created_at) }}</div>
+                    </div>
+                    <div>
+                      <strong>Updated</strong>
+                      <div class="meta">{{ formatDateTime(row.updated_at) }}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section-block">
+                  <div class="section-title">Operational delivery</div>
+                  <div class="summary-grid-mini compact">
+                    <div>
+                      <strong>Timeout</strong>
+                      <div class="meta">{{ formatTimeout(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Retry</strong>
+                      <div class="meta">{{ formatRetry(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Backoff window</strong>
+                      <div class="meta">{{ formatBackoff(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>Maintained by</strong>
+                      <div class="meta">{{ row.updated_by_username || row.created_by_username || 'System managed' }}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section-block span-2 quick-actions-block">
+                  <div class="section-head-inline">
+                    <div>
+                      <div class="section-title">Quick workspace actions</div>
+                      <div class="meta">Open the full dialog only where you need to work next.</div>
+                    </div>
+                  </div>
+
+                  <div class="quick-actions-row">
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'overview'); $event.stopPropagation()">
+                      <mat-icon>dashboard_customize</mat-icon>
+                      Overview
+                    </button>
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'security'); $event.stopPropagation()">
+                      <mat-icon>shield</mat-icon>
+                      Security &amp; test
+                    </button>
+                    <button mat-stroked-button type="button" (click)="openWorkspace(row, 'preview')">
+                      <mat-icon>preview</mat-icon>
+                      Preview transform
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols; trackBy: trackById" class="clickable-row" (click)="toggleExpanded(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: detailCols" class="detail-row"></tr>
+    </table>
+
+    @if (!loading() && rows().length === 0) {
+      <div class="empty">No targets found. Create one from scratch or open a starter template.</div>
+    }
+  </section>
+</section> -->
+
+<section class="content">
+  <div class="page-toolbar">
+    <div class="title-wrap">
+      <h2 class="title">Targets</h2>
+      <div class="sub">
+        Manage outbound destinations, connector security, connection checks, and transform preview from one production-ready workspace.
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button mat-stroked-button type="button" (click)="toggleStarters()">
+        <mat-icon>{{ showStarters() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        {{ showStarters() ? 'Hide target templates' : 'Show target templates' }}
+      </button>
+      <button mat-stroked-button type="button" (click)="openRoutingWorkspace()">
+        <mat-icon>alt_route</mat-icon>
+        Routing rules
+      </button>
+      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        New target
+      </button>
+    </div>
+  </div>
+
+  <section class="summary-grid" aria-label="Target summary">
+    <article class="summary-card primary">
+      <div class="summary-label">Total targets</div>
+      <div class="summary-value">{{ summary().total }}</div>
+      <div class="summary-sub">Configured outbound connectors</div>
+    </article>
+
+    <article class="summary-card success">
+      <div class="summary-label">Enabled</div>
+      <div class="summary-value">{{ summary().enabled }}</div>
+      <div class="summary-sub">Active for workflow routing</div>
+    </article>
+
+    <article class="summary-card warning">
+      <div class="summary-label">Disabled</div>
+      <div class="summary-value">{{ summary().disabled }}</div>
+      <div class="summary-sub">Available but not currently sending</div>
+    </article>
+
+    <article class="summary-card accent">
+      <div class="summary-label">Types in use</div>
+      <div class="summary-value">{{ summary().configuredTypes }}</div>
+      <div class="summary-sub">Distinct connector categories</div>
+    </article>
+
+    <article class="summary-card info">
+      <div class="summary-label">Retry ready</div>
+      <div class="summary-value">{{ summary().retryReady }}</div>
+      <div class="summary-sub">Targets with retry enabled</div>
+    </article>
+  </section>
+
+  @if (routingWorkspaceOpen()) {
+    <section class="routing-card card">
+      <div class="panel-head routing-head">
+        <div>
+          <div class="section-title">Automatic routing rules</div>
+          <div class="meta">
+            Route approved results to the correct target by lab, machine, protocol, test code, order number, or sample pattern.
+            If no rule matches, the existing approval-policy target fallback remains active.
+          </div>
+        </div>
+        <div class="routing-actions">
+          <span class="status-pill info">{{ routingRules().length }} rules</span>
+          <button mat-stroked-button type="button" (click)="loadRoutingWorkspace()" [disabled]="routingLoading()">
+            <mat-icon>refresh</mat-icon>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="routing-form-grid">
+        <label>
+          <span>Rule name</span>
+          <input [(ngModel)]="routingForm.name" placeholder="Example: COBAS HPV to OpenMRS LIS" />
+        </label>
+        <label>
+          <span>Target</span>
+          <select [(ngModel)]="routingForm.target_id">
+            <option value="">Select target</option>
+            @for (target of rows(); track target.id) {
+              <option [value]="target.id">{{ target.name }} · {{ target.type }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Priority</span>
+          <input type="number" [(ngModel)]="routingForm.priority" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select [(ngModel)]="routingForm.enabled">
+            <option [ngValue]="1">Enabled</option>
+            <option [ngValue]="0">Disabled</option>
+          </select>
+        </label>
+        <label>
+          <span>Lab</span>
+          <select [(ngModel)]="routingForm.lab_id">
+            <option value="">Any lab</option>
+            @for (lab of labs(); track lab.id) {
+              <option [value]="lab.id">{{ lab.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Machine</span>
+          <select [(ngModel)]="routingForm.machine_id">
+            <option value="">Any machine</option>
+            @for (machine of machines(); track machine.id) {
+              <option [value]="machine.id">{{ machine.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Protocol</span>
+          <select [(ngModel)]="routingForm.protocol">
+            @for (protocol of routingProtocols; track protocol) {
+              <option [value]="protocol">{{ protocol || 'Any protocol' }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Message type</span>
+          <select [(ngModel)]="routingForm.source_message_type">
+            @for (messageType of routingMessageTypes; track messageType) {
+              <option [value]="messageType">{{ messageType || 'Any message type' }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Test / analyzer code</span>
+          <input [(ngModel)]="routingForm.test_code" placeholder="HPV16, HRHPV, CBC*, 71432-9" />
+        </label>
+        <label>
+          <span>Order number</span>
+          <input [(ngModel)]="routingForm.order_id" placeholder="ORD-124985" />
+        </label>
+        <label>
+          <span>Sample pattern</span>
+          <input [(ngModel)]="routingForm.sample_id_pattern" placeholder="NPHL/22/*" />
+        </label>
+        <label>
+          <span>Stop after match</span>
+          <select [(ngModel)]="routingForm.stop_on_match">
+            <option [ngValue]="0">No, continue lower priority rules</option>
+            <option [ngValue]="1">Yes, stop after this rule</option>
+          </select>
+        </label>
+        <label class="routing-description">
+          <span>Description</span>
+          <textarea rows="2" [(ngModel)]="routingForm.description" placeholder="Optional operational note for this routing decision"></textarea>
+        </label>
+      </div>
+
+      <div class="routing-form-actions">
+        <button mat-flat-button color="primary" type="button" (click)="saveRoutingRule()" [disabled]="routingSaving()">
+          <mat-icon>{{ routingForm.id ? 'save' : 'add' }}</mat-icon>
+          {{ routingForm.id ? 'Update rule' : 'Create rule' }}
+        </button>
+        <button mat-button type="button" (click)="resetRoutingRuleForm()">Clear</button>
+      </div>
+
+      <div class="routing-list">
+        @if (routingLoading()) {
+          <div class="empty-state compact">Loading routing rules...</div>
+        } @else if (!routingRules().length) {
+          <div class="empty-state compact">No routing rules yet. Create a rule to route approved results automatically.</div>
+        } @else {
+          @for (rule of routingRules(); track rule.id) {
+            <article class="routing-rule-row">
+              <div class="routing-rule-main">
+                <div class="routing-rule-title">
+                  <span class="status-pill" [class.success]="rule.enabled === 1" [class.warn]="rule.enabled !== 1">
+                    {{ rule.enabled === 1 ? 'Enabled' : 'Disabled' }}
+                  </span>
+                  <strong>{{ rule.name }}</strong>
+                  <span class="meta">Priority {{ rule.priority }}</span>
+                </div>
+                <div class="routing-rule-meta">{{ routeScopeLabel(rule) }}</div>
+                <div class="routing-rule-target">
+                  <mat-icon>outbox</mat-icon>
+                  {{ routeTargetLabel(rule) }}
+                  @if (rule.stop_on_match === 1) {
+                    <span class="meta">· stops lower priority matches</span>
+                  }
+                </div>
+              </div>
+              <div class="row-actions">
+                <button mat-button type="button" (click)="editRoutingRule(rule)">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                <button mat-button type="button" class="danger-button" (click)="deleteRoutingRule(rule)">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </div>
+            </article>
+          }
+        }
+      </div>
+    </section>
+  }
 
   <section class="template-toggle-card card">
     <div class="template-toggle-copy">

@@ -306,7 +306,7 @@
 
 //     private buildCobasHpvFinalResultPayload() {
 //         const resultTime = '20260520143000';
-//         const sampleLabel = 'NPHL/22/0000001';
+//         const sampleLabel = 'NPHL/22/0000027';
 //         const patientId = 'NPHL123';
 //         const orderNumber = 'ORD-124921';
 
@@ -495,8 +495,8 @@ function buildCobasHpvFinalHl7Message() {
         '\x0b' +
         'MSH|^~\\&|COBAS6800/8800||LIS||20260520123045||OUL^R22^OUL_R22|HPV-SIM-0001|P|2.5||||||ASCII|||ROC-06^ROCHE\r' +
         'PID|1||NPHL123^^^NPHL||KISILI^SEIF||19850101|M\r' +
-        'SPM|1|NPHL/22/0000001||RCCM^RocheCellCollectionMedia^99ROC|||||||P||||||||||||||||\r' +
-        'OBR|1|NPHL/22/0000001||71432-9^HPV-GT^LN|||||||A||||||||||||||F\r' +
+        'SPM|1|NPHL/22/0000027||RCCM^RocheCellCollectionMedia^99ROC|||||||P||||||||||||||||\r' +
+        'OBR|1|NPHL/22/0000027||71432-9^HPV-GT^LN|||||||A||||||||||||||F\r' +
         'OBX|1|CE|HPV16^HPV16^99LIS||POS^Positive^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|20260520122500\r' +
         'OBX|2|CE|HPV18^HPV18^99LIS||NEG^Negative^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|20260520122500\r' +
         'OBX|3|CE|HRHPV^Hr-HPV^99LIS||INVALID^Invalid.^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|20260520122500\r' +
@@ -508,7 +508,7 @@ function buildCobasHpvFinalAstmMessage() {
     return (
         'H|\\^&|||COBAS6800/8800|||||||P|1|20260520123045\r' +
         'P|1||NPHL123||KISILI^SEIF||19850101|M\r' +
-        'O|1|NPHL/22/0000001||^^^71432-9^HPV-GT\r' +
+        'O|1|NPHL/22/0000027||^^^71432-9^HPV-GT\r' +
         'R|1|^^^HPV16^HPV16|POS|||||F||||20260520122500\r' +
         'R|2|^^^HPV18^HPV18|NEG|||||F||||20260520122500\r' +
         'R|3|^^^HRHPV^Hr-HPV|INVALID|||||F||||20260520122500\r' +

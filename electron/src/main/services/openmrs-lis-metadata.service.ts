@@ -53,7 +53,7 @@
 // //     allocations: any | null;
 // //     parameters: OpenMrsLisParameterMetadata[];
 // //     instruments: Array<{ uuid: string; display: string; mappings?: any[] }>;
-// //     testOrders: Array<{ uuid: string; display: string; mappings?: any[] }>;
+// //     testOrders: OpenMrsLisTestOrderMetadata[];
 // //     users: OpenMrsLisUserOption[];
 // //     warnings: string[];
 // // };
@@ -737,7 +737,7 @@
 //     allocations: any | null;
 //     parameters: OpenMrsLisParameterMetadata[];
 //     instruments: Array<{ uuid: string; display: string; mappings?: any[] }>;
-//     testOrders: Array<{ uuid: string; display: string; mappings?: any[] }>;
+//     testOrders: OpenMrsLisTestOrderMetadata[];
 //     users: OpenMrsLisUserOption[];
 //     warnings: string[];
 // };
@@ -1696,11 +1696,21 @@ export type OpenMrsLisUserOption = {
 
 export type OpenMrsLisParameterMetadata = {
     analyzerCode: string;
+    analyzerAliases?: string[];
+    aliases?: string[];
     display: string;
     conceptUuid: string | null;
     allocationUuid: string | null;
     datatype: string | null;
     answers: OpenMrsLisAnswerOption[];
+    raw?: any;
+};
+
+export type OpenMrsLisTestOrderMetadata = {
+    uuid: string;
+    display: string;
+    mappings?: any[];
+    parameters: OpenMrsLisParameterMetadata[];
     raw?: any;
 };
 
@@ -1801,7 +1811,7 @@ export class OpenMrsLisMetadataService {
 
         const testOrdersPayload = await this.fetchOptional<any>(
             target,
-            '/concept?q=TEST_ORDERS&limit=50&tag=TEST_ORDERS&class=Test&v=custom:(uuid,display,datatype,conceptClass,mappings)',
+            '/concept?q=TEST_ORDERS&limit=50&tag=TEST_ORDERS&class=Test&v=custom:(uuid,display,datatype,conceptClass,mappings,setMembers:(uuid,display,datatype,conceptClass,names,mappings,answers:(uuid,display,names)))',
             headers,
             allowInsecureTls,
             timeout,
@@ -1824,6 +1834,17 @@ export class OpenMrsLisMetadataService {
             parameters = await this.attachConceptDetails(target, parameters, headers, allowInsecureTls, timeout, warnings);
         }
 
+        const testOrders = input.includeConceptDetails === false
+            ? this.toTestOrderList(testOrdersPayload)
+            : await this.attachTestOrderParameters(
+                target,
+                this.toTestOrderList(testOrdersPayload),
+                headers,
+                allowInsecureTls,
+                timeout,
+                warnings,
+            );
+
         return {
             target: { id: target.id, name: target.name, type: target.type, baseUrl: targetBaseUrl },
             lookup: lookup ?? null,
@@ -1832,7 +1853,7 @@ export class OpenMrsLisMetadataService {
             allocations: allocations ?? null,
             parameters,
             instruments: this.toConceptList(instrumentsPayload),
-            testOrders: this.toConceptList(testOrdersPayload),
+            testOrders,
             users: this.toUserList(usersPayload),
             warnings,
         };
@@ -1904,6 +1925,190 @@ export class OpenMrsLisMetadataService {
                 display: row.display ?? row.name ?? row.uuid,
                 mappings: Array.isArray(row.mappings) ? row.mappings : [],
             }));
+    }
+
+    private toTestOrderList(payload: any): OpenMrsLisTestOrderMetadata[] {
+        const rows = Array.isArray(payload?.results) ? payload.results : [];
+        return rows
+            .filter((row: any) => row?.uuid)
+            .map((row: any) => ({
+                uuid: String(row.uuid),
+                display: String(row.display ?? row.name ?? row.uuid),
+                mappings: Array.isArray(row.mappings) ? row.mappings : [],
+                parameters: this.parametersFromSetMembers(row?.setMembers),
+                raw: row,
+            }));
+    }
+
+    private async attachTestOrderParameters(
+        target: TargetRow,
+        testOrders: OpenMrsLisTestOrderMetadata[],
+        headers: Record<string, string>,
+        allowInsecureTls: boolean,
+        timeout: number,
+        warnings: string[],
+    ): Promise<OpenMrsLisTestOrderMetadata[]> {
+        const enriched: OpenMrsLisTestOrderMetadata[] = [];
+
+        for (const order of testOrders.slice(0, 100)) {
+            const existingParameters = Array.isArray(order.parameters) ? order.parameters : [];
+            const concept = await this.fetchOptional<any>(
+                target,
+                `/concept/${encodeURIComponent(order.uuid)}?v=custom:(uuid,display,datatype,conceptClass,names,mappings,setMembers:(uuid,display,datatype,conceptClass,names,mappings,answers:(uuid,display,names)))`,
+                headers,
+                allowInsecureTls,
+                timeout,
+                true,
+                warnings,
+                `test order concept ${order.display}`,
+            );
+
+            let parameters = this.parametersFromTestOrderConcept(concept ?? order.raw ?? order);
+
+            /**
+             * Some OpenMRS installations return the order concept from the search endpoint,
+             * but omit setMembers in the lightweight concept view. When no sample barcode is
+             * provided there are no allocations to recover parameters from, so try a full
+             * concept representation before giving up. This keeps the restored list behavior
+             * intact while improving no-sample metadata discovery.
+             */
+            let raw = concept ?? order.raw;
+            if (!parameters.length) {
+                const fullConcept = await this.fetchOptional<any>(
+                    target,
+                    `/concept/${encodeURIComponent(order.uuid)}?v=full`,
+                    headers,
+                    allowInsecureTls,
+                    timeout,
+                    true,
+                    warnings,
+                    `full test order concept ${order.display}`,
+                );
+                const fullParameters = this.parametersFromTestOrderConcept(fullConcept);
+                if (fullParameters.length) {
+                    parameters = fullParameters;
+                    raw = fullConcept;
+                }
+            }
+
+            enriched.push({
+                ...order,
+                display: String(concept?.display ?? raw?.display ?? order.display ?? order.uuid),
+                mappings: Array.isArray(concept?.mappings)
+                    ? concept.mappings
+                    : Array.isArray(raw?.mappings)
+                        ? raw.mappings
+                        : order.mappings ?? [],
+                parameters: parameters.length ? parameters : existingParameters,
+                raw: raw ?? order.raw,
+            });
+        }
+
+        if (testOrders.length > 100) {
+            warnings.push(`Only the first 100 LIS test orders were hydrated with parameter set members. ${testOrders.length - 100} order(s) were returned without detailed parameters.`);
+            enriched.push(...testOrders.slice(100));
+        }
+
+        return enriched;
+    }
+
+    private parametersFromTestOrderConcept(concept: any): OpenMrsLisParameterMetadata[] {
+        if (!concept || typeof concept !== 'object') return [];
+
+        const groups = [
+            concept?.setMembers,
+            concept?.members,
+            concept?.parameters,
+            concept?.testParameters,
+            concept?.results,
+            concept?.questions,
+            concept?.orderableTests,
+        ];
+
+        for (const group of groups) {
+            const parameters = this.parametersFromSetMembers(group);
+            if (parameters.length) return parameters;
+        }
+
+        return [];
+    }
+
+    private parametersFromSetMembers(setMembers: any): OpenMrsLisParameterMetadata[] {
+        const rows = Array.isArray(setMembers) ? setMembers : [];
+        const seen = new Set<string>();
+        const parameters: OpenMrsLisParameterMetadata[] = [];
+
+        rows.forEach((member: any, index: number) => {
+            const parameter = this.parameterFromConcept(member, index);
+            if (!parameter) return;
+            const key = `${parameter.conceptUuid ?? ''}|${parameter.analyzerCode}`.toUpperCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            parameters.push(parameter);
+        });
+
+        return parameters.sort((a, b) => a.display.localeCompare(b.display));
+    }
+
+    private parameterFromConcept(concept: any, index = 0): OpenMrsLisParameterMetadata | null {
+        if (!concept || typeof concept !== 'object') return null;
+
+        const conceptUuid = this.firstText(concept?.uuid, concept?.conceptUuid);
+        const analyzerCode = this.bestAnalyzerCode(concept) || conceptUuid || `PARAM_${index + 1}`;
+        const aliases = this.analyzerAliasesFromConcept(concept, analyzerCode);
+        const datatype = this.firstText(
+            concept?.datatype?.display,
+            concept?.datatype?.name,
+            concept?.datatype,
+        );
+
+        return {
+            analyzerCode,
+            analyzerAliases: aliases,
+            aliases,
+            display: this.firstText(concept?.display, concept?.name, analyzerCode) ?? analyzerCode,
+            conceptUuid,
+            allocationUuid: null,
+            datatype,
+            answers: this.extractAnswers(concept),
+            raw: concept,
+        };
+    }
+
+    private analyzerAliasesFromConcept(concept: any, primary: string): string[] {
+        const rows: string[] = [];
+        const seen = new Set<string>();
+        const push = (value: any) => {
+            if (Array.isArray(value)) {
+                value.forEach(push);
+                return;
+            }
+            const text = String(value ?? '').trim();
+            if (!text || text === 'LIS_CODED_ANSWERS') return;
+            const key = text.toUpperCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            rows.push(text);
+        };
+
+        push(primary);
+        push(concept?.display);
+        push(concept?.name);
+
+        const names = Array.isArray(concept?.names) ? concept.names : [];
+        for (const name of names) push(name?.name);
+
+        const mappings = Array.isArray(concept?.mappings) ? concept.mappings : [];
+        for (const mapping of mappings) {
+            push(mapping?.display);
+            push(mapping?.conceptReferenceTerm?.code);
+            push(mapping?.conceptReferenceTerm?.display);
+            push(mapping?.conceptReference?.code);
+            push(mapping?.conceptReference?.display);
+            push(mapping?.code);
+        }
+
+        return rows;
     }
 
     private async fetchOpenMrsUsers(
@@ -2148,4 +2353,3 @@ export class OpenMrsLisMetadataService {
         return null;
     }
 }
-

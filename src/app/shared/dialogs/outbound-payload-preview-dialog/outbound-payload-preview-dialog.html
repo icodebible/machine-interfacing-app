@@ -1,150 +1,5 @@
-<!-- <div class="dialog-shell">
-  <div class="dialog-header">
-    <div class="header-copy">
-      <div class="eyebrow">Outbound Queue</div>
-      <h2>Preview latest payload</h2>
-      <div class="subline">
-        {{ targetDisplay() }}
-        <span class="dot">•</span>
-        Queue ID: <span class="mono">{{ queueId() || '—' }}</span>
-      </div>
-    </div>
-
-    <div class="header-status">
-      <span class="status-pill" [ngClass]="readinessClass()">{{ readinessLabel() }}</span>
-      <span class="status-pill" [ngClass]="statusClass()">{{ currentStatus() || '—' }}</span>
-    </div>
-  </div>
-
-  @if (loading() || actionLoading()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-  }
-
-  <mat-dialog-content class="dialog-content">
-    @if (workingMessage()) {
-    <div class="working-note">
-      <mat-icon>hourglass_top</mat-icon>
-      {{ workingMessage() }}
-    </div>
-    }
-
-    <div class="summary-grid">
-      <section class="summary-card emphasis">
-        <div class="card-label">Readiness</div>
-        <div class="card-value">{{ readinessLabel() }}</div>
-        <div class="card-meta">{{ errors().length }} errors · {{ warnings().length }} warnings</div>
-      </section>
-
-      <section class="summary-card">
-        <div class="card-label">Payload source</div>
-        <div class="card-value">{{ payloadSource() }}</div>
-        <div class="card-meta">{{ previewName() }}</div>
-      </section>
-
-      <section class="summary-card">
-        <div class="card-label">Payload rows</div>
-        <div class="card-value">{{ payloadRowsCount() }}</div>
-        <div class="card-meta">{{ payloadKind() }}</div>
-      </section>
-
-      <section class="summary-card">
-        <div class="card-label">Delivery state</div>
-        <div class="card-value">{{ currentStatus() || '—' }}</div>
-        <div class="card-meta">{{ statusText() }}</div>
-      </section>
-    </div>
-
-    <section class="panel messages-panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-title">Readiness messages</div>
-          <div class="section-sub">Errors block delivery. Warnings should be reviewed before sending.</div>
-        </div>
-      </div>
-
-      <div class="message-list">
-        @for (message of messageList(); track $index) {
-        <div class="message-row" [class.bad]="message.kind === 'bad'" [class.warn]="message.kind === 'warn'" [class.info]="message.kind === 'info'">
-          <mat-icon>{{ message.kind === 'bad' ? 'error' : message.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
-          <span>{{ message.text }}</span>
-        </div>
-        }
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-title">LIS delivery context</div>
-          <div class="section-sub">Use Mapping Assistant to fix mappings, then rebuild this queued payload.</div>
-        </div>
-      </div>
-
-      <div class="context-grid">
-        <div><b>Target:</b> {{ targetDisplay() }}</div>
-        <div><b>Target type:</b> {{ data.row?.target_type || '—' }}</div>
-        <div><b>Created:</b> {{ formatDateTime(data.row?.created_at) }}</div>
-        <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
-        <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
-        <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
-      </div>
-
-      @if (data.row?.last_error) {
-      <div class="last-error">
-        <b>Last delivery error:</b>
-        <span>{{ data.row.last_error }}</span>
-      </div>
-      }
-    </section>
-
-    <section class="panel payload-panel">
-      <div class="panel-head payload-head">
-        <div>
-          <div class="section-title">Payload JSON</div>
-          <div class="section-sub">This is read-only. Rebuild after mapping changes instead of editing JSON manually.</div>
-        </div>
-
-        <button mat-stroked-button (click)="copyPayload()" [disabled]="loading() || actionLoading()">
-          <mat-icon>content_copy</mat-icon>
-          Copy payload
-        </button>
-      </div>
-
-      <pre class="payload mono">{{ prettyJson(payload()) }}</pre>
-    </section>
-
-    @if (sourceDocument()) {
-    <section class="panel source-panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-title">Source snapshot</div>
-          <div class="section-sub">Normalized/source data used when the queued payload was prepared.</div>
-        </div>
-      </div>
-
-      <pre class="payload source mono">{{ prettyJson(sourceDocument()) }}</pre>
-    </section>
-    }
-  </mat-dialog-content>
-
-  <mat-dialog-actions class="dialog-actions" align="end">
-    <button mat-stroked-button (click)="close()">Close</button>
-
-    <button mat-stroked-button (click)="rebuildPayload()" [disabled]="!canRebuild()" matTooltip="Regenerate the payload using latest mappings">
-      <mat-icon>restart_alt</mat-icon>
-      Rebuild payload
-    </button>
-
-    <button mat-flat-button color="primary" (click)="sendOrRetry()" [disabled]="!canSend()" matTooltip="Send the latest valid queued payload to LIS">
-      <mat-icon>{{ currentStatus() === 'FAILED' ? 'refresh' : 'send' }}</mat-icon>
-      {{ actionLabel() }}
-    </button>
-  </mat-dialog-actions>
-</div> -->
-
-
 <div class="dialog-shell">
-  <div class="dialog-header">
+  <header class="dialog-header">
     <div class="header-copy">
       <div class="eyebrow">Outbound Queue</div>
       <h2>Preview latest payload</h2>
@@ -153,66 +8,76 @@
         <span class="dot">•</span>
         Queue ID: <span class="mono">{{ queueId() || '—' }}</span>
       </div>
+      <p>
+        Inspect the destination-specific payload before delivery. Rebuild uses the latest mappings and routing context while preserving this queue item.
+      </p>
     </div>
 
     <div class="header-status">
       <span class="status-pill" [ngClass]="readinessClass()">{{ readinessLabel() }}</span>
       <span class="status-pill" [ngClass]="statusClass()">{{ currentStatus() || '—' }}</span>
     </div>
-  </div>
+  </header>
 
-  @if (loading() || actionLoading()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  @if (loading() || rebuilding()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   }
 
   <mat-dialog-content class="dialog-content">
-    @if (workingMessage()) {
-    <div class="working-note">
-      <mat-icon>hourglass_top</mat-icon>
-      {{ workingMessage() }}
-    </div>
+    @if (error()) {
+      <div class="working-note bad">
+        <mat-icon>error</mat-icon>
+        {{ error() }}
+      </div>
     }
 
-    <div class="summary-grid">
-      <section class="summary-card emphasis">
+    @if (rebuilding()) {
+      <div class="working-note">
+        <mat-icon>hourglass_top</mat-icon>
+        Rebuilding payload from latest mappings, routing context, and result-handling rules...
+      </div>
+    }
+
+    <section class="summary-grid" aria-label="Payload preview summary">
+      <article class="summary-card emphasis">
         <div class="card-label">Readiness</div>
         <div class="card-value">{{ readinessLabel() }}</div>
         <div class="card-meta">{{ errors().length }} errors · {{ warnings().length }} warnings</div>
-      </section>
+      </article>
 
-      <section class="summary-card">
+      <article class="summary-card">
         <div class="card-label">Payload source</div>
         <div class="card-value">{{ payloadSource() }}</div>
         <div class="card-meta">{{ previewName() }}</div>
-      </section>
+      </article>
 
-      <section class="summary-card">
+      <article class="summary-card">
         <div class="card-label">Payload rows</div>
         <div class="card-value">{{ payloadRowsCount() }}</div>
         <div class="card-meta">{{ payloadKind() }}</div>
-      </section>
+      </article>
 
-      <section class="summary-card">
+      <article class="summary-card">
         <div class="card-label">Delivery state</div>
         <div class="card-value">{{ currentStatus() || '—' }}</div>
         <div class="card-meta">{{ statusText() }}</div>
-      </section>
-    </div>
+      </article>
+    </section>
 
     <section class="panel messages-panel">
       <div class="panel-head">
         <div>
           <div class="section-title">Readiness messages</div>
-          <div class="section-sub">Errors block delivery. Warnings should be reviewed before sending.</div>
+          <div class="section-sub">Errors block delivery. Warnings should be reviewed before sending or rebuilding.</div>
         </div>
       </div>
 
       <div class="message-list">
         @for (message of messageList(); track $index) {
-        <div class="message-row" [class.bad]="message.kind === 'bad'" [class.warn]="message.kind === 'warn'" [class.info]="message.kind === 'info'">
-          <mat-icon>{{ message.kind === 'bad' ? 'error' : message.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
-          <span>{{ message.text }}</span>
-        </div>
+          <div class="message-row" [class.bad]="message.kind === 'bad'" [class.warn]="message.kind === 'warn'" [class.info]="message.kind === 'info'">
+            <mat-icon>{{ message.kind === 'bad' ? 'error' : message.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
+            <span>{{ message.text }}</span>
+          </div>
         }
       </div>
     </section>
@@ -232,15 +97,70 @@
         <div><b>Updated:</b> {{ formatDateTime(data.row?.updated_at) }}</div>
         <div><b>Retry count:</b> {{ data.row?.retry_count ?? 0 }}</div>
         <div><b>Next retry:</b> {{ formatDateTime(data.row?.next_retry_at) }}</div>
+        <div><b>Created by:</b> {{ data.row?.created_by_username || 'SYSTEM' }}</div>
+        <div><b>Updated by:</b> {{ data.row?.updated_by_username || data.row?.created_by_username || 'SYSTEM' }}</div>
       </div>
 
       @if (data.row?.last_error) {
-      <div class="last-error">
-        <b>Last delivery error:</b>
-        <span>{{ data.row.last_error }}</span>
-      </div>
+        <div class="last-error">
+          <b>Last delivery error:</b>
+          <span>{{ data.row.last_error }}</span>
+        </div>
       }
     </section>
+
+    @if (resultHandling()) {
+      <section class="panel handling-panel">
+        <div class="panel-head">
+          <div>
+            <div class="section-title">Duplicate / repeat / correction handling</div>
+            <div class="section-sub">How existing LIS results were considered before this payload was prepared.</div>
+          </div>
+          <span class="status-pill" [ngClass]="readinessClass()">{{ resultHandlingLabel() }}</span>
+        </div>
+
+        <div class="handling-summary">
+          <div><b>Mode:</b> {{ resultHandling()?.mode || 'INITIAL' }}</div>
+          <div><b>Original rows:</b> {{ resultHandling()?.originalRowCount ?? 0 }}</div>
+          <div><b>Ready rows:</b> {{ resultHandling()?.readyRowCount ?? 0 }}</div>
+          <div><b>Skipped duplicates:</b> {{ resultHandling()?.skippedDuplicateCount ?? 0 }}</div>
+          <div><b>Blocked existing:</b> {{ resultHandling()?.blockedExistingCount ?? 0 }}</div>
+          <div><b>Existing matches:</b> {{ resultHandling()?.existingMatchCount ?? 0 }}</div>
+          <div><b>Corrections:</b> {{ resultHandling()?.correctionCount ?? 0 }}</div>
+          <div><b>Repeats:</b> {{ resultHandling()?.repeatCount ?? 0 }}</div>
+        </div>
+
+        @if (resultHandlingRows().length) {
+          <div class="handling-table-wrap">
+            <table class="handling-table">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>Mode</th>
+                  <th>Decision</th>
+                  <th>Existing</th>
+                  <th>Incoming value</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of resultHandlingRows(); track row.index) {
+                  <tr>
+                    <td>
+                      <div class="cell-title">{{ row.label || ('Row ' + ((row.index ?? 0) + 1)) }}</div>
+                      <div class="cell-sub mono">{{ row.analyzerCode || row.conceptUuid || '—' }}</div>
+                    </td>
+                    <td>{{ row.mode || 'INITIAL' }}</td>
+                    <td><span class="decision-pill" [ngClass]="handlingDecisionClass(row)">{{ row.decision || 'READY' }}</span></td>
+                    <td>{{ row.existingResultCount ?? 0 }}</td>
+                    <td class="mono">{{ row.incomingValue || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
 
     <section class="panel payload-panel">
       <div class="panel-head payload-head">
@@ -249,41 +169,63 @@
           <div class="section-sub">This is read-only. Rebuild after mapping changes instead of editing JSON manually.</div>
         </div>
 
-        <button mat-stroked-button (click)="copyPayload()" [disabled]="loading() || actionLoading()">
+        <button mat-stroked-button type="button" (click)="copyPayload()" [disabled]="loading() || rebuilding()">
           <mat-icon>content_copy</mat-icon>
           Copy payload
         </button>
       </div>
 
-      <pre class="payload mono">{{ prettyJson(payload()) }}</pre>
+      <pre class="payload mono">{{ payloadText() }}</pre>
     </section>
 
     @if (sourceDocument()) {
-    <section class="panel source-panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-title">Source snapshot</div>
-          <div class="section-sub">Normalized/source data used when the queued payload was prepared.</div>
-        </div>
-      </div>
+      <section class="panel source-panel">
+        <div class="panel-head payload-head">
+          <div>
+            <div class="section-title">Source snapshot</div>
+            <div class="section-sub">Normalized/source data used when the queued payload was prepared.</div>
+          </div>
 
-      <pre class="payload source mono">{{ prettyJson(sourceDocument()) }}</pre>
-    </section>
+          <button mat-stroked-button type="button" (click)="copySource()" [disabled]="loading() || rebuilding()">
+            <mat-icon>content_copy</mat-icon>
+            Copy source
+          </button>
+        </div>
+
+        <pre class="payload source mono">{{ sourceText() }}</pre>
+      </section>
+    }
+
+    @if (summary()) {
+      <section class="panel source-panel">
+        <div class="panel-head payload-head">
+          <div>
+            <div class="section-title">Transformation summary</div>
+            <div class="section-sub">Operational summary generated by the mapping and payload builder.</div>
+          </div>
+
+          <button mat-stroked-button type="button" (click)="copySummary()" [disabled]="loading() || rebuilding()">
+            <mat-icon>content_copy</mat-icon>
+            Copy summary
+          </button>
+        </div>
+
+        <pre class="payload source mono">{{ summaryText() }}</pre>
+      </section>
     }
   </mat-dialog-content>
 
   <mat-dialog-actions class="dialog-actions" align="end">
-    <button mat-stroked-button (click)="close()">Close</button>
+    <button mat-stroked-button type="button" (click)="close(true)">Close</button>
 
-    <button mat-stroked-button (click)="rebuildPayload()" [disabled]="!canRebuild()" matTooltip="Regenerate the payload using latest mappings">
-      <mat-icon>restart_alt</mat-icon>
-      Rebuild payload
+    <button mat-stroked-button type="button" (click)="loadPreview()" [disabled]="loading() || rebuilding()" matTooltip="Reload the latest preview for this queue item">
+      <mat-icon>refresh</mat-icon>
+      Refresh preview
     </button>
 
-    <button mat-flat-button color="primary" (click)="sendOrRetry()" [disabled]="!canSend()" matTooltip="Send the latest valid queued payload to LIS">
-      <mat-icon>{{ currentStatus() === 'FAILED' ? 'refresh' : 'send' }}</mat-icon>
-      {{ actionLabel() }}
+    <button mat-flat-button color="primary" type="button" (click)="rebuildPayload()" [disabled]="loading() || rebuilding()" matTooltip="Regenerate the payload using latest mappings">
+      <mat-icon>sync</mat-icon>
+      Rebuild payload
     </button>
   </mat-dialog-actions>
 </div>
-

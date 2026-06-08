@@ -1,0 +1,293 @@
+<div class="content routing-page">
+    <div class="page-toolbar">
+        <div class="title-wrap">
+            <h2>Routing Rules</h2>
+            <div class="sub">
+                Configure automatic destination selection for approved results. Rules are evaluated by priority from lowest number to highest number.
+            </div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button mat-stroked-button type="button" (click)="toggleFilters()">
+                <mat-icon>{{ filtersOpen() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+                {{ filtersOpen() ? 'Hide filters' : 'Filters' }}
+            </button>
+            <button mat-stroked-button type="button" (click)="load()" [disabled]="loading()">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+            </button>
+            <button mat-flat-button color="primary" type="button" (click)="openCreateDialog()">
+                <mat-icon>add</mat-icon>
+                New rule
+            </button>
+        </div>
+    </div>
+
+    @if (loading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    <div class="summary-row">
+        <div class="summary-card accent-neutral">
+            <div class="summary-label">Total rules</div>
+            <div class="summary-value">{{ summary().total }}</div>
+            <div class="summary-sub">Configured routing decisions</div>
+        </div>
+        <div class="summary-card accent-info">
+            <div class="summary-label">Enabled</div>
+            <div class="summary-value">{{ summary().enabled }}</div>
+            <div class="summary-sub">Available for automatic routing</div>
+        </div>
+        <div class="summary-card accent-warn">
+            <div class="summary-label">Fallback</div>
+            <div class="summary-value">{{ summary().fallbackRules }}</div>
+            <div class="summary-sub">Broad rules without conditions</div>
+        </div>
+        <div class="summary-card accent-bad">
+            <div class="summary-label">Disabled</div>
+            <div class="summary-value">{{ summary().disabled }}</div>
+            <div class="summary-sub">Kept for reference only</div>
+        </div>
+        <div class="summary-card accent-stop">
+            <div class="summary-label">Stop-on-match</div>
+            <div class="summary-value">{{ summary().stopRules }}</div>
+            <div class="summary-sub">Prevent lower rules from applying</div>
+        </div>
+    </div>
+
+    @if (filtersOpen()) {
+        <div class="card filter-card">
+            <div class="filter-header">
+                <div>
+                    <div class="section-title">Filter routing rules</div>
+                    <div class="micro-copy">Use filters when validating routing order or investigating why a result was queued to a specific target.</div>
+                </div>
+                <button mat-button type="button" (click)="clearFilters()">Clear</button>
+            </div>
+
+            <div class="filter-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>Search</mat-label>
+                    <input
+                        matInput
+                        [ngModel]="search()"
+                        (ngModelChange)="search.set($event)"
+                        placeholder="Rule, target, lab, machine, test code..."
+                    />
+                    <mat-icon matPrefix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Status</mat-label>
+                    <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+                        <mat-option value="ALL">All statuses</mat-option>
+                        <mat-option value="ENABLED">Enabled only</mat-option>
+                        <mat-option value="DISABLED">Disabled only</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Target</mat-label>
+                    <mat-select [ngModel]="targetFilter()" (ngModelChange)="targetFilter.set($event)">
+                        <mat-option value="ALL">All targets</mat-option>
+                        @for (target of targets(); track target.id) {
+                            <mat-option [value]="target.id">{{ target.name || target.id }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Lab</mat-label>
+                    <mat-select [ngModel]="labFilter()" (ngModelChange)="labFilter.set($event)">
+                        <mat-option value="ALL">All labs</mat-option>
+                        @for (lab of labs(); track lab.id) {
+                            <mat-option [value]="lab.id">{{ lab.name || lab.code || lab.id }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </div>
+        </div>
+    }
+
+    <div class="card table-card">
+        <div class="table-toolbar">
+            <div>
+                <div class="section-title">Approval routing order</div>
+                <div class="micro-copy">Keep specific rules above broad fallback rules. Expand a row to review its full condition set.</div>
+            </div>
+            <span class="count-pill">{{ filteredRules().length }} visible</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <table mat-table [dataSource]="filteredRules()" class="table routing-table" multiTemplateDataRows>
+            <ng-container matColumnDef="rule">
+                <th mat-header-cell *matHeaderCellDef>Rule</th>
+                <td mat-cell *matCellDef="let rule">
+                    <div class="row-main-cell">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="expander"
+                            [attr.aria-label]="isExpanded(rule) ? 'Collapse routing rule' : 'Expand routing rule'"
+                            (click)="toggleRow(rule); $event.stopPropagation()"
+                        >
+                            <mat-icon>{{ isExpanded(rule) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        </button>
+
+                        <div>
+                            <div class="cell-title">{{ rule.name }}</div>
+                            <div class="cell-sub">{{ rule.description || 'No description provided' }}</div>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="scope">
+                <th mat-header-cell *matHeaderCellDef>Condition</th>
+                <td mat-cell *matCellDef="let rule">
+                    <div class="cell-title small">{{ routeScopeLabel(rule) }}</div>
+                    <div class="micro-copy">{{ matchLabel(rule) }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="target">
+                <th mat-header-cell *matHeaderCellDef>Target</th>
+                <td mat-cell *matCellDef="let rule">
+                    <div class="cell-title small">{{ routeTargetLabel(rule) }}</div>
+                    <div class="micro-copy">{{ routeTargetType(rule) }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="priority">
+                <th mat-header-cell *matHeaderCellDef>Priority</th>
+                <td mat-cell *matCellDef="let rule">
+                    <span class="priority-pill">{{ rule.priority }}</span>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let rule">
+                    <div class="status-stack">
+                        <div>
+                            <span class="status-dot" [class]="statusClass(rule)"></span>
+                            <span class="muted">{{ isEnabled(rule) ? 'Enabled' : 'Disabled' }}</span>
+                        </div>
+                        <div class="micro-copy">
+                            {{ rule.stop_on_match === 1 ? 'Stops lower priority matches' : 'Allows lower priority matches' }}
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="updated">
+                <th mat-header-cell *matHeaderCellDef>Updated</th>
+                <td mat-cell *matCellDef="let rule">
+                    <div>{{ formatDateTime(rule.updated_at) }}</div>
+                    <div class="micro-copy">{{ rule.updated_by_username || rule.created_by_username || 'SYSTEM' }}</div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+                <td mat-cell *matCellDef="let rule" class="actions-col">
+                    <button mat-icon-button type="button" matTooltip="Edit rule" (click)="openEditDialog(rule); $event.stopPropagation()">
+                        <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button type="button" matTooltip="Toggle status" (click)="toggle(rule); $event.stopPropagation()">
+                        <mat-icon>{{ isEnabled(rule) ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                    </button>
+                    <button mat-icon-button type="button" color="warn" matTooltip="Delete rule" (click)="delete(rule); $event.stopPropagation()">
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let rule" [attr.colspan]="displayedColumns.length" class="expanded-cell">
+                    @if (isExpanded(rule)) {
+                        <div class="row-expansion-shell">
+                            <div class="expansion-grid">
+                                <div class="expansion-card emphasis">
+                                    <div class="expansion-label">Routing decision</div>
+                                    <div class="expansion-value">{{ routeTargetLabel(rule) }}</div>
+                                    <div class="expansion-meta">
+                                        Priority {{ rule.priority }}
+                                        <span class="dot">•</span>
+                                        {{ isEnabled(rule) ? 'Enabled' : 'Disabled' }}
+                                    </div>
+                                </div>
+
+                                <div class="expansion-card">
+                                    <div class="expansion-label">Scope</div>
+                                    <div class="quick-grid">
+                                        <div><b>Lab:</b> {{ rule.lab_name || 'Any lab' }}</div>
+                                        <div><b>Machine:</b> {{ rule.machine_name || 'Any machine' }}</div>
+                                        <div><b>Protocol:</b> {{ rule.protocol || 'Any protocol' }}</div>
+                                        <div><b>Message type:</b> {{ rule.source_message_type || 'Any message type' }}</div>
+                                        <div><b>Test code:</b> {{ rule.test_code || 'Any test' }}</div>
+                                        <div><b>Order:</b> {{ rule.order_id || 'Any order' }}</div>
+                                        <div><b>Sample:</b> {{ rule.sample_id_pattern || 'Any sample' }}</div>
+                                        <div><b>Quick matcher:</b> {{ matchLabel(rule) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="expansion-card">
+                                    <div class="expansion-label">Operational behavior</div>
+                                    <div class="note-list">
+                                        <div class="context-note info">
+                                            {{ rule.stop_on_match === 1 ? 'When this rule matches, lower priority rules are skipped.' : 'When this rule matches, lower priority rules may still be evaluated.' }}
+                                        </div>
+                                        <div class="context-note" [class.warn]="!isEnabled(rule)">
+                                            {{ isEnabled(rule) ? 'This rule is active for approval routing.' : 'This rule is disabled and will not be evaluated.' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="expansion-actions">
+                                <button mat-stroked-button type="button" (click)="openEditDialog(rule); $event.stopPropagation()">
+                                    <mat-icon>edit</mat-icon>
+                                    Edit rule
+                                </button>
+                                <button mat-stroked-button type="button" (click)="toggle(rule); $event.stopPropagation()">
+                                    <mat-icon>{{ isEnabled(rule) ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                                    {{ isEnabled(rule) ? 'Disable' : 'Enable' }}
+                                </button>
+                                <button mat-stroked-button color="warn" type="button" (click)="delete(rule); $event.stopPropagation()">
+                                    <mat-icon>delete</mat-icon>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumns; trackBy: rowTrackBy"
+                class="row-clickable main-row"
+                [class.row-selected]="isExpanded(row)"
+                (click)="toggleRow(row)"
+            ></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; columns: detailColumns; trackBy: rowTrackBy"
+                class="detail-row"
+                [class.detail-row-open]="isExpanded(row)"
+            ></tr>
+        </table>
+
+        @if (!loading() && filteredRules().length === 0) {
+            <div class="empty-state">
+                <mat-icon>alt_route</mat-icon>
+                <h3>No routing rules found</h3>
+                <p>Create a rule to route approved results automatically, or clear filters if rules are hidden.</p>
+                <button mat-flat-button color="primary" type="button" (click)="openCreateDialog()">Add first rule</button>
+            </div>
+        }
+    </div>
+</div>

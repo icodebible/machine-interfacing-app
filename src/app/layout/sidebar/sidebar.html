@@ -27,69 +27,69 @@
     </div>
 
     <div class="sidebar__scroll">
-      <div class="section">
-          <div class="section-title">Operations</div>
-          <mat-nav-list class="nav">
-              @for (item of navOperations; track item.route) {
-              <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }">
-                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                  <span matListItemTitle>{{ item.label }}</span>
-              </a>
-              }
-          </mat-nav-list>
-      </div>
+        <div class="section">
+            <div class="section-title">Operations</div>
+            <mat-nav-list class="nav">
+                @for (item of navOperations; track item.route) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+            </mat-nav-list>
+        </div>
 
-      @if (showResults()) {
-      <div class="section">
-          <div class="section-title">Results</div>
-          <mat-nav-list class="nav">
-              @for (item of navResults; track item.route) {
-              @if (can(item.requires)) {
-              <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }">
-                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                  <span matListItemTitle>{{ item.label }}</span>
-              </a>
-              }
-              }
-          </mat-nav-list>
-      </div>
-      }
+        @if (showResults()) {
+        <div class="section">
+            <div class="section-title">Results</div>
+            <mat-nav-list class="nav">
+                @for (item of navResults; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
 
-      @if (showRouting()) {
-      <div class="section">
-          <div class="section-title">Routing</div>
-          <mat-nav-list class="nav">
-              @for (item of navRouting; track item.route) {
-              @if (can(item.requires)) {
-              <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }">
-                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                  <span matListItemTitle>{{ item.label }}</span>
-              </a>
-              }
-              }
-          </mat-nav-list>
-      </div>
-      }
+        @if (showRouting()) {
+        <div class="section">
+            <div class="section-title">Routing</div>
+            <mat-nav-list class="nav">
+                @for (item of navRouting; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
 
-      @if (showAdmin()) {
-      <div class="section">
-          <div class="section-title">Administration</div>
-          <mat-nav-list class="nav">
-              @for (item of navAdmin; track item.route) {
-              @if (can(item.requires)) {
-              <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }">
-                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                  <span matListItemTitle>{{ item.label }}</span>
-              </a>
-              }
-              }
-          </mat-nav-list>
-      </div>
-      }
+        @if (showAdmin()) {
+        <div class="section">
+            <div class="section-title">Administration</div>
+            <mat-nav-list class="nav">
+                @for (item of navAdmin; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
     </div>
 
     <div class="footer-card">

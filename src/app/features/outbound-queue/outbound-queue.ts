@@ -1,940 +1,3 @@
-// import { CommonModule } from '@angular/common';
-// import { Component, computed, inject, signal } from '@angular/core';
-// import { MatButtonModule } from '@angular/material/button';
-// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// import { MatDividerModule } from '@angular/material/divider';
-// import { MatIconModule } from '@angular/material/icon';
-// import { MatProgressBarModule } from '@angular/material/progress-bar';
-// import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// import { MatTableModule } from '@angular/material/table';
-// import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-// import { MatTooltipModule } from '@angular/material/tooltip';
-// import { PlatformApiService } from '../../core/platform/platform-api.service';
-// import { OutboundQueueDetailDialog } from '../../shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog';
-
-// @Component({
-//   selector: 'app-outbound-queue',
-//   standalone: true,
-//   imports: [
-//     CommonModule,
-//     MatButtonModule,
-//     MatDialogModule,
-//     MatIconModule,
-//     MatProgressBarModule,
-//     MatSnackBarModule,
-//     MatTableModule,
-//     MatDividerModule,
-//     MatPaginatorModule,
-//     MatTooltipModule,
-//   ],
-//   templateUrl: './outbound-queue.html',
-//   styleUrl: './outbound-queue.scss',
-// })
-// export class OutboundQueue {
-//   private api = inject(PlatformApiService);
-//   private snack = inject(MatSnackBar);
-//   private dialog = inject(MatDialog);
-
-//   loading = signal(false);
-//   mode = signal<'all' | 'pending'>('all');
-//   rows = signal<any[]>([]);
-//   expandedRowId = signal<string | null>(null);
-//   cols: string[] = ['target', 'status', 'retry', 'schedule', 'created', 'actions'];
-//   detailCols: string[] = ['expandedDetail'];
-
-//   pageIndex = signal(0);
-//   pageSize = signal(10);
-//   readonly pageSizeOptions = [10, 25, 50];
-
-//   summary = computed(() => {
-//     const rows = this.rows();
-//     return {
-//       total: rows.length,
-//       pending: rows.filter((row: any) => row.delivery_status === 'PENDING').length,
-//       sending: rows.filter((row: any) => row.delivery_status === 'SENDING').length,
-//       failed: rows.filter((row: any) => row.delivery_status === 'FAILED').length,
-//       delivered: rows.filter((row: any) => row.delivery_status === 'DELIVERED').length,
-//     };
-//   });
-
-//   pagedRows = computed(() => {
-//     const start = this.pageIndex() * this.pageSize();
-//     return this.rows().slice(start, start + this.pageSize());
-//   });
-
-//   constructor() {
-//     this.refresh();
-//   }
-
-//   async refresh() {
-//     try {
-//       this.loading.set(true);
-
-//       const rows =
-//         this.mode() === 'pending'
-//           ? await this.api.outboundQueuePending(100)
-//           : await this.api.outboundQueueList(100);
-
-//       this.rows.set(rows ?? []);
-//       this.ensureValidPage();
-
-//       const expandedId = this.expandedRowId();
-//       if (expandedId && !(rows ?? []).some((row: any) => row.id === expandedId)) {
-//         this.expandedRowId.set(null);
-//       }
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Failed to load outbound queue', 'Close', {
-//         duration: 3500,
-//       });
-//     } finally {
-//       this.loading.set(false);
-//     }
-//   }
-
-//   selectMode(mode: 'all' | 'pending') {
-//     this.mode.set(mode);
-//     this.pageIndex.set(0);
-//     this.expandedRowId.set(null);
-//     this.refresh();
-//   }
-
-//   onPageChange(event: PageEvent) {
-//     this.pageIndex.set(event.pageIndex);
-//     this.pageSize.set(event.pageSize);
-//     this.expandedRowId.set(null);
-//   }
-
-//   private ensureValidPage() {
-//     const total = this.rows().length;
-//     const maxPage = Math.max(0, Math.ceil(total / this.pageSize()) - 1);
-//     if (this.pageIndex() > maxPage) this.pageIndex.set(maxPage);
-//   }
-
-//   toggleRow(row: any) {
-//     this.expandedRowId.set(this.expandedRowId() === row.id ? null : row.id);
-//   }
-
-//   isExpanded(row: any) {
-//     return this.expandedRowId() === row?.id;
-//   }
-
-//   openDetailDialog(row: any) {
-//     this.dialog.open(OutboundQueueDetailDialog, {
-//       width: 'min(1100px, 96vw)',
-//       maxWidth: '96vw',
-//       autoFocus: false,
-//       restoreFocus: true,
-//       data: { row },
-//     });
-//   }
-
-//   async retry(row: any) {
-//     try {
-//       await this.api.outboundQueueRetry(row.id);
-//       this.snack.open('Queue item marked for retry', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Retry failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   async requeue(row: any) {
-//     try {
-//       await this.api.outboundQueueRequeue(row.id);
-//       this.snack.open('Queue item requeued', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Requeue failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   async sendNow(row: any) {
-//     try {
-//       await this.api.outboundQueueSendNow(row.id);
-//       this.snack.open('Delivery started', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Delivery failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   targetDisplay(row: any) {
-//     return row?.target_name || row?.target_id || 'Unknown target';
-//   }
-
-//   canRetry(row: any) {
-//     return row?.delivery_status === 'FAILED';
-//   }
-
-//   canRequeue(row: any) {
-//     return row?.delivery_status === 'FAILED' || row?.delivery_status === 'DELIVERED';
-//   }
-
-//   canSendNow(row: any) {
-//     return row?.delivery_status !== 'SENDING';
-//   }
-
-//   summaryNotes(row: any) {
-//     const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
-
-//     if (row?.delivery_status === 'FAILED' && row?.last_error) {
-//       notes.push({
-//         kind: 'bad',
-//         text: row.last_error,
-//       });
-//     }
-
-//     if (row?.delivery_status === 'SENDING') {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'Delivery is currently in progress.',
-//       });
-//     }
-
-//     if (row?.next_retry_at) {
-//       notes.push({
-//         kind: 'info',
-//         text: `Retry scheduled for ${this.formatDateTime(row.next_retry_at)}.`,
-//       });
-//     }
-
-//     if ((row?.retry_count ?? 0) >= 3) {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'This item has already retried multiple times.',
-//       });
-//     }
-
-//     if (!notes.length) {
-//       notes.push({
-//         kind: 'info',
-//         text: 'No active operational warnings for this queue item.',
-//       });
-//     }
-
-//     return notes;
-//   }
-
-//   statusText(row: any) {
-//     switch (row?.delivery_status) {
-//       case 'FAILED':
-//         return 'Needs intervention';
-//       case 'SENDING':
-//         return 'Delivery in progress';
-//       case 'DELIVERED':
-//         return 'Delivered successfully';
-//       default:
-//         return 'Ready for delivery';
-//     }
-//   }
-
-//   payloadHint(row: any) {
-//     const raw = row?.payload_json;
-//     if (!raw) return 'No stored payload available';
-//     try {
-//       const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
-//       return `${str.length.toLocaleString()} chars stored`;
-//     } catch {
-//       return 'Stored payload available';
-//     }
-//   }
-
-//   formatDateTime(value?: string | null) {
-//     if (!value) return '—';
-//     const d = new Date(value);
-//     if (Number.isNaN(d.getTime())) return value;
-
-//     return new Intl.DateTimeFormat(undefined, {
-//       year: 'numeric',
-//       month: 'short',
-//       day: '2-digit',
-//       hour: '2-digit',
-//       minute: '2-digit',
-//       second: '2-digit',
-//     }).format(d);
-//   }
-
-//   statusClass(status?: string | null) {
-//     switch (status) {
-//       case 'DELIVERED':
-//         return 'ok';
-//       case 'FAILED':
-//         return 'bad';
-//       case 'SENDING':
-//         return 'warn';
-//       default:
-//         return 'idle';
-//     }
-//   }
-
-//   rowTrackBy = (_: number, row: any) => row.id;
-// }
-
-
-// import { CommonModule } from '@angular/common';
-// import { Component, computed, inject, signal } from '@angular/core';
-// import { MatButtonModule } from '@angular/material/button';
-// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// import { MatDividerModule } from '@angular/material/divider';
-// import { MatIconModule } from '@angular/material/icon';
-// import { MatProgressBarModule } from '@angular/material/progress-bar';
-// import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// import { MatTableModule } from '@angular/material/table';
-// import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-// import { MatTooltipModule } from '@angular/material/tooltip';
-// import { Router } from '@angular/router';
-// import { PlatformApiService } from '../../core/platform/platform-api.service';
-// import { OutboundQueueDetailDialog } from '../../shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog';
-
-// @Component({
-//   selector: 'app-outbound-queue',
-//   standalone: true,
-//   imports: [
-//     CommonModule,
-//     MatButtonModule,
-//     MatDialogModule,
-//     MatIconModule,
-//     MatProgressBarModule,
-//     MatSnackBarModule,
-//     MatTableModule,
-//     MatDividerModule,
-//     MatPaginatorModule,
-//     MatTooltipModule,
-//   ],
-//   templateUrl: './outbound-queue.html',
-//   styleUrl: './outbound-queue.scss',
-// })
-// export class OutboundQueue {
-//   private api = inject(PlatformApiService);
-//   private snack = inject(MatSnackBar);
-//   private dialog = inject(MatDialog);
-//   private router = inject(Router);
-
-//   loading = signal(false);
-//   mode = signal<'all' | 'pending'>('all');
-//   rows = signal<any[]>([]);
-//   expandedRowId = signal<string | null>(null);
-//   previewLoadingId = signal<string | null>(null);
-//   latestPreviewByQueueId = signal<Record<string, any>>({});
-//   cols: string[] = ['target', 'status', 'retry', 'schedule', 'created', 'actions'];
-//   detailCols: string[] = ['expandedDetail'];
-
-//   pageIndex = signal(0);
-//   pageSize = signal(10);
-//   readonly pageSizeOptions = [10, 25, 50];
-
-//   summary = computed(() => {
-//     const rows = this.rows();
-//     return {
-//       total: rows.length,
-//       pending: rows.filter((row: any) => row.delivery_status === 'PENDING').length,
-//       sending: rows.filter((row: any) => row.delivery_status === 'SENDING').length,
-//       failed: rows.filter((row: any) => row.delivery_status === 'FAILED').length,
-//       delivered: rows.filter((row: any) => row.delivery_status === 'DELIVERED').length,
-//     };
-//   });
-
-//   pagedRows = computed(() => {
-//     const start = this.pageIndex() * this.pageSize();
-//     return this.rows().slice(start, start + this.pageSize());
-//   });
-
-//   constructor() {
-//     this.refresh();
-//   }
-
-//   async refresh() {
-//     try {
-//       this.loading.set(true);
-
-//       const rows =
-//         this.mode() === 'pending'
-//           ? await this.api.outboundQueuePending(100)
-//           : await this.api.outboundQueueList(100);
-
-//       this.rows.set(rows ?? []);
-//       this.ensureValidPage();
-
-//       const expandedId = this.expandedRowId();
-//       if (expandedId && !(rows ?? []).some((row: any) => row.id === expandedId)) {
-//         this.expandedRowId.set(null);
-//       }
-
-//       const validIds = new Set((rows ?? []).map((row: any) => row.id));
-//       this.latestPreviewByQueueId.update((current) => {
-//         const next: Record<string, any> = {};
-//         for (const [id, preview] of Object.entries(current)) {
-//           if (validIds.has(id)) next[id] = preview;
-//         }
-//         return next;
-//       });
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Failed to load outbound queue', 'Close', {
-//         duration: 3500,
-//       });
-//     } finally {
-//       this.loading.set(false);
-//     }
-//   }
-
-//   selectMode(mode: 'all' | 'pending') {
-//     this.mode.set(mode);
-//     this.pageIndex.set(0);
-//     this.expandedRowId.set(null);
-//     this.refresh();
-//   }
-
-//   onPageChange(event: PageEvent) {
-//     this.pageIndex.set(event.pageIndex);
-//     this.pageSize.set(event.pageSize);
-//     this.expandedRowId.set(null);
-//   }
-
-//   private ensureValidPage() {
-//     const total = this.rows().length;
-//     const maxPage = Math.max(0, Math.ceil(total / this.pageSize()) - 1);
-//     if (this.pageIndex() > maxPage) this.pageIndex.set(maxPage);
-//   }
-
-//   toggleRow(row: any) {
-//     this.expandedRowId.set(this.expandedRowId() === row.id ? null : row.id);
-//   }
-
-//   isExpanded(row: any) {
-//     return this.expandedRowId() === row?.id;
-//   }
-
-//   openDetailDialog(row: any) {
-//     this.dialog.open(OutboundQueueDetailDialog, {
-//       width: 'min(1100px, 96vw)',
-//       maxWidth: '96vw',
-//       autoFocus: false,
-//       restoreFocus: true,
-//       data: { row },
-//     });
-//   }
-
-//   async retry(row: any) {
-//     try {
-//       await this.api.outboundQueueRetry(row.id);
-//       this.snack.open('Queue item marked for retry', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Retry failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   async rebuildPayload(row: any) {
-//     try {
-//       await this.api.outboundQueueRequeue(row.id);
-//       this.latestPreviewByQueueId.update((current) => {
-//         const next = { ...current };
-//         delete next[row.id];
-//         return next;
-//       });
-//       this.snack.open('Payload rebuilt from the latest mappings and returned to the queue', 'Close', {
-//         duration: 2400,
-//       });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Payload rebuild failed', 'Close', { duration: 4200 });
-//     }
-//   }
-
-//   async requeue(row: any) {
-//     await this.rebuildPayload(row);
-//   }
-
-//   async sendNow(row: any) {
-//     try {
-//       await this.api.outboundQueueSendNow(row.id);
-//       this.snack.open('Delivery started', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Delivery failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   targetDisplay(row: any) {
-//     return row?.target_name || row?.target_id || 'Unknown target';
-//   }
-
-//   canRetry(row: any) {
-//     return row?.delivery_status === 'FAILED';
-//   }
-
-//   canRebuild(row: any) {
-//     return row?.delivery_status !== 'SENDING';
-//   }
-
-//   canRequeue(row: any) {
-//     return this.canRebuild(row);
-//   }
-
-//   canSendNow(row: any) {
-//     return row?.delivery_status !== 'SENDING';
-//   }
-
-//   summaryNotes(row: any) {
-//     const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
-
-//     if (row?.delivery_status === 'FAILED' && row?.last_error) {
-//       notes.push({
-//         kind: 'bad',
-//         text: row.last_error,
-//       });
-//     }
-
-//     if (row?.delivery_status === 'SENDING') {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'Delivery is currently in progress.',
-//       });
-//     }
-
-//     if (row?.next_retry_at) {
-//       notes.push({
-//         kind: 'info',
-//         text: `Retry scheduled for ${this.formatDateTime(row.next_retry_at)}.`,
-//       });
-//     }
-
-//     if ((row?.retry_count ?? 0) >= 3) {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'This item has already retried multiple times.',
-//       });
-//     }
-
-//     if (!notes.length) {
-//       notes.push({
-//         kind: 'info',
-//         text: 'No active operational warnings for this queue item.',
-//       });
-//     }
-
-//     return notes;
-//   }
-
-
-
-//   async previewLatestPayload(row: any) {
-//     if (!row?.target_id || !row?.normalized_result_id) {
-//       this.snack.open('This queue item does not have enough context to rebuild the latest preview.', 'Close', {
-//         duration: 3200,
-//       });
-//       return;
-//     }
-
-//     try {
-//       this.previewLoadingId.set(row.id);
-//       const preview: any = await this.api.targetTransformPreview(row.target_id, row.normalized_result_id);
-//       this.latestPreviewByQueueId.update((current) => ({ ...current, [row.id]: preview }));
-
-//       const errorCount = preview?.errors?.length ?? 0;
-//       this.snack.open(
-//         errorCount
-//           ? `Latest preview has ${errorCount} blocking issue${errorCount === 1 ? '' : 's'}.`
-//           : 'Latest payload preview is ready.',
-//         'Close',
-//         { duration: errorCount ? 4200 : 2200 },
-//       );
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Failed to build latest payload preview', 'Close', {
-//         duration: 4200,
-//       });
-//     } finally {
-//       this.previewLoadingId.set(null);
-//     }
-//   }
-
-//   previewFor(row: any) {
-//     return row?.id ? this.latestPreviewByQueueId()[row.id] ?? null : null;
-//   }
-
-//   previewMessages(row: any) {
-//     const preview = this.previewFor(row);
-//     return [
-//       ...(preview?.errors ?? []).map((text: string) => ({ kind: 'bad' as const, text })),
-//       ...(preview?.warnings ?? []).map((text: string) => ({ kind: 'warn' as const, text })),
-//     ];
-//   }
-
-//   previewPayloadJson(row: any) {
-//     const payload = this.previewFor(row)?.payload;
-//     if (payload === undefined || payload === null) return '';
-//     try {
-//       return JSON.stringify(payload, null, 2);
-//     } catch {
-//       return String(payload);
-//     }
-//   }
-
-//   previewSummary(row: any) {
-//     const preview = this.previewFor(row);
-//     if (!preview) return [] as Array<{ label: string; value: string | number }>;
-
-//     return [
-//       { label: 'Payload source', value: preview.payloadSource || 'latest mapping engine' },
-//       { label: 'Rules', value: preview.summary?.ruleCount ?? '—' },
-//       { label: 'Translated', value: preview.summary?.translatedCount ?? '—' },
-//       { label: 'Warnings', value: preview.warnings?.length ?? 0 },
-//       { label: 'Errors', value: preview.errors?.length ?? 0 },
-//     ];
-//   }
-
-//   goToDeliveryHistory(row: any) {
-//     this.router.navigate(['/app/delivery-history'], {
-//       queryParams: { queueId: row?.id ?? null },
-//     });
-//   }
-
-//   statusText(row: any) {
-//     switch (row?.delivery_status) {
-//       case 'FAILED':
-//         return 'Needs intervention';
-//       case 'SENDING':
-//         return 'Delivery in progress';
-//       case 'DELIVERED':
-//         return 'Delivered successfully';
-//       default:
-//         return 'Ready for delivery';
-//     }
-//   }
-
-//   payloadHint(row: any) {
-//     const raw = row?.payload_json;
-//     if (!raw) return 'No stored payload available';
-//     try {
-//       const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
-//       return `${str.length.toLocaleString()} chars stored`;
-//     } catch {
-//       return 'Stored payload available';
-//     }
-//   }
-
-//   formatDateTime(value?: string | null) {
-//     if (!value) return '—';
-//     const d = new Date(value);
-//     if (Number.isNaN(d.getTime())) return value;
-
-//     return new Intl.DateTimeFormat(undefined, {
-//       year: 'numeric',
-//       month: 'short',
-//       day: '2-digit',
-//       hour: '2-digit',
-//       minute: '2-digit',
-//       second: '2-digit',
-//     }).format(d);
-//   }
-
-//   statusClass(status?: string | null) {
-//     switch (status) {
-//       case 'DELIVERED':
-//         return 'ok';
-//       case 'FAILED':
-//         return 'bad';
-//       case 'SENDING':
-//         return 'warn';
-//       default:
-//         return 'idle';
-//     }
-//   }
-
-//   rowTrackBy = (_: number, row: any) => row.id;
-// }
-
-
-// import { CommonModule } from '@angular/common';
-// import { Component, computed, inject, signal } from '@angular/core';
-// import { MatButtonModule } from '@angular/material/button';
-// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// import { MatDividerModule } from '@angular/material/divider';
-// import { MatIconModule } from '@angular/material/icon';
-// import { MatProgressBarModule } from '@angular/material/progress-bar';
-// import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// import { MatTableModule } from '@angular/material/table';
-// import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-// import { MatTooltipModule } from '@angular/material/tooltip';
-// import { PlatformApiService } from '../../core/platform/platform-api.service';
-// import { OutboundQueueDetailDialog } from '../../shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog';
-// import { OutboundPayloadPreviewDialog } from '../../shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog';
-
-// @Component({
-//   selector: 'app-outbound-queue',
-//   standalone: true,
-//   imports: [
-//     CommonModule,
-//     MatButtonModule,
-//     MatDialogModule,
-//     MatIconModule,
-//     MatProgressBarModule,
-//     MatSnackBarModule,
-//     MatTableModule,
-//     MatDividerModule,
-//     MatPaginatorModule,
-//     MatTooltipModule,
-//   ],
-//   templateUrl: './outbound-queue.html',
-//   styleUrl: './outbound-queue.scss',
-// })
-// export class OutboundQueue {
-//   private api = inject(PlatformApiService);
-//   private snack = inject(MatSnackBar);
-//   private dialog = inject(MatDialog);
-
-//   loading = signal(false);
-//   mode = signal<'all' | 'pending'>('all');
-//   rows = signal<any[]>([]);
-//   expandedRowId = signal<string | null>(null);
-//   cols: string[] = ['target', 'status', 'retry', 'schedule', 'created', 'actions'];
-//   detailCols: string[] = ['expandedDetail'];
-
-//   pageIndex = signal(0);
-//   pageSize = signal(10);
-//   readonly pageSizeOptions = [10, 25, 50];
-
-//   summary = computed(() => {
-//     const rows = this.rows();
-//     return {
-//       total: rows.length,
-//       pending: rows.filter((row: any) => row.delivery_status === 'PENDING').length,
-//       sending: rows.filter((row: any) => row.delivery_status === 'SENDING').length,
-//       failed: rows.filter((row: any) => row.delivery_status === 'FAILED').length,
-//       delivered: rows.filter((row: any) => row.delivery_status === 'DELIVERED').length,
-//     };
-//   });
-
-//   pagedRows = computed(() => {
-//     const start = this.pageIndex() * this.pageSize();
-//     return this.rows().slice(start, start + this.pageSize());
-//   });
-
-//   constructor() {
-//     this.refresh();
-//   }
-
-//   async refresh() {
-//     try {
-//       this.loading.set(true);
-
-//       const rows =
-//         this.mode() === 'pending'
-//           ? await this.api.outboundQueuePending(100)
-//           : await this.api.outboundQueueList(100);
-
-//       this.rows.set(rows ?? []);
-//       this.ensureValidPage();
-
-//       const expandedId = this.expandedRowId();
-//       if (expandedId && !(rows ?? []).some((row: any) => row.id === expandedId)) {
-//         this.expandedRowId.set(null);
-//       }
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Failed to load outbound queue', 'Close', {
-//         duration: 3500,
-//       });
-//     } finally {
-//       this.loading.set(false);
-//     }
-//   }
-
-//   selectMode(mode: 'all' | 'pending') {
-//     this.mode.set(mode);
-//     this.pageIndex.set(0);
-//     this.expandedRowId.set(null);
-//     this.refresh();
-//   }
-
-//   onPageChange(event: PageEvent) {
-//     this.pageIndex.set(event.pageIndex);
-//     this.pageSize.set(event.pageSize);
-//     this.expandedRowId.set(null);
-//   }
-
-//   private ensureValidPage() {
-//     const total = this.rows().length;
-//     const maxPage = Math.max(0, Math.ceil(total / this.pageSize()) - 1);
-//     if (this.pageIndex() > maxPage) this.pageIndex.set(maxPage);
-//   }
-
-//   toggleRow(row: any) {
-//     this.expandedRowId.set(this.expandedRowId() === row.id ? null : row.id);
-//   }
-
-//   isExpanded(row: any) {
-//     return this.expandedRowId() === row?.id;
-//   }
-
-//   openDetailDialog(row: any) {
-//     this.dialog.open(OutboundQueueDetailDialog, {
-//       width: 'min(1100px, 96vw)',
-//       maxWidth: '96vw',
-//       autoFocus: false,
-//       restoreFocus: true,
-//       data: { row },
-//     });
-//   }
-
-//   openPayloadPreviewDialog(row: any) {
-//     const ref = this.dialog.open(OutboundPayloadPreviewDialog, {
-//       width: 'min(1180px, 96vw)',
-//       maxWidth: '96vw',
-//       maxHeight: '92vh',
-//       autoFocus: false,
-//       restoreFocus: true,
-//       panelClass: 'outbound-payload-preview-panel',
-//       data: { row },
-//     });
-
-//     ref.afterClosed().subscribe((result?: { refresh?: boolean }) => {
-//       if (result?.refresh) void this.refresh();
-//     });
-//   }
-
-//   async retry(row: any) {
-//     try {
-//       await this.api.outboundQueueRetry(row.id);
-//       this.snack.open('Queue item marked for retry', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Retry failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   async requeue(row: any) {
-//     try {
-//       await this.api.outboundQueueRequeue(row.id);
-//       this.snack.open('Queue item requeued', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Requeue failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   async sendNow(row: any) {
-//     try {
-//       await this.api.outboundQueueSendNow(row.id);
-//       this.snack.open('Delivery started', 'Close', { duration: 1800 });
-//       await this.refresh();
-//     } catch (e: any) {
-//       this.snack.open(e?.message ?? 'Delivery failed', 'Close', { duration: 3500 });
-//     }
-//   }
-
-//   targetDisplay(row: any) {
-//     return row?.target_name || row?.target_id || 'Unknown target';
-//   }
-
-//   canRetry(row: any) {
-//     return row?.delivery_status === 'FAILED';
-//   }
-
-//   canRequeue(row: any) {
-//     return row?.delivery_status === 'FAILED' || row?.delivery_status === 'DELIVERED';
-//   }
-
-//   canSendNow(row: any) {
-//     return row?.delivery_status !== 'SENDING';
-//   }
-
-//   summaryNotes(row: any) {
-//     const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
-
-//     if (row?.delivery_status === 'FAILED' && row?.last_error) {
-//       notes.push({
-//         kind: 'bad',
-//         text: row.last_error,
-//       });
-//     }
-
-//     if (row?.delivery_status === 'SENDING') {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'Delivery is currently in progress.',
-//       });
-//     }
-
-//     if (row?.next_retry_at) {
-//       notes.push({
-//         kind: 'info',
-//         text: `Retry scheduled for ${this.formatDateTime(row.next_retry_at)}.`,
-//       });
-//     }
-
-//     if ((row?.retry_count ?? 0) >= 3) {
-//       notes.push({
-//         kind: 'warn',
-//         text: 'This item has already retried multiple times.',
-//       });
-//     }
-
-//     if (!notes.length) {
-//       notes.push({
-//         kind: 'info',
-//         text: 'No active operational warnings for this queue item.',
-//       });
-//     }
-
-//     return notes;
-//   }
-
-//   statusText(row: any) {
-//     switch (row?.delivery_status) {
-//       case 'FAILED':
-//         return 'Needs intervention';
-//       case 'SENDING':
-//         return 'Delivery in progress';
-//       case 'DELIVERED':
-//         return 'Delivered successfully';
-//       default:
-//         return 'Ready for delivery';
-//     }
-//   }
-
-//   payloadHint(row: any) {
-//     const raw = row?.payload_json;
-//     if (!raw) return 'No stored payload available';
-//     try {
-//       const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
-//       return `${str.length.toLocaleString()} chars stored`;
-//     } catch {
-//       return 'Stored payload available';
-//     }
-//   }
-
-//   formatDateTime(value?: string | null) {
-//     if (!value) return '—';
-//     const d = new Date(value);
-//     if (Number.isNaN(d.getTime())) return value;
-
-//     return new Intl.DateTimeFormat(undefined, {
-//       year: 'numeric',
-//       month: 'short',
-//       day: '2-digit',
-//       hour: '2-digit',
-//       minute: '2-digit',
-//       second: '2-digit',
-//     }).format(d);
-//   }
-
-//   statusClass(status?: string | null) {
-//     switch (status) {
-//       case 'DELIVERED':
-//         return 'ok';
-//       case 'FAILED':
-//         return 'bad';
-//       case 'SENDING':
-//         return 'warn';
-//       default:
-//         return 'idle';
-//     }
-//   }
-
-//   rowTrackBy = (_: number, row: any) => row.id;
-// }
-
-
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -991,6 +54,7 @@ export class OutboundQueue {
       pending: rows.filter((row: any) => row.delivery_status === 'PENDING').length,
       sending: rows.filter((row: any) => row.delivery_status === 'SENDING').length,
       failed: rows.filter((row: any) => row.delivery_status === 'FAILED').length,
+      blocked: rows.filter((row: any) => row.delivery_status === 'BLOCKED').length,
       delivered: rows.filter((row: any) => row.delivery_status === 'DELIVERED').length,
     };
   });
@@ -1082,6 +146,16 @@ export class OutboundQueue {
     });
   }
 
+  async rebuildPayload(row: any) {
+    try {
+      await this.api.outboundQueueRebuildPayload(row.id);
+      this.snack.open('Payload rebuilt using the latest mappings and routing context', 'Close', { duration: 2400 });
+      await this.refresh();
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Payload rebuild failed', 'Close', { duration: 4500 });
+    }
+  }
+
   async retry(row: any) {
     try {
       await this.api.outboundQueueRetry(row.id);
@@ -1121,17 +195,21 @@ export class OutboundQueue {
   }
 
   canRequeue(row: any) {
-    return row?.delivery_status === 'FAILED' || row?.delivery_status === 'DELIVERED';
+    return row?.delivery_status === 'FAILED' || row?.delivery_status === 'DELIVERED' || row?.delivery_status === 'BLOCKED';
   }
 
   canSendNow(row: any) {
-    return row?.delivery_status !== 'SENDING';
+    return row?.delivery_status !== 'SENDING' && row?.delivery_status !== 'BLOCKED';
+  }
+
+  canRebuildPayload(row: any) {
+    return !!row?.id && row?.delivery_status !== 'SENDING' && row?.delivery_status !== 'DELIVERED';
   }
 
   summaryNotes(row: any) {
     const notes: Array<{ kind: 'info' | 'warn' | 'bad'; text: string }> = [];
 
-    if (row?.delivery_status === 'FAILED' && row?.last_error) {
+    if ((row?.delivery_status === 'FAILED' || row?.delivery_status === 'BLOCKED') && row?.last_error) {
       notes.push({
         kind: 'bad',
         text: row.last_error,
@@ -1159,6 +237,28 @@ export class OutboundQueue {
       });
     }
 
+    const handling = this.resultHandlingSummary(row);
+    if (handling) {
+      if ((handling.blockedExistingCount ?? 0) > 0) {
+        notes.push({
+          kind: 'bad',
+          text: `${handling.blockedExistingCount} row(s) blocked because existing LIS results were found. Open payload preview for details.`,
+        });
+      }
+      if ((handling.skippedDuplicateCount ?? 0) > 0) {
+        notes.push({
+          kind: 'warn',
+          text: `${handling.skippedDuplicateCount} duplicate row(s) skipped because the same value already exists in LIS.`,
+        });
+      }
+      if ((handling.correctionCount ?? 0) > 0 || (handling.repeatCount ?? 0) > 0) {
+        notes.push({
+          kind: 'info',
+          text: `${handling.correctionCount ?? 0} correction row(s) and ${handling.repeatCount ?? 0} repeat row(s) prepared.`,
+        });
+      }
+    }
+
     if (!notes.length) {
       notes.push({
         kind: 'info',
@@ -1169,6 +269,21 @@ export class OutboundQueue {
     return notes;
   }
 
+  resultHandlingSummary(row: any) {
+    const parsed = this.safeParseJson(row?.transform_summary_json);
+    return parsed?.lisResultHandling ?? parsed?.resultHandling ?? null;
+  }
+
+  private safeParseJson(value: any) {
+    if (!value) return null;
+    if (typeof value !== 'string') return value;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
   statusText(row: any) {
     switch (row?.delivery_status) {
       case 'FAILED':
@@ -1177,6 +292,8 @@ export class OutboundQueue {
         return 'Delivery in progress';
       case 'DELIVERED':
         return 'Delivered successfully';
+      case 'BLOCKED':
+        return 'Payload needs rebuild';
       default:
         return 'Ready for delivery';
     }
@@ -1213,6 +330,7 @@ export class OutboundQueue {
       case 'DELIVERED':
         return 'ok';
       case 'FAILED':
+      case 'BLOCKED':
         return 'bad';
       case 'SENDING':
         return 'warn';

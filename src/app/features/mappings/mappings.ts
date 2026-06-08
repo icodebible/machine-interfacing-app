@@ -75,6 +75,15 @@ type TranslationRow = {
   updated_at?: string | null;
 };
 
+type LisTestOrderProfileSummary = {
+  code?: string | null;
+  name?: string | null;
+  orderConceptUuid?: string | null;
+  analyzerCodes: string[];
+  requiredAnalyzerCodes: string[];
+  parameterCount: number;
+};
+
 @Component({
   selector: 'app-mappings',
   standalone: true,
@@ -359,6 +368,26 @@ export class Mappings {
     };
   });
 
+  readonly lisProfileRule = computed(() =>
+    this.rows().find((row) =>
+      row.target_type === 'LIS' &&
+      ['lis.testorderprofiles', 'lis.testorder.profiles', 'lis.test_order_profiles'].includes(
+        String(row.destination_field ?? '').trim().toLowerCase(),
+      ),
+    ) ?? null,
+  );
+
+  readonly lisProfiles = computed(() => this.parseLisProfiles(this.lisProfileRule()?.constant_value));
+
+  readonly lisProfileReadiness = computed(() => {
+    const profiles = this.lisProfiles();
+    const profileCount = profiles.length;
+    const analyzerCodeCount = new Set(profiles.flatMap((profile) => profile.analyzerCodes)).size;
+    const requiredCodeCount = new Set(profiles.flatMap((profile) => profile.requiredAnalyzerCodes)).size;
+    const parameterCount = profiles.reduce((sum, profile) => sum + profile.parameterCount, 0);
+    return { profileCount, analyzerCodeCount, requiredCodeCount, parameterCount };
+  });
+
   constructor() {
     this.refresh();
     this.refreshLisTargets();
@@ -591,6 +620,72 @@ export class Mappings {
   onPageChange(event: PageEvent) {
     this.pageIndex.set(event.pageIndex);
     this.pageSize.set(event.pageSize);
+  }
+
+  private parseLisProfiles(value: any): LisTestOrderProfileSummary[] {
+    const parsed = this.parseJson(value);
+    const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === 'object' ? [parsed] : [];
+    return list
+      .map((profile: any) => {
+        const parameters = Array.isArray(profile?.parameters) ? profile.parameters : [];
+        const analyzerCodes = this.uniqueStrings([
+          ...this.asStringArray(profile?.analyzerCodes ?? profile?.codes),
+          ...parameters.flatMap((parameter: any) => [parameter?.analyzerCode, ...(Array.isArray(parameter?.aliases) ? parameter.aliases : [])]),
+        ]);
+        const requiredAnalyzerCodes = this.uniqueStrings([
+          ...this.asStringArray(profile?.requiredAnalyzerCodes ?? profile?.requiredCodes),
+          ...parameters.filter((parameter: any) => parameter?.required !== false).map((parameter: any) => parameter?.analyzerCode),
+        ]);
+        return {
+          code: this.cleanText(profile?.code ?? profile?.testCode ?? profile?.orderCode),
+          name: this.cleanText(profile?.name ?? profile?.display ?? profile?.title ?? profile?.orderConceptName),
+          orderConceptUuid: this.cleanText(profile?.orderConceptUuid ?? profile?.orderUuid ?? profile?.conceptUuid),
+          analyzerCodes,
+          requiredAnalyzerCodes,
+          parameterCount: parameters.length || analyzerCodes.length,
+        };
+      })
+      .filter((profile) => !!(profile.code || profile.name || profile.orderConceptUuid || profile.analyzerCodes.length));
+  }
+
+  private parseJson(value: any): any {
+    if (value == null) return null;
+    if (typeof value !== 'string') return value;
+    const raw = value.trim();
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private asStringArray(value: any): string[] {
+    if (value == null) return [];
+    if (Array.isArray(value)) return value.flatMap((item) => this.asStringArray(item));
+    return String(value ?? '')
+      .split(/[|,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private uniqueStrings(values: any[]): string[] {
+    const seen = new Set<string>();
+    const rows: string[] = [];
+    for (const value of values ?? []) {
+      const text = String(value ?? '').trim();
+      if (!text) continue;
+      const key = text.toUpperCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(text);
+    }
+    return rows;
+  }
+
+  private cleanText(value: any): string | null {
+    const text = String(value ?? '').trim();
+    return text || null;
   }
 
   helperCount(type: MappingTargetType) {

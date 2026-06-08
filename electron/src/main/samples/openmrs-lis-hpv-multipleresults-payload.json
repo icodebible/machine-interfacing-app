@@ -4,7 +4,7 @@
   "endpoint": "/openmrs/ws/rest/v1/lab/multipleresults",
   "sample": {
     "uuid": "ec2c9ec1-e742-4f89-979a-01560a607d01",
-    "label": "NPHL/22/0000001"
+    "label": "NPHL/22/0000027"
   },
   "order": {
     "uuid": "14274d15-3e8f-48e8-a649-1d6ddd1d6914",
