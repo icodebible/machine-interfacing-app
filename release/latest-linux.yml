@@ -1,12 +1,12 @@
 version: 1.0.0
 files:
   - url: Machine-Interfacing-App-1.0.0-linux-x86_64.AppImage
-    sha512: oklev4opaAr8qwYD4udLmFX9Z7XyPDRm3DaSI2OXucB1hCiDT4ynuPyKJT5oQWGLJf9RvZHQ/RJPZBxul2Jysg==
-    size: 130274035
-    blockMapSize: 135943
+    sha512: Letg9QGEJNXwn0GjD1x8Lx2ncvTKvMyfwzQo3mUa9E5juiwhXym/h3PiW9WHq2Lk828ax7JbFQBRvSOYjvCRfg==
+    size: 136814573
+    blockMapSize: 143361
   - url: Machine-Interfacing-App-1.0.0-linux-amd64.deb
-    sha512: mOGAvc7/GiXlMcTLA0Px6eSHVLCdcEpymwQYOKf5gbZl7CCZiETVzAfHnfWULj/8dW2zUAZru18J9C6cQjwIrw==
-    size: 101410036
+    sha512: xLheoFwSdn8vQjndOetHmdmjD1Sh2DQgf1Pc9n2MLnal/ak4OA0A/Tq8L1hR1HEAZoMTPSne7vXbnXDu5CKEGg==
+    size: 107557192
 path: Machine-Interfacing-App-1.0.0-linux-x86_64.AppImage
-sha512: oklev4opaAr8qwYD4udLmFX9Z7XyPDRm3DaSI2OXucB1hCiDT4ynuPyKJT5oQWGLJf9RvZHQ/RJPZBxul2Jysg==
-releaseDate: '2026-06-12T12:50:43.146Z'
+sha512: Letg9QGEJNXwn0GjD1x8Lx2ncvTKvMyfwzQo3mUa9E5juiwhXym/h3PiW9WHq2Lk828ax7JbFQBRvSOYjvCRfg==
+releaseDate: '2026-06-12T14:13:02.444Z'

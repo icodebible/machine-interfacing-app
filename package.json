@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist-electron/main.js",
   "scripts": {
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node scripts/vendor-packaged-font-assets.mjs && electron-builder install-app-deps",
     "rebuild:native": "electron-builder install-app-deps",
     "ng": "ng",
     "start": "ng serve",
@@ -106,7 +106,9 @@
     "serialport": "^13.0.0",
     "tslib": "^2.3.0",
     "zod": "^4.3.6",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "@fontsource/roboto": "^5.2.10",
+    "material-icons": "^1.13.14"
   },
   "devDependencies": {
     "@angular/build": "^20.1.6",

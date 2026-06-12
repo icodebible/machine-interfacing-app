@@ -34,7 +34,7 @@ linux:
 icon: build/icons/512x512.png
 publish:
   - provider: github
-    owner: udsm-dhis2-lab
+    owner: icodebible
     repo: machine-interfacing-app
     releaseType: release
 electronVersion: 39.7.0
