@@ -70,7 +70,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "udsm-dhis2-lab",
+        "owner": "icodebible",
         "repo": "machine-interfacing-app",
         "releaseType": "release"
       }
@@ -140,7 +140,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/udsm-dhis2-lab/machine-interfacing-app.git"
+    "url": "https://github.com/icodebible/machine-interfacing-app.git"
   },
   "description": "Machine interfacing platform for laboratory analyzer integration, LIS delivery, audit, and deployment readiness.",
   "author": {

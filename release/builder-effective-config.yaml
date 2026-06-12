@@ -34,6 +34,7 @@ linux:
 icon: build/icons/512x512.png
 publish:
   - provider: github
-    owner: UDSM DHIS2 Lab
-    repo: YOUR_REPO
+    owner: udsm-dhis2-lab
+    repo: machine-interfacing-app
+    releaseType: release
 electronVersion: 39.7.0
