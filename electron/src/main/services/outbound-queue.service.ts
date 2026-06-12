@@ -5,6 +5,7 @@ import { TargetSecretsService } from './target-secrets.service';
 import { buildAuthHeaders } from '../security/delivery-auth.util';
 import { TargetTransformPreviewService } from '../transformers/target-transform-preview.service';
 import { getCurrentActorStamp } from './actor-context.service';
+import { auditService } from './audit.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -24,6 +25,28 @@ type QueueRow = {
     last_error?: string | null;
     created_at: string;
     updated_at: string;
+};
+
+type DeliveryValidationStatus = 'READY' | 'WARNING' | 'BLOCKED';
+
+type DeliveryValidationResult = {
+    status: DeliveryValidationStatus;
+    severity: 'success' | 'warn' | 'bad';
+    payloadRowCount: number;
+    errors: string[];
+    warnings: string[];
+    messages: string[];
+    missingRequiredCodes: string[];
+    unexpectedAnalyzerCodes: string[];
+};
+
+type QueuePreviewLike = {
+    payload?: any;
+    previewName?: string | null;
+    sourceDocument?: any;
+    warnings?: string[];
+    errors?: string[];
+    summary?: any;
 };
 
 export class OutboundQueueService {
@@ -85,7 +108,7 @@ export class OutboundQueueService {
                         t.request_timeout_ms AS target_request_timeout_ms
                 FROM outbound_queue q
                 LEFT JOIN targets t ON t.id = q.target_id
-                WHERE q.delivery_status IN ('PENDING', 'FAILED', 'SENDING')
+                WHERE q.delivery_status IN ('PENDING', 'FAILED', 'SENDING', 'BLOCKED')
                 ORDER BY q.created_at DESC
                 LIMIT ?
                 `,
@@ -132,17 +155,15 @@ export class OutboundQueueService {
         if (existing?.id) return false;
 
         const preview = this.preview.preview(targetId, normalizedResultId);
-        const previewErrors = preview.errors ?? [];
-        const hasErrors = previewErrors.length > 0;
-        if (hasErrors && !options.allowInvalidPreview) {
-            throw new Error(
-                `Cannot enqueue result because the configured transformation has ${previewErrors.length} blocking error${previewErrors.length === 1 ? '' : 's'}. Review the transform preview first.`,
-            );
+        const validation = this.validatePreviewForDelivery(preview);
+        const previewWithValidation = this.withDeliveryValidation(preview, validation);
+        if (validation.status === 'BLOCKED' && !options.allowInvalidPreview) {
+            throw new Error(this.deliveryValidationMessage(validation));
         }
 
         const id = randomUUID();
         const ts = nowIso();
-        const deliveryStatus = hasErrors ? 'BLOCKED' : 'PENDING';
+        const deliveryStatus = validation.status === 'BLOCKED' ? 'BLOCKED' : 'PENDING';
 
         db.prepare(
             `
@@ -166,19 +187,20 @@ export class OutboundQueueService {
                     created_by_username,
                     updated_by_user_id,
                     updated_by_username
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?, ?, ?)
             `,
         ).run(
             id,
             normalizedResultId,
             targetId,
-            JSON.stringify(preview.payload ?? {}),
-            preview.previewName ?? null,
-            preview.sourceDocument ? JSON.stringify(preview.sourceDocument) : null,
-            JSON.stringify(preview.warnings ?? []),
-            JSON.stringify(preview.errors ?? []),
-            JSON.stringify(preview.summary ?? null),
+            JSON.stringify(previewWithValidation.payload ?? {}),
+            previewWithValidation.previewName ?? null,
+            previewWithValidation.sourceDocument ? JSON.stringify(previewWithValidation.sourceDocument) : null,
+            JSON.stringify(previewWithValidation.warnings ?? []),
+            JSON.stringify(previewWithValidation.errors ?? []),
+            JSON.stringify(previewWithValidation.summary ?? null),
             deliveryStatus,
+            validation.status === 'BLOCKED' ? this.deliveryValidationMessage(validation) : null,
             ts,
             ts,
             actor.userId,
@@ -187,31 +209,58 @@ export class OutboundQueueService {
             actor.username,
         );
 
+        auditService.record({
+            source: 'OUTBOUND',
+            category: 'DELIVERY',
+            action: 'OUTBOUND_QUEUE_CREATED',
+            status: deliveryStatus === 'BLOCKED' ? 'BLOCKED' : 'SUCCESS',
+            severity: deliveryStatus === 'BLOCKED' ? 'WARNING' : 'INFO',
+            entityType: 'outbound_queue',
+            entityId: id,
+            summary: `Outbound queue item created with status ${deliveryStatus}`,
+            details: { normalizedResultId, targetId, validation },
+            actor,
+        });
+
         return true;
     }
 
     requeue(queueId: string) {
         const db = getDb();
         const actor = getCurrentActorStamp();
-        const res = db
-            .prepare(
-                `
-                UPDATE outbound_queue
-                SET delivery_status = 'PENDING',
-                    next_retry_at = NULL,
-                    last_error = NULL,
-                    updated_at = ?,
-                    updated_by_user_id = ?,
-                    updated_by_username = ?
-                WHERE id = ?
-                `,
-            )
-            .run(nowIso(), actor.userId, actor.username, queueId);
+        const queueRow = db
+            .prepare(`SELECT * FROM outbound_queue WHERE id = ? LIMIT 1`)
+            .get(queueId) as QueueRow | undefined;
 
-        if (res.changes !== 1) throw new Error('Queue item not found');
+        if (!queueRow) throw new Error('Queue item not found');
+        if (queueRow.delivery_status === 'SENDING') {
+            throw new Error('Queue item cannot be requeued while delivery is in progress.');
+        }
+
+        const preview = this.preview.preview(queueRow.target_id, queueRow.normalized_result_id);
+        const validation = this.validatePreviewForDelivery(preview);
+        const previewWithValidation = this.withDeliveryValidation(preview, validation);
+        this.persistPreview(queueRow.id, previewWithValidation, validation, validation.status === 'BLOCKED' ? 'BLOCKED' : 'PENDING', actor);
+
+        auditService.record({
+            source: 'OUTBOUND',
+            category: 'DELIVERY',
+            action: 'OUTBOUND_QUEUE_REQUEUED',
+            status: validation.status === 'BLOCKED' ? 'BLOCKED' : 'SUCCESS',
+            severity: validation.status === 'BLOCKED' ? 'WARNING' : 'INFO',
+            entityType: 'outbound_queue',
+            entityId: queueId,
+            summary: `Outbound queue item requeued with validation status ${validation.status}`,
+            details: { targetId: queueRow.target_id, normalizedResultId: queueRow.normalized_result_id, validation },
+            actor,
+        });
+
+        if (validation.status === 'BLOCKED') {
+            throw new Error(this.deliveryValidationMessage(validation));
+        }
+
         return true;
     }
-
 
     rebuildPayload(queueId: string) {
         const db = getDb();
@@ -226,43 +275,22 @@ export class OutboundQueueService {
         }
 
         const preview = this.preview.preview(queueRow.target_id, queueRow.normalized_result_id);
-        const previewErrors = preview.errors ?? [];
-        const deliveryStatus = previewErrors.length ? 'BLOCKED' : 'PENDING';
-        const ts = nowIso();
-
-        db.prepare(
-            `
-                UPDATE outbound_queue
-                SET payload_json = ?,
-                    preview_name = ?,
-                    source_snapshot_json = ?,
-                    transform_warnings_json = ?,
-                    transform_errors_json = ?,
-                    transform_summary_json = ?,
-                    delivery_status = ?,
-                    next_retry_at = NULL,
-                    last_error = ?,
-                    updated_at = ?,
-                    updated_by_user_id = ?,
-                    updated_by_username = ?
-                WHERE id = ?
-            `,
-        ).run(
-            JSON.stringify(preview.payload ?? {}),
-            preview.previewName ?? null,
-            preview.sourceDocument ? JSON.stringify(preview.sourceDocument) : null,
-            JSON.stringify(preview.warnings ?? []),
-            JSON.stringify(previewErrors),
-            JSON.stringify(preview.summary ?? null),
-            deliveryStatus,
-            previewErrors.length ? previewErrors.join('; ') : null,
-            ts,
-            actor.userId,
-            actor.username,
-            queueId,
-        );
-
-        return preview;
+        const validation = this.validatePreviewForDelivery(preview);
+        const previewWithValidation = this.withDeliveryValidation(preview, validation);
+        this.persistPreview(queueRow.id, previewWithValidation, validation, validation.status === 'BLOCKED' ? 'BLOCKED' : 'PENDING', actor);
+        auditService.record({
+            source: 'OUTBOUND',
+            category: 'DELIVERY',
+            action: 'OUTBOUND_QUEUE_PAYLOAD_REBUILT',
+            status: validation.status === 'BLOCKED' ? 'BLOCKED' : 'SUCCESS',
+            severity: validation.status === 'BLOCKED' ? 'WARNING' : 'INFO',
+            entityType: 'outbound_queue',
+            entityId: queueId,
+            summary: `Outbound payload rebuilt with validation status ${validation.status}`,
+            details: { targetId: queueRow.target_id, normalizedResultId: queueRow.normalized_result_id, validation },
+            actor,
+        });
+        return previewWithValidation;
     }
 
     retry(queueId: string) {
@@ -283,8 +311,12 @@ export class OutboundQueueService {
             .get(queueRow.target_id) as any;
         if (!target) throw new Error('Target not found');
         if (target.enabled !== 1) throw new Error('Target is disabled');
-        if (queueRow.delivery_status === 'BLOCKED') {
-            throw new Error('Queued payload is blocked by transform errors. Rebuild or fix mappings before sending.');
+
+        const storedPreview = this.preview.previewFromQueue(queueRow.id);
+        const storedValidation = this.validatePreviewForDelivery(storedPreview);
+        if (queueRow.delivery_status === 'BLOCKED' || storedValidation.status === 'BLOCKED') {
+            this.persistPreview(queueRow.id, this.withDeliveryValidation(storedPreview, storedValidation), storedValidation, 'BLOCKED', actor);
+            throw new Error(this.deliveryValidationMessage(storedValidation));
         }
 
         const payload = this.tryParseJson(queueRow.payload_json);
@@ -356,6 +388,17 @@ export class OutboundQueueService {
                 duration_ms: Date.now() - startAt,
                 error_message: null,
             });
+            auditService.record({
+                source: 'OUTBOUND',
+                category: 'DELIVERY',
+                action: operation,
+                status: 'SUCCESS',
+                entityType: 'outbound_queue',
+                entityId: queueRow.id,
+                summary: `Outbound delivery ${operation} succeeded`,
+                details: { targetId: queueRow.target_id, httpStatus: Number(result?.status ?? 200), durationMs: Date.now() - startAt },
+                actor,
+            });
 
             return true;
         } catch (error: any) {
@@ -390,9 +433,174 @@ export class OutboundQueueService {
                 duration_ms: Date.now() - startAt,
                 error_message: error?.message ?? 'Delivery failed',
             });
+            auditService.record({
+                source: 'OUTBOUND',
+                category: 'DELIVERY',
+                action: operation,
+                status: 'FAILED',
+                severity: 'ERROR',
+                entityType: 'outbound_queue',
+                entityId: queueRow.id,
+                summary: `Outbound delivery ${operation} failed`,
+                details: { targetId: queueRow.target_id, error: error?.message ?? 'Delivery failed', durationMs: Date.now() - startAt },
+                actor,
+            });
 
             throw error;
         }
+    }
+
+    private validatePreviewForDelivery(preview: QueuePreviewLike): DeliveryValidationResult {
+        const payload = preview?.payload;
+        const payloadRowCount = this.countPayloadRows(payload);
+        const testOrderProfile = this.extractTestOrderProfile(preview);
+        const resultHandling = this.extractResultHandling(preview);
+        const missingRequiredCodes = this.stringArray(
+            testOrderProfile?.missingRequiredAnalyzerCodes ?? testOrderProfile?.missingRequiredCodes ?? [],
+        );
+        const unexpectedAnalyzerCodes = this.stringArray(testOrderProfile?.unexpectedAnalyzerCodes ?? []);
+        const errors = this.uniqueStrings([
+            ...(preview.errors ?? []),
+            ...this.stringArray(resultHandling?.errors ?? []),
+        ]);
+        const warnings = this.uniqueStrings([
+            ...(preview.warnings ?? []),
+            ...this.stringArray(resultHandling?.warnings ?? []),
+        ]);
+
+        if (!payload || (typeof payload === 'object' && !Array.isArray(payload) && Object.keys(payload).length === 0)) {
+            errors.push('Delivery payload is empty. Rebuild payload after fixing mappings/profile configuration.');
+        }
+        if (payloadRowCount === 0) {
+            errors.push('Delivery payload has no result rows to send.');
+        }
+        if (missingRequiredCodes.length) {
+            errors.push(`Required LIS profile analyzer code(s) missing from payload: ${missingRequiredCodes.join(', ')}.`);
+        }
+        const blockedExistingCount = Number(resultHandling?.blockedExistingCount ?? 0);
+        if (blockedExistingCount > 0) {
+            errors.push(`Delivery has ${blockedExistingCount} LIS row(s) blocked because existing LIS results were found without repeat/correction intent.`);
+        }
+        if (unexpectedAnalyzerCodes.length) {
+            warnings.push(`Unexpected analyzer code(s) are present for the matched LIS profile: ${unexpectedAnalyzerCodes.join(', ')}.`);
+        }
+
+        const cleanErrors = this.uniqueStrings(errors);
+        const cleanWarnings = this.uniqueStrings(warnings);
+        const status: DeliveryValidationStatus = cleanErrors.length ? 'BLOCKED' : cleanWarnings.length ? 'WARNING' : 'READY';
+        const messages = this.uniqueStrings([
+            ...(status === 'READY' ? ['Payload passed delivery validation and can be sent.'] : []),
+            ...cleanErrors,
+            ...cleanWarnings,
+        ]);
+
+        return {
+            status,
+            severity: status === 'BLOCKED' ? 'bad' : status === 'WARNING' ? 'warn' : 'success',
+            payloadRowCount,
+            errors: cleanErrors,
+            warnings: cleanWarnings,
+            messages,
+            missingRequiredCodes,
+            unexpectedAnalyzerCodes,
+        };
+    }
+
+    private withDeliveryValidation<T extends QueuePreviewLike>(preview: T, validation: DeliveryValidationResult): T {
+        const summary = preview?.summary && typeof preview.summary === 'object' ? { ...preview.summary } : {};
+        summary.deliveryValidation = validation;
+        return {
+            ...preview,
+            summary,
+            errors: validation.errors,
+            warnings: validation.warnings,
+        };
+    }
+
+    private persistPreview(
+        queueId: string,
+        preview: QueuePreviewLike,
+        validation: DeliveryValidationResult,
+        deliveryStatus: 'PENDING' | 'BLOCKED',
+        actor: { userId: string | null; username: string | null },
+    ): void {
+        const db = getDb();
+        db.prepare(
+            `
+                UPDATE outbound_queue
+                SET payload_json = ?,
+                    preview_name = ?,
+                    source_snapshot_json = ?,
+                    transform_warnings_json = ?,
+                    transform_errors_json = ?,
+                    transform_summary_json = ?,
+                    delivery_status = ?,
+                    next_retry_at = NULL,
+                    last_error = ?,
+                    updated_at = ?,
+                    updated_by_user_id = ?,
+                    updated_by_username = ?
+                WHERE id = ?
+            `,
+        ).run(
+            JSON.stringify(preview.payload ?? {}),
+            preview.previewName ?? null,
+            preview.sourceDocument ? JSON.stringify(preview.sourceDocument) : null,
+            JSON.stringify(preview.warnings ?? []),
+            JSON.stringify(preview.errors ?? []),
+            JSON.stringify(preview.summary ?? null),
+            deliveryStatus,
+            validation.status === 'BLOCKED' ? this.deliveryValidationMessage(validation) : null,
+            nowIso(),
+            actor.userId,
+            actor.username,
+            queueId,
+        );
+    }
+
+    private deliveryValidationMessage(validation: DeliveryValidationResult): string {
+        const primary = validation.errors[0] ?? validation.warnings[0] ?? validation.messages[0];
+        if (!primary) return 'Payload is blocked by delivery validation.';
+        return validation.status === 'BLOCKED' ? `Payload blocked by delivery validation: ${primary}` : primary;
+    }
+
+    private countPayloadRows(payload: any): number {
+        if (Array.isArray(payload)) return payload.length;
+        if (Array.isArray(payload?.body)) return payload.body.length;
+        if (Array.isArray(payload?.payload?.body)) return payload.payload.body.length;
+        if (Array.isArray(payload?.results)) return payload.results.length;
+        return 0;
+    }
+
+    private extractTestOrderProfile(preview: QueuePreviewLike): any {
+        return preview?.payload?.context?.testOrderProfile
+            ?? preview?.summary?.lisTestOrderProfile
+            ?? preview?.sourceDocument?.lis?.testOrderProfile
+            ?? null;
+    }
+
+    private extractResultHandling(preview: QueuePreviewLike): any {
+        return preview?.payload?.context?.resultHandling
+            ?? preview?.summary?.lisResultHandling
+            ?? preview?.sourceDocument?.lis?.resultHandling
+            ?? null;
+    }
+
+    private stringArray(value: any): string[] {
+        if (!Array.isArray(value)) return [];
+        return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+    }
+
+    private uniqueStrings(values: unknown[]): string[] {
+        const seen = new Set<string>();
+        const out: string[] = [];
+        for (const value of values) {
+            const text = String(value ?? '').trim();
+            if (!text || seen.has(text)) continue;
+            seen.add(text);
+            out.push(text);
+        }
+        return out;
     }
 
     private insertAudit(args: {

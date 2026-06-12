@@ -1,0 +1,279 @@
+import { randomUUID } from 'crypto';
+import { getDb } from '../db/db';
+import { getCurrentActorStamp } from './actor-context.service';
+
+const nowIso = () => new Date().toISOString();
+
+export type AuditSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+export type AuditStatus = 'SUCCESS' | 'FAILED' | 'REQUESTED' | 'BLOCKED' | 'SKIPPED';
+
+export type AuditActor = {
+    userId?: string | null;
+    username?: string | null;
+    id?: string | null;
+};
+
+export type AuditEventInput = {
+    source: 'APP' | 'AUTH' | 'MACHINE' | 'RUNTIME' | 'SIMULATION' | 'TARGET' | 'LIS' | 'MAPPING' | 'ROUTING' | 'OUTBOUND' | 'RESULT' | 'SECURITY' | string;
+    category: 'CONFIGURATION' | 'SECURITY' | 'RUNTIME' | 'SIMULATION' | 'DELIVERY' | 'LIS_PROFILE' | 'MAPPING' | 'ROUTING' | 'RESULT_WORKFLOW' | 'DIAGNOSTICS' | string;
+    action: string;
+    severity?: AuditSeverity;
+    status?: AuditStatus | string;
+    entityType?: string | null;
+    entityId?: string | null;
+    entityLabel?: string | null;
+    summary?: string | null;
+    details?: unknown;
+    before?: unknown;
+    after?: unknown;
+    correlationId?: string | null;
+    actor?: AuditActor | null;
+};
+
+export type AuditQuery = {
+    q?: string | null;
+    source?: string | null;
+    category?: string | null;
+    action?: string | null;
+    severity?: string | null;
+    status?: string | null;
+    entityType?: string | null;
+    entityId?: string | null;
+    from?: string | null;
+    to?: string | null;
+    limit?: number | null;
+};
+
+const SECRET_KEY_PATTERN = /(password|passwd|token|secret|api[_-]?key|authorization|auth|credential|private|bearer|sessionid|cookie)/i;
+const SENSITIVE_VALUE_PATTERN = /(bearer\s+[a-z0-9._\-]+|basic\s+[a-z0-9+/=]+|password=([^&\s]+)|passwd=([^&\s]+)|token=([^&\s]+)|api[_-]?key=([^&\s]+)|authorization=([^&\s]+))/ig;
+
+function clampLimit(value: unknown, fallback = 100, max = 500) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(1, Math.trunc(n)));
+}
+
+function redactString(value: string): string {
+    return value.replace(SENSITIVE_VALUE_PATTERN, (match) => {
+        const idx = match.indexOf('=');
+        if (idx >= 0) return `${match.slice(0, idx + 1)}[REDACTED]`;
+        const firstSpace = match.indexOf(' ');
+        return firstSpace >= 0 ? `${match.slice(0, firstSpace + 1)}[REDACTED]` : '[REDACTED]';
+    });
+}
+
+function redactValue(value: unknown): unknown {
+    if (value === null || value === undefined) return value;
+    if (typeof value === 'string') return redactString(value);
+    if (Array.isArray(value)) return value.map(redactValue);
+    if (typeof value !== 'object') return value;
+
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+        out[key] = SECRET_KEY_PATTERN.test(key) ? '[REDACTED]' : redactValue(child);
+    }
+    return out;
+}
+
+function stringify(value: unknown): string | null {
+    if (value === undefined) return null;
+    try {
+        return JSON.stringify(redactValue(value));
+    } catch {
+        return JSON.stringify({ value: '[Unserializable]' });
+    }
+}
+
+function parseJson(value: string | null | undefined) {
+    if (!value) return null;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+}
+
+export class AuditService {
+    ensureTable() {
+        const db = getDb();
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS audit_events (
+                id TEXT PRIMARY KEY,
+                event_time TEXT NOT NULL,
+                source TEXT NOT NULL,
+                category TEXT NOT NULL,
+                action TEXT NOT NULL,
+                severity TEXT NOT NULL DEFAULT 'INFO',
+                status TEXT NOT NULL DEFAULT 'SUCCESS',
+                entity_type TEXT,
+                entity_id TEXT,
+                entity_label TEXT,
+                summary TEXT,
+                details_json TEXT,
+                before_json TEXT,
+                after_json TEXT,
+                correlation_id TEXT,
+                actor_user_id TEXT,
+                actor_username TEXT,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_time
+            ON audit_events(event_time DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_entity
+            ON audit_events(entity_type, entity_id, event_time DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_category_action
+            ON audit_events(category, action, event_time DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_actor
+            ON audit_events(actor_username, event_time DESC);
+        `);
+    }
+
+    record(input: AuditEventInput): { id: string } | null {
+        try {
+            this.ensureTable();
+            const db = getDb();
+            const currentActor = input.actor ?? getCurrentActorStamp();
+            const id = randomUUID();
+            const ts = nowIso();
+            const actorUserId = currentActor?.userId ?? (currentActor && 'id' in currentActor ? currentActor.id ?? null : null);
+            const actorUsername = currentActor?.username ?? null;
+
+            db.prepare(
+                `
+                INSERT INTO audit_events (
+                    id, event_time, source, category, action, severity, status,
+                    entity_type, entity_id, entity_label, summary,
+                    details_json, before_json, after_json, correlation_id,
+                    actor_user_id, actor_username, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+            ).run(
+                id,
+                ts,
+                String(input.source || 'APP').toUpperCase(),
+                String(input.category || 'DIAGNOSTICS').toUpperCase(),
+                String(input.action || 'UNKNOWN').toUpperCase(),
+                String(input.severity ?? 'INFO').toUpperCase(),
+                String(input.status ?? 'SUCCESS').toUpperCase(),
+                input.entityType ?? null,
+                input.entityId ?? null,
+                input.entityLabel ?? null,
+                input.summary ?? null,
+                stringify(input.details),
+                stringify(input.before),
+                stringify(input.after),
+                input.correlationId ?? null,
+                actorUserId,
+                actorUsername,
+                ts,
+            );
+            return { id };
+        } catch (error) {
+            // Auditing must never interrupt clinical/runtime workflow.
+            console.warn('[audit] failed to record audit event', error);
+            return null;
+        }
+    }
+
+    query(query: AuditQuery = {}) {
+        this.ensureTable();
+        const where: string[] = [];
+        const args: unknown[] = [];
+
+        const addEq = (column: string, value: unknown) => {
+            const text = String(value ?? '').trim();
+            if (!text || text.toUpperCase() === 'ALL') return;
+            where.push(`${column} = ?`);
+            args.push(text);
+        };
+
+        addEq('source', query.source?.toUpperCase());
+        addEq('category', query.category?.toUpperCase());
+        addEq('action', query.action?.toUpperCase());
+        addEq('severity', query.severity?.toUpperCase());
+        addEq('status', query.status?.toUpperCase());
+        addEq('entity_type', query.entityType);
+        addEq('entity_id', query.entityId);
+
+        if (query.from) {
+            where.push('event_time >= ?');
+            args.push(query.from);
+        }
+        if (query.to) {
+            where.push('event_time <= ?');
+            args.push(query.to);
+        }
+        if (query.q && String(query.q).trim()) {
+            const needle = `%${String(query.q).trim()}%`;
+            where.push('(summary LIKE ? OR entity_label LIKE ? OR actor_username LIKE ? OR action LIKE ? OR details_json LIKE ?)');
+            args.push(needle, needle, needle, needle, needle);
+        }
+
+        const limit = clampLimit(query.limit);
+        const rows = getDb()
+            .prepare(
+                `
+                SELECT *
+                FROM audit_events
+                ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+                ORDER BY event_time DESC
+                LIMIT ?
+                `,
+            )
+            .all(...args, limit) as any[];
+
+        return rows.map((row) => ({
+            ...row,
+            details: parseJson(row.details_json),
+            before: parseJson(row.before_json),
+            after: parseJson(row.after_json),
+        }));
+    }
+
+    summary(days = 7) {
+        this.ensureTable();
+        const from = new Date(Date.now() - Math.max(1, Number(days) || 7) * 24 * 60 * 60 * 1000).toISOString();
+        const db = getDb();
+        const totals = db
+            .prepare(
+                `
+                SELECT severity, status, COUNT(*) AS count
+                FROM audit_events
+                WHERE event_time >= ?
+                GROUP BY severity, status
+                ORDER BY severity ASC, status ASC
+                `,
+            )
+            .all(from) as any[];
+        const categories = db
+            .prepare(
+                `
+                SELECT category, COUNT(*) AS count
+                FROM audit_events
+                WHERE event_time >= ?
+                GROUP BY category
+                ORDER BY count DESC, category ASC
+                `,
+            )
+            .all(from) as any[];
+        const actions = db
+            .prepare(
+                `
+                SELECT action, COUNT(*) AS count
+                FROM audit_events
+                WHERE event_time >= ?
+                GROUP BY action
+                ORDER BY count DESC, action ASC
+                LIMIT 20
+                `,
+            )
+            .all(from) as any[];
+        return { days, from, generatedAt: nowIso(), totals, categories, actions };
+    }
+}
+
+export const auditService = new AuditService();

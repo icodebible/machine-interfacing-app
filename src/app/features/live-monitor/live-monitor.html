@@ -143,6 +143,7 @@
                             <span class="muted">{{ row.runtimeStatus | titlecase }}</span>
                         </div>
                         <div class="cell-sub muted">{{ row.runtimeMessage || 'No runtime message' }}</div>
+                        <div class="cell-sub muted">Session: <span class="mono">{{ row.activeSessionId || '—' }}</span></div>
                         <div class="cell-sub muted">Updated {{ relativeTime(row.runtimeUpdatedAt) }}</div>
                     </td>
                 </ng-container>
@@ -168,6 +169,9 @@
                         <span class="status-pill" [class]="activityClass(row)">{{ activityLabel(row) }}</span>
                         <div class="cell-sub muted">
                             Parsed: {{ row.parsedRecentCount }} · Normalized: {{ row.normalizedRecentCount }}
+                            @if (row.latestProcessingStatus) {
+                            <span> · {{ row.latestProcessingStatus }}</span>
+                            }
                         </div>
                     </td>
                 </ng-container>
@@ -308,6 +312,27 @@
                         <b>Runtime message:</b> {{ selectedRow.runtimeMessage || '—' }}
                     </div>
                 </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="section-title">Runtime Sessions</div>
+                @if (selectedRow.recentSessions.length) {
+                <div class="session-list">
+                    @for (session of selectedRow.recentSessions; track session.id) {
+                    <div class="session-item">
+                        <div class="session-meta">
+                            <span class="status-pill info">{{ session.mode }}</span>
+                            <span class="status-pill" [class.ok]="session.status === 'STARTED'" [class.idle]="session.status !== 'STARTED'">{{ session.status }}</span>
+                            <span class="muted">{{ relativeTime(session.lastActivityAt || session.startedAt) }}</span>
+                        </div>
+                        <div class="mono session-id">{{ session.id }}</div>
+                        <div class="cell-sub muted">{{ session.message || '—' }}</div>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="empty-inline">No runtime sessions have been recorded for this machine yet.</div>
+                }
             </div>
 
             <div class="drawer-section two-column">

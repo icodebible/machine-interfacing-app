@@ -841,7 +841,11 @@ export class Machines {
 
   async clearLogs(row: any | null | undefined) {
     if (!row?.id) return;
-    if (!confirm(`Clear traffic logs for "${row.name}"?`)) return;
+    if (!this.confirmDanger(
+      'Clear machine logs',
+      `Traffic logs for "${row.name}" will be removed from the local console view. Audit/session records remain for accountability where available.`,
+      'CLEAR',
+    )) return;
 
     try {
       await this.api.machinesLogsClear(row.id);
@@ -858,6 +862,15 @@ export class Machines {
 
   trafficOf(m: any) {
     return this.latestTraffic()[m.id] ?? null;
+  }
+
+  private confirmDanger(title: string, message: string, keyword: string) {
+    const value = window.prompt(`${title}
+
+${message}
+
+Type ${keyword} to continue.`);
+    return String(value ?? '').trim().toUpperCase() === keyword;
   }
 
   private updateDrawerMode() {
@@ -982,7 +995,11 @@ export class Machines {
   }
 
   async remove(row: any) {
-    if (!confirm(`Delete machine "${row.name}"?`)) return;
+    if (!this.confirmDanger(
+      'Delete machine',
+      `Machine "${row.name}" will be removed from active configuration. Historical parsed, normalized, traffic, and audit records remain for traceability.`,
+      'DELETE',
+    )) return;
     try {
       await this.api.machinesDelete(row.id);
       this.snack.open('Machine deleted', 'OK', { duration: 2000 });
@@ -1230,8 +1247,10 @@ export class Machines {
 
   openSimulation(row: any) {
     this.dialog.open(MachineSimulationDialog, {
-      width: 'min(820px, 96vw)',
-      maxWidth: '96vw',
+      width: 'min(1400px, 90vw)',
+      maxWidth: '90vw',
+      height: 'min(860px, 92vh)',
+      maxHeight: '92vh',
       disableClose: true,
       autoFocus: false,
       restoreFocus: true,

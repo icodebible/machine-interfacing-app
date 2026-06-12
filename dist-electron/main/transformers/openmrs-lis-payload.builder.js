@@ -2343,8 +2343,6 @@ class OpenMrsLisPayloadBuilder {
         const observations = this.extractAnalyzerObservations(this.sourceDocument);
         const allocationByConceptUuid = this.extractAllocationIndex(this.sourceDocument);
         const context = this.extractContext(this.sourceDocument, translations.directValuesByDestination);
-        const testOrderProfile = this.resolveTestOrderProfile(context.order, observations);
-        this.validateTestOrderProfile(testOrderProfile);
         for (const observation of observations) {
             const mappedConceptUuid = this.lookupConceptUuid(observation, translations);
             if (!mappedConceptUuid) {
@@ -2413,7 +2411,6 @@ class OpenMrsLisPayloadBuilder {
                         observationCount: observations.length,
                         compositeExpandedCount: this.compositeExpandedCount,
                         resultHandling: this.resultHandlingSummary(observations.length),
-                        testOrderProfile,
                     },
                 }
                 : null,
@@ -2430,163 +2427,8 @@ class OpenMrsLisPayloadBuilder {
                 observationCount: observations.length,
                 compositeExpandedCount: this.compositeExpandedCount,
                 lisResultHandling: this.resultHandlingSummary(observations.length),
-                lisTestOrderProfile: testOrderProfile,
             },
         };
-    }
-    resolveTestOrderProfile(order, observations) {
-        const receivedAnalyzerCodes = this.unique(observations.map((item) => String(item.code ?? '').trim()).filter(Boolean));
-        const empty = {
-            matched: false,
-            expectedAnalyzerCodes: [],
-            requiredAnalyzerCodes: [],
-            receivedAnalyzerCodes,
-            missingRequiredCodes: [],
-            unexpectedAnalyzerCodes: [],
-            parameterCount: 0,
-        };
-        if (!this.target?.id || !this.tableExists('lis_test_order_profiles') || !this.tableExists('lis_test_order_profile_parameters')) {
-            return {
-                ...empty,
-                message: 'No LIS test-order profile metadata table is available. Payload generation will continue using mapping rules only.',
-            };
-        }
-        const db = (0, db_1.getDb)();
-        const profiles = db
-            .prepare(`
-                    SELECT *
-                    FROM lis_test_order_profiles
-                    WHERE target_id = ? AND enabled = 1
-                    ORDER BY profile_name ASC, profile_code ASC
-                `)
-            .all(this.target.id);
-        if (!profiles.length) {
-            return {
-                ...empty,
-                message: 'No LIS test-order profiles are configured for this target. Payload generation will continue using mapping rules only.',
-            };
-        }
-        const orderConceptUuid = this.firstText(order?.concept?.uuid, order?.orderConceptUuid, order?.conceptUuid, order?.testOrderConceptUuid, order?.concept?.conceptUuid);
-        const orderDisplay = this.firstText(order?.concept?.display, order?.concept?.name, order?.display, order?.name, order?.orderDisplay, order?.testName);
-        const normalizedOrderDisplay = this.key(orderDisplay ?? '');
-        let selected = profiles.find((profile) => {
-            const configuredUuid = String(profile?.order_concept_uuid ?? '').trim();
-            return !!configuredUuid && !!orderConceptUuid && configuredUuid === orderConceptUuid;
-        });
-        if (!selected && normalizedOrderDisplay) {
-            selected = profiles.find((profile) => {
-                const terms = this.parseStringArray(profile?.order_name_includes_json);
-                const profileName = this.key(`${profile?.profile_name ?? ''} ${profile?.order_display ?? ''}`);
-                return terms.some((term) => normalizedOrderDisplay.includes(this.key(term))) ||
-                    (!!profileName && normalizedOrderDisplay.includes(profileName));
-            });
-        }
-        if (!selected) {
-            selected = this.matchProfileByAnalyzerCodes(profiles, receivedAnalyzerCodes);
-        }
-        if (!selected) {
-            return {
-                ...empty,
-                message: 'No LIS test-order profile matched this result. Payload generation will continue using mapping rules only.',
-            };
-        }
-        const parameters = db
-            .prepare(`
-                    SELECT *
-                    FROM lis_test_order_profile_parameters
-                    WHERE profile_id = ?
-                    ORDER BY sort_order ASC, analyzer_code ASC
-                `)
-            .all(selected.id);
-        const expectedAnalyzerCodes = this.unique(parameters.map((item) => String(item?.analyzer_code ?? '').trim()).filter(Boolean));
-        const requiredAnalyzerCodes = this.unique(parameters
-            .filter((item) => Number(item?.required ?? 0) === 1)
-            .map((item) => String(item?.analyzer_code ?? '').trim())
-            .filter(Boolean));
-        const receivedKeys = new Set(receivedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
-        const expectedKeys = new Set(expectedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
-        const missingRequiredCodes = requiredAnalyzerCodes.filter((code) => this.codeAliases(code).every((alias) => !receivedKeys.has(alias)));
-        const unexpectedAnalyzerCodes = receivedAnalyzerCodes.filter((code) => this.codeAliases(code).every((alias) => !expectedKeys.has(alias)));
-        return {
-            matched: true,
-            profileId: selected.id,
-            profileCode: selected.profile_code ?? null,
-            profileName: selected.profile_name ?? null,
-            orderConceptUuid: selected.order_concept_uuid ?? null,
-            orderDisplay: selected.order_display ?? null,
-            expectedAnalyzerCodes,
-            requiredAnalyzerCodes,
-            receivedAnalyzerCodes,
-            missingRequiredCodes,
-            unexpectedAnalyzerCodes,
-            parameterCount: parameters.length,
-            message: `Matched LIS test-order profile ${selected.profile_code ?? selected.profile_name}.`,
-        };
-    }
-    matchProfileByAnalyzerCodes(profiles, receivedAnalyzerCodes) {
-        if (!profiles.length || !receivedAnalyzerCodes.length)
-            return null;
-        const receivedKeys = new Set(receivedAnalyzerCodes.flatMap((code) => this.codeAliases(code)));
-        let best = null;
-        let ambiguous = false;
-        for (const profile of profiles) {
-            const parameters = (0, db_1.getDb)()
-                .prepare(`SELECT analyzer_code FROM lis_test_order_profile_parameters WHERE profile_id = ?`)
-                .all(profile.id);
-            const expectedAliases = parameters.flatMap((param) => this.codeAliases(param.analyzer_code));
-            const score = expectedAliases.filter((alias) => receivedKeys.has(alias)).length;
-            if (score <= 0)
-                continue;
-            if (!best || score > best.score) {
-                best = { profile, score };
-                ambiguous = false;
-            }
-            else if (best && score === best.score) {
-                ambiguous = true;
-            }
-        }
-        if (!best || ambiguous)
-            return null;
-        this.warnings.push(`LIS test-order profile ${best.profile.profile_code ?? best.profile.profile_name} was matched by analyzer-code overlap because order concept metadata was not available in the source document.`);
-        return best.profile;
-    }
-    validateTestOrderProfile(profile) {
-        if (!profile.matched) {
-            if (profile.message)
-                this.warnings.push(profile.message);
-            return;
-        }
-        if (profile.missingRequiredCodes.length) {
-            this.warnings.push(`LIS test-order profile ${profile.profileCode ?? profile.profileName} is missing required analyzer code(s): ${profile.missingRequiredCodes.join(', ')}.`);
-        }
-        if (profile.unexpectedAnalyzerCodes.length) {
-            this.warnings.push(`LIS test-order profile ${profile.profileCode ?? profile.profileName} received unexpected analyzer code(s): ${profile.unexpectedAnalyzerCodes.join(', ')}.`);
-        }
-    }
-    tableExists(table) {
-        const row = (0, db_1.getDb)()
-            .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`)
-            .get(table);
-        return !!row?.name;
-    }
-    parseStringArray(value) {
-        if (Array.isArray(value))
-            return value.map((item) => String(item ?? '').trim()).filter(Boolean);
-        if (typeof value === 'string') {
-            const raw = value.trim();
-            if (!raw)
-                return [];
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed))
-                    return this.parseStringArray(parsed);
-            }
-            catch {
-                // comma-separated fallback below
-            }
-            return raw.split(',').map((item) => item.trim()).filter(Boolean);
-        }
-        return [];
     }
     evaluateResultHandling(row, observation) {
         const existing = this.findExistingResultsForRow(row);

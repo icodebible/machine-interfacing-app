@@ -401,6 +401,9 @@ type TargetRow = {
   name: string;
   base_url: string;
   enabled: number;
+  auth_type?: string | null;
+  auth_configured?: number | null;
+  allow_insecure_tls?: number | null;
   auto_retry_enabled?: number | null;
   max_retry_attempts?: number | null;
   retry_backoff_strategy?: string | null;
@@ -679,10 +682,11 @@ export class Targets {
   }
 
   async remove(row: TargetRow) {
-    const ok = confirm(`Delete target "${row.name}"? This will not remove historical queue or audit records already created.`);
-    if (!ok) {
-      return;
-    }
+    if (!this.confirmDanger(
+      'Delete target',
+      `Target "${row.name}" will be removed from active configuration. Historical queue and audit records remain for traceability.`,
+      'DELETE',
+    )) return;
 
     try {
       await this.api.targetsDelete(row.id);
@@ -696,6 +700,26 @@ export class Targets {
     } catch (error: any) {
       this.snack.open(error?.message || 'Failed to delete target.', 'Close', { duration: 3500 });
     }
+  }
+
+  securityLabel(row: TargetRow) {
+    if (Number(row.auth_configured ?? 0) === 1) {
+      return `${String(row.auth_type || 'auth').toUpperCase()} security configured`;
+    }
+    return 'No authentication configured';
+  }
+
+  securityTone(row: TargetRow) {
+    return Number(row.auth_configured ?? 0) === 1 ? 'ok' : 'warn';
+  }
+
+  private confirmDanger(title: string, message: string, keyword: string) {
+    const value = window.prompt(`${title}
+
+${message}
+
+Type ${keyword} to continue.`);
+    return String(value ?? '').trim().toUpperCase() === keyword;
   }
 
   toggleExpanded(row: TargetRow) {
@@ -849,7 +873,11 @@ export class Targets {
   }
 
   async deleteRoutingRule(row: RoutingRuleRow) {
-    if (!confirm(`Delete routing rule "${row.name}"?`)) return;
+    if (!this.confirmDanger(
+      'Delete routing rule',
+      `Routing rule "${row.name}" will be removed. Future approved results may fall back to approval-policy routing.`,
+      'DELETE',
+    )) return;
     try {
       await this.api.routingRulesDelete(row.id);
       this.notify('Routing rule deleted.');

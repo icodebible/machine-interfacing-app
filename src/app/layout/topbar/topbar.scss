@@ -356,3 +356,20 @@
         width: calc(100vw - 32px);
     }
 }
+
+.topbar-version {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  color: #475569;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .topbar-version {
+    display: none;
+  }
+}

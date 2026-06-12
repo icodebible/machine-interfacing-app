@@ -1,0 +1,39 @@
+directories:
+  output: release
+  buildResources: build
+appId: tz.ac.udsm.dhis.machineinterfacing
+productName: Machine Interfacing App
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+files:
+  - filter:
+      - dist/**
+      - dist-electron/**
+      - package.json
+asar: true
+npmRebuild: true
+extraResources:
+  - from: electron/resources
+    to: resources
+mac:
+  target:
+    - dmg
+  icon: build/icons/icon.icns
+win:
+  target:
+    - nsis
+  icon: build/icons/icon.ico
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icons/512x512.png
+  category: Utility
+  maintainer: UDSM DHIS2 Lab <dhis2lab@udsm.ac.tz>
+  vendor: UDSM DHIS2 Lab
+  synopsis: Laboratory analyzer machine interfacing platform
+icon: build/icons/512x512.png
+publish:
+  - provider: github
+    owner: UDSM DHIS2 Lab
+    repo: YOUR_REPO
+electronVersion: 39.7.0

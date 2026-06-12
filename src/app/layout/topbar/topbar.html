@@ -28,6 +28,11 @@
   </div>
 
   <div class="topbar-shell__right">
+    @if (appVersion()) {
+      <div class="topbar-version" [title]="appMode() || 'Application version'">
+        {{ appVersion() }}
+      </div>
+    }
     <button
       class="profile-trigger"
       mat-button
@@ -67,6 +72,9 @@
     <div class="user-menu-panel__label">Current page</div>
     <div class="user-menu-panel__value">{{ pageTitle() }}</div>
     <div class="user-menu-panel__hint">{{ pageSubtitle() }}</div>
+    @if (appVersion()) {
+      <div class="user-menu-panel__hint">Application {{ appVersion() }} · {{ appMode() || 'Runtime' }}</div>
+    }
   </div>
 
   @if (roleSummary()) {

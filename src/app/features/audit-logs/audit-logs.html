@@ -13,6 +13,14 @@
         <mat-icon>local_shipping</mat-icon>
         Delivery audit
       </button>
+      <button mat-stroked-button [class.active]="scope() === 'AUDIT'" (click)="switchScope('AUDIT')">
+        <mat-icon>manage_search</mat-icon>
+        Audit trail
+      </button>
+      <button mat-stroked-button [class.active]="scope() === 'READINESS'" (click)="switchScope('READINESS')">
+        <mat-icon>verified_user</mat-icon>
+        Readiness
+      </button>
       <button mat-stroked-button [class.active]="scope() === 'SYSTEM'" (click)="switchScope('SYSTEM')">
         <mat-icon>policy</mat-icon>
         System logs
@@ -268,6 +276,436 @@
         }
       </div>
     </div>
+  } @else if (scope() === 'AUDIT') {
+    <div class="summary-grid summary-grid--system">
+      <div class="summary-card total">
+        <div class="label">Audit events</div>
+        <div class="value">{{ auditSummary().total }}</div>
+        <div class="summary-sub">Security and operational actions in the current filter scope.</div>
+      </div>
+      <div class="summary-card danger">
+        <div class="label">Errors / critical</div>
+        <div class="value">{{ auditSummary().errors }}</div>
+        <div class="summary-sub">Events recorded with error or critical severity.</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="label">Warnings</div>
+        <div class="value">{{ auditSummary().warnings }}</div>
+        <div class="summary-sub">Events that may require follow-up.</div>
+      </div>
+      <div class="summary-card neutral">
+        <div class="label">Sources</div>
+        <div class="value">{{ auditSummary().sources }}</div>
+        <div class="summary-sub">Distinct system modules represented in the current view.</div>
+      </div>
+      <div class="summary-card info-tone">
+        <div class="label">Categories</div>
+        <div class="value">{{ auditSummary().categories }}</div>
+        <div class="summary-sub">Audit categories represented by the current filters.</div>
+      </div>
+    </div>
+
+    @if (showFilters()) {
+      <div class="filters card">
+        <div class="filters-head">
+          <div>
+            <div class="card-title">Audit filter workspace</div>
+            <div class="filters-sub">Narrow by action, actor, source, category, severity, status, entity, or time range.</div>
+          </div>
+        </div>
+
+        <div class="filters-grid filters-grid--system">
+          <mat-form-field appearance="outline">
+            <mat-label>Source</mat-label>
+            <mat-select [ngModel]="auditFilters().source" (ngModelChange)="updateAuditFilter('source', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="MACHINE">Machine</mat-option>
+              <mat-option value="RUNTIME">Runtime</mat-option>
+              <mat-option value="SIMULATION">Simulation</mat-option>
+              <mat-option value="TARGET">Target</mat-option>
+              <mat-option value="LIS">LIS</mat-option>
+              <mat-option value="MAPPING">Mapping</mat-option>
+              <mat-option value="OUTBOUND">Outbound</mat-option>
+              <mat-option value="RESULT">Result</mat-option>
+              <mat-option value="SECURITY">Security</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <input matInput [ngModel]="auditFilters().category" (ngModelChange)="updateAuditFilter('category', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Severity</mat-label>
+            <mat-select [ngModel]="auditFilters().severity" (ngModelChange)="updateAuditFilter('severity', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="INFO">Info</mat-option>
+              <mat-option value="WARNING">Warning</mat-option>
+              <mat-option value="ERROR">Error</mat-option>
+              <mat-option value="CRITICAL">Critical</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select [ngModel]="auditFilters().status" (ngModelChange)="updateAuditFilter('status', $event)">
+              <mat-option value="">All</mat-option>
+              <mat-option value="SUCCESS">Success</mat-option>
+              <mat-option value="FAILED">Failed</mat-option>
+              <mat-option value="REQUESTED">Requested</mat-option>
+              <mat-option value="BLOCKED">Blocked</mat-option>
+              <mat-option value="SKIPPED">Skipped</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entity type</mat-label>
+            <input matInput [ngModel]="auditFilters().entityType" (ngModelChange)="updateAuditFilter('entityType', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entity ID</mat-label>
+            <input matInput [ngModel]="auditFilters().entityId" (ngModelChange)="updateAuditFilter('entityId', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Search</mat-label>
+            <input matInput [ngModel]="auditFilters().search" (ngModelChange)="updateAuditFilter('search', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Action</mat-label>
+            <input matInput [ngModel]="auditFilters().action" (ngModelChange)="updateAuditFilter('action', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>From</mat-label>
+            <input matInput type="datetime-local" [ngModel]="auditFilters().dateFrom" (ngModelChange)="updateAuditFilter('dateFrom', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>To</mat-label>
+            <input matInput type="datetime-local" [ngModel]="auditFilters().dateTo" (ngModelChange)="updateAuditFilter('dateTo', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Limit</mat-label>
+            <input matInput type="number" min="1" max="500" [ngModel]="auditFilters().limit" (ngModelChange)="updateAuditFilter('limit', $event)" />
+          </mat-form-field>
+        </div>
+
+        <div class="filter-actions">
+          <button mat-stroked-button (click)="clearFilters()">
+            <mat-icon>filter_alt_off</mat-icon>
+            Clear
+          </button>
+          <button mat-flat-button color="primary" (click)="applyFilters()">
+            <mat-icon>search</mat-icon>
+            Apply
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="workspace">
+      <div class="card list-card">
+        <div class="card-head-inline">
+          <div class="card-title">Audit trail events</div>
+          <div class="card-meta">{{ filteredAuditRows().length }} in view</div>
+        </div>
+
+        @if (!loading() && filteredAuditRows().length === 0) {
+          <div class="empty">No audit events matched the current filters.</div>
+        } @else {
+          <div class="list">
+            @for (row of filteredAuditRows(); track row.id) {
+              <button class="list-row" [class.selected]="selectedAudit()?.id === row.id" (click)="selectAudit(row)">
+                <div class="row-head">
+                  <span class="status-dot" [ngClass]="statusClass(row.status || row.severity)"></span>
+                  <span class="status-chip" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
+                  <span class="op">{{ auditActionLabel(row) }}</span>
+                  <span class="timestamp">{{ formatDateTime(row.event_time || row.created_at) }}</span>
+                </div>
+                <div class="row-meta">
+                  <span>{{ row.source }}</span>
+                  <span>{{ row.category }}</span>
+                  @if (row.entity_type) { <span>{{ row.entity_type }}</span> }
+                  @if (row.entity_label || row.entity_id) { <span class="mono">{{ row.entity_label || row.entity_id }}</span> }
+                </div>
+                @if (row.summary) {
+                  <div class="message">{{ row.summary }}</div>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="card detail-card">
+        <div class="card-head-inline">
+          <div class="card-title">Selected audit event</div>
+          @if (selectedAudit()) {
+            <span class="status-chip" [ngClass]="statusClass(selectedAudit()?.status)">{{ selectedAudit()?.status }}</span>
+          }
+        </div>
+
+        @if (!selectedAudit()) {
+          <div class="empty">Select an audit event to inspect actor, entity, and redacted payload details.</div>
+        } @else {
+          <div class="detail-grid">
+            <div><span class="k">Source</span><span class="v">{{ selectedAudit()?.source }}</span></div>
+            <div><span class="k">Category</span><span class="v">{{ selectedAudit()?.category }}</span></div>
+            <div><span class="k">Action</span><span class="v">{{ auditActionLabel(selectedAudit()) }}</span></div>
+            <div><span class="k">Severity</span><span class="v">{{ selectedAudit()?.severity }}</span></div>
+            <div><span class="k">Actor</span><span class="v">{{ selectedAudit()?.actor_username || selectedAudit()?.actor_user_id || 'SYSTEM' }}</span></div>
+            <div><span class="k">Entity</span><span class="v mono">{{ selectedAudit()?.entity_type || '—' }} · {{ selectedAudit()?.entity_id || '—' }}</span></div>
+            <div><span class="k">Label</span><span class="v">{{ selectedAudit()?.entity_label || '—' }}</span></div>
+            <div><span class="k">Created</span><span class="v">{{ formatDateTime(selectedAudit()?.event_time || selectedAudit()?.created_at) }}</span></div>
+            <div><span class="k">Correlation</span><span class="v mono">{{ selectedAudit()?.correlation_id || '—' }}</span></div>
+          </div>
+
+          @if (selectedAudit()?.summary) {
+            <div class="callout info">
+              <div class="callout-title">Summary</div>
+              <div>{{ selectedAudit()?.summary }}</div>
+            </div>
+          }
+
+          @if (auditDetailsPayload(selectedAudit())) {
+            <div class="payload light audit-json">
+              <div class="payload-title">Redacted details</div>
+              <pre>{{ formatJson(auditDetailsPayload(selectedAudit())) }}</pre>
+            </div>
+          }
+
+          @if (auditBeforePayload(selectedAudit())) {
+            <div class="payload light audit-json">
+              <div class="payload-title">Before snapshot</div>
+              <pre>{{ formatJson(auditBeforePayload(selectedAudit())) }}</pre>
+            </div>
+          }
+
+          @if (auditAfterPayload(selectedAudit())) {
+            <div class="payload light audit-json">
+              <div class="payload-title">After snapshot</div>
+              <pre>{{ formatJson(auditAfterPayload(selectedAudit())) }}</pre>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  } @else if (scope() === 'READINESS') {
+    @if (readinessReport(); as report) {
+      <div class="summary-grid summary-grid--system">
+        <div class="summary-card" [class.success]="report.status === 'READY'" [class.warning]="report.status === 'READY_WITH_WARNINGS'" [class.danger]="report.status === 'BLOCKED'">
+          <div class="label">Deployment status</div>
+          <div class="value">{{ readinessStatusLabel(report.status) }}</div>
+          <div class="summary-sub">Checked {{ formatDateTime(report.checkedAt) }}</div>
+        </div>
+        <div class="summary-card total">
+          <div class="label">Readiness score</div>
+          <div class="value">{{ report.score }}%</div>
+          <div class="summary-sub">Overall production readiness score.</div>
+        </div>
+        <div class="summary-card success">
+          <div class="label">Passed</div>
+          <div class="value">{{ readinessSummary().passed }}</div>
+          <div class="summary-sub">Checks that are ready.</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="label">Warnings</div>
+          <div class="value">{{ readinessSummary().warnings }}</div>
+          <div class="summary-sub">Items that need review before rollout.</div>
+        </div>
+        <div class="summary-card danger">
+          <div class="label">Blockers</div>
+          <div class="value">{{ readinessSummary().blockers }}</div>
+          <div class="summary-sub">Items blocking production readiness.</div>
+        </div>
+      </div>
+
+      <div class="card readiness-card">
+        <div class="card-head-inline">
+          <div>
+            <div class="card-title">Deployment readiness checklist</div>
+            <div class="filters-sub">Database, targets, mappings, LIS profiles, queue health, runtime tracing, and audit readiness.</div>
+          </div>
+          <button mat-flat-button color="primary" (click)="refresh()">
+            <mat-icon>refresh</mat-icon>
+            Re-run checks
+          </button>
+        </div>
+
+        <div class="readiness-meter" [class.ready]="report.status === 'READY'" [class.warn]="report.status === 'READY_WITH_WARNINGS'" [class.blocked]="report.status === 'BLOCKED'">
+          <div class="readiness-meter__bar" [style.width.%]="report.score"></div>
+        </div>
+
+        <div class="check-list">
+          @for (check of readinessChecks(); track check.key) {
+            <article class="check-card" [class.passed]="check.passed" [class.blocker]="!check.passed && check.severity === 'BLOCKER'" [class.warning]="!check.passed && check.severity === 'WARNING'">
+              <div class="check-card__head">
+                <span class="status-dot" [ngClass]="readinessClass(check)"></span>
+                <div>
+                  <div class="item-title">{{ check.label }}</div>
+                  <div class="item-sub mono">{{ check.key }}</div>
+                </div>
+                <span class="status-chip" [ngClass]="readinessClass(check)">{{ check.passed ? 'OK' : check.severity }}</span>
+              </div>
+              <div class="message">{{ check.message }}</div>
+              @if (check.details) {
+                <div class="payload light compact-payload">
+                  <pre>{{ formatJson(check.details) }}</pre>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </div>
+
+      @if (appDiagnostics(); as diagnostics) {
+        <div class="card readiness-card packaging-diagnostics-card">
+          <div class="card-head-inline">
+            <div>
+              <div class="card-title">Packaging and deployment diagnostics</div>
+              <div class="filters-sub">Version, runtime, database path, backup location, storage permissions, and packaging script readiness.</div>
+            </div>
+            <button mat-stroked-button type="button" (click)="createDatabaseBackup()" [disabled]="backupRunning()">
+              <mat-icon>backup</mat-icon>
+              {{ backupRunning() ? 'Creating backup…' : 'Create DB backup' }}
+            </button>
+          </div>
+
+          <div class="deployment-grid">
+            <div class="deployment-card">
+              <div class="label">Application</div>
+              <div class="value">{{ diagnostics.app.productName || diagnostics.app.name }}</div>
+              <div class="summary-sub">Version {{ diagnostics.app.version }} · {{ diagnostics.app.isPackaged ? 'Packaged' : 'Development' }}</div>
+            </div>
+            <div class="deployment-card">
+              <div class="label">Runtime</div>
+              <div class="value">{{ diagnostics.runtime.platform }} / {{ diagnostics.runtime.arch }}</div>
+              <div class="summary-sub">Electron {{ diagnostics.runtime.electron || '—' }} · Node {{ diagnostics.runtime.node || '—' }}</div>
+            </div>
+            <div class="deployment-card">
+              <div class="label">Database</div>
+              <div class="value">{{ formatBytes(diagnostics.database.sizeBytes) }}</div>
+              <div class="summary-sub mono">{{ diagnostics.database.path }}</div>
+            </div>
+            <div class="deployment-card">
+              <div class="label">Latest backup</div>
+              <div class="value">{{ diagnostics.database.latestBackup ? formatBytes(diagnostics.database.latestBackup.sizeBytes) : 'None' }}</div>
+              <div class="summary-sub mono">{{ diagnostics.database.latestBackup?.path || diagnostics.paths.backupsPath }}</div>
+            </div>
+          </div>
+
+          <div class="deployment-section-title">Storage checks</div>
+          <div class="storage-check-grid">
+            @for (item of diagnostics.storage; track item.key) {
+              <div class="storage-check" [class.ok]="item.ok" [class.bad]="!item.ok">
+                <span class="status-dot" [ngClass]="item.ok ? 'status-delivered' : 'status-failed'"></span>
+                <div>
+                  <div class="item-title">{{ item.label }}</div>
+                  <div class="item-sub mono">{{ item.path }}</div>
+                  <div class="message">{{ item.message }}</div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="deployment-section-title">Packaging readiness</div>
+          <div class="detail-grid compact deployment-kv-grid">
+            <div><span class="k">App ID</span><span class="v mono">{{ diagnostics.package.appId || '—' }}</span></div>
+            <div><span class="k">Output</span><span class="v">{{ diagnostics.package.outputDir || diagnostics.paths.releaseOutputPath || 'release' }}</span></div>
+            <div><span class="k">ASAR</span><span class="v">{{ diagnostics.package.asar ? 'Enabled' : 'Disabled' }}</span></div>
+            <div><span class="k">Native rebuild</span><span class="v">{{ diagnostics.package.npmRebuild ? 'Enabled' : 'Disabled' }}</span></div>
+            <div><span class="k">Release script</span><span class="v mono">{{ diagnostics.package.scripts['buildRelease'] || 'Missing' }}</span></div>
+            <div><span class="k">Package script</span><span class="v mono">{{ diagnostics.package.scripts['electronBuild'] || 'Missing' }}</span></div>
+          </div>
+        </div>
+      }
+
+      <div class="card readiness-card release-readiness-card">
+        <div class="card-head-inline">
+          <div>
+            <div class="card-title">Final regression and release-readiness checklist</div>
+            <div class="filters-sub">
+              Manual go-live checklist for release sign-off. Use it after automated readiness checks pass and before packaging is handed over.
+            </div>
+          </div>
+          <span class="status-chip status-started">Manual acceptance</span>
+        </div>
+
+        <div class="release-summary-grid">
+          <div class="release-summary-card">
+            <div class="label">Checklist groups</div>
+            <div class="value">{{ releaseChecklistSummary().groups }}</div>
+            <div class="summary-sub">Operational areas to verify before release.</div>
+          </div>
+          <div class="release-summary-card">
+            <div class="label">Total checks</div>
+            <div class="value">{{ releaseChecklistSummary().total }}</div>
+            <div class="summary-sub">Combined required and recommended checks.</div>
+          </div>
+          <div class="release-summary-card required">
+            <div class="label">Required</div>
+            <div class="value">{{ releaseChecklistSummary().required }}</div>
+            <div class="summary-sub">Must be signed off before go-live.</div>
+          </div>
+          <div class="release-summary-card recommended">
+            <div class="label">Recommended</div>
+            <div class="value">{{ releaseChecklistSummary().recommended }}</div>
+            <div class="summary-sub">Strongly recommended for controlled rollout.</div>
+          </div>
+        </div>
+
+        <div class="release-callout">
+          <mat-icon>info</mat-icon>
+          <div>
+            This checklist is intentionally manual. The automated readiness report proves the environment is technically prepared;
+            this section confirms the operator, LIS workflow, delivery path, backup, and rollback procedures have been validated.
+          </div>
+        </div>
+
+        <div class="release-checklist-grid">
+          @for (group of releaseChecklistGroups; track group.key) {
+            <article class="release-group">
+              <div class="release-group__head">
+                <div class="release-group__icon"><mat-icon>{{ group.icon }}</mat-icon></div>
+                <div>
+                  <div class="item-title">{{ group.title }}</div>
+                  <div class="item-sub">{{ group.description }}</div>
+                </div>
+              </div>
+
+              <div class="release-item-list">
+                @for (item of group.items; track item.id) {
+                  <div class="release-item" [class.required]="item.risk === 'REQUIRED'">
+                    <div class="release-item__marker">
+                      <mat-icon>{{ item.risk === 'REQUIRED' ? 'priority_high' : 'task_alt' }}</mat-icon>
+                    </div>
+                    <div class="release-item__body">
+                      <div class="release-item__title-row">
+                        <div class="item-title">{{ item.title }}</div>
+                        <span class="status-chip" [ngClass]="releaseRiskClass(item.risk)">{{ releaseRiskLabel(item.risk) }}</span>
+                      </div>
+                      <div class="item-sub">{{ item.description }}</div>
+                      <div class="release-owner">Owner: {{ item.owner }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      </div>
+
+    } @else {
+      <div class="card readiness-card">
+        <div class="empty">No readiness report loaded yet. Click Refresh to run deployment readiness checks.</div>
+      </div>
+    }
+
   } @else {
     <div class="summary-grid summary-grid--system">
       <div class="summary-card total">

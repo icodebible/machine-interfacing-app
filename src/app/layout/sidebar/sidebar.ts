@@ -95,7 +95,7 @@
 //       route: '/app/approval-policies',
 //       requires: 'APPROVAL_POLICY_WRITE',
 //     },
-//     { label: 'Audit Logs', icon: 'policy', route: '/app/audit-logs', requires: 'AUDIT_READ' },
+//     { label: 'Audit & Readiness', icon: 'policy', route: '/app/audit-logs', requires: 'AUDIT_READ' },
 //   ];
 
 //   navBottom: NavItem[] = [{ label: 'Settings', icon: 'settings', route: '/app/settings' }];
@@ -218,7 +218,7 @@ export class Sidebar {
       route: '/app/approval-policies',
       requires: 'APPROVAL_POLICY_WRITE',
     },
-    { label: 'Audit Logs', icon: 'policy', route: '/app/audit-logs', requires: 'AUDIT_READ' },
+    { label: 'Audit & Readiness', icon: 'policy', route: '/app/audit-logs', requires: 'AUDIT_READ' },
   ];
 
   navBottom: NavItem[] = [{ label: 'Settings', icon: 'settings', route: '/app/settings' }];

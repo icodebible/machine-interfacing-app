@@ -5,11 +5,8 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { PlatformApiService } from '../../../core/platform/platform-api.service';
-
-type MessageKind = 'info' | 'warn' | 'bad';
-type PreviewMessage = { kind: MessageKind; text: string };
 
 @Component({
   selector: 'app-outbound-payload-preview-dialog',
@@ -21,7 +18,7 @@ type PreviewMessage = { kind: MessageKind; text: string };
     MatIconModule,
     MatProgressBarModule,
     MatSnackBarModule,
-    MatTooltipModule,
+    MatTabsModule,
   ],
   templateUrl: './outbound-payload-preview-dialog.html',
   styleUrl: './outbound-payload-preview-dialog.scss',
@@ -35,70 +32,18 @@ export class OutboundPayloadPreviewDialog {
   preview = signal<any | null>(null);
   error = signal<string | null>(null);
 
-  queueId = computed(() => this.data?.row?.id ?? null);
-  currentStatus = computed(() => String(this.data?.row?.delivery_status ?? this.preview()?.delivery_status ?? '').trim() || null);
-  previewName = computed(() => this.preview()?.previewName || this.data?.row?.preview_name || 'Latest mapping preview');
-
-  payload = computed(() => this.preview()?.payload ?? this.parseJson(this.data?.row?.payload_json) ?? {});
-  sourceDocument = computed(() => this.preview()?.sourceDocument ?? this.parseJson(this.data?.row?.source_snapshot_json) ?? null);
-  summary = computed(() => this.preview()?.summary ?? this.parseJson(this.data?.row?.transform_summary_json) ?? null);
-
-  payloadText = computed(() => this.toPrettyJson(this.payload()));
-  sourceText = computed(() => this.toPrettyJson(this.sourceDocument() ?? {}));
-  summaryText = computed(() => this.toPrettyJson(this.summary() ?? {}));
-
+  payloadText = computed(() => this.toPrettyJson(this.preview()?.payload ?? this.data?.row?.payload_json ?? {}));
+  sourceText = computed(() => this.toPrettyJson(this.preview()?.sourceDocument ?? this.data?.row?.source_snapshot_json ?? {}));
   warnings = computed<string[]>(() => this.asStringArray(this.preview()?.warnings ?? this.parseJson(this.data?.row?.transform_warnings_json) ?? []));
   errors = computed<string[]>(() => this.asStringArray(this.preview()?.errors ?? this.parseJson(this.data?.row?.transform_errors_json) ?? []));
-
-  resultHandling = computed(() => this.findResultHandling());
-  resultHandlingRows = computed<any[]>(() => {
-    const rows = this.resultHandling()?.rows;
-    return Array.isArray(rows) ? rows : [];
-  });
-
-  messageList = computed<PreviewMessage[]>(() => {
-    const messages: PreviewMessage[] = [];
-
-    for (const error of this.errors()) {
-      messages.push({ kind: 'bad', text: error });
-    }
-
-    for (const warning of this.warnings()) {
-      messages.push({ kind: 'warn', text: warning });
-    }
-
-    const handling = this.resultHandling();
-    if (handling?.skippedDuplicateCount) {
-      messages.push({
-        kind: 'warn',
-        text: `${handling.skippedDuplicateCount} exact duplicate result row(s) will be skipped before delivery.`,
-      });
-    }
-    if (handling?.blockedExistingCount) {
-      messages.push({
-        kind: 'bad',
-        text: `${handling.blockedExistingCount} result row(s) are blocked because different LIS results already exist.`,
-      });
-    }
-    if (handling?.correctionCount) {
-      messages.push({
-        kind: 'info',
-        text: `${handling.correctionCount} row(s) are prepared as correction result(s).`,
-      });
-    }
-    if (handling?.repeatCount) {
-      messages.push({
-        kind: 'info',
-        text: `${handling.repeatCount} row(s) are prepared as repeat/rerun result(s).`,
-      });
-    }
-
-    if (!messages.length) {
-      messages.push({ kind: 'info', text: 'Payload is ready for review. No blocking transform errors were found.' });
-    }
-
-    return messages;
-  });
+  summary = computed<any>(() => this.preview()?.summary ?? this.parseJson(this.data?.row?.transform_summary_json) ?? {});
+  summaryText = computed(() => this.toPrettyJson(this.summary() ?? {}));
+  deliveryValidation = computed<any>(() => this.summary()?.deliveryValidation ?? this.deriveDeliveryValidation());
+  deliveryValidationMessages = computed<string[]>(() => this.asStringArray(this.deliveryValidation()?.messages ?? []));
+  deliveryValidationErrors = computed<string[]>(() => this.asStringArray(this.deliveryValidation()?.errors ?? this.errors()));
+  deliveryValidationWarnings = computed<string[]>(() => this.asStringArray(this.deliveryValidation()?.warnings ?? this.warnings()));
+  deliveryMissingRequiredCodes = computed<string[]>(() => this.asStringArray(this.deliveryValidation()?.missingRequiredCodes ?? []));
+  deliveryUnexpectedAnalyzerCodes = computed<string[]>(() => this.asStringArray(this.deliveryValidation()?.unexpectedAnalyzerCodes ?? []));
 
   constructor(
     private readonly dialogRef: MatDialogRef<OutboundPayloadPreviewDialog>,
@@ -112,7 +57,7 @@ export class OutboundPayloadPreviewDialog {
   }
 
   async loadPreview() {
-    const queueId = this.queueId();
+    const queueId = this.data?.row?.id;
     if (!queueId) return;
 
     try {
@@ -128,7 +73,7 @@ export class OutboundPayloadPreviewDialog {
   }
 
   async rebuildPayload() {
-    const queueId = this.queueId();
+    const queueId = this.data?.row?.id;
     if (!queueId) return;
 
     try {
@@ -146,148 +91,53 @@ export class OutboundPayloadPreviewDialog {
   }
 
   async copyPayload() {
-    await this.copyJson(this.payload());
-  }
-
-  async copySource() {
-    await this.copyJson(this.sourceDocument() ?? {});
-  }
-
-  async copySummary() {
-    await this.copyJson(this.summary() ?? {});
-  }
-
-  async copyJson(value: unknown) {
     try {
-      await this.api.copy(this.toPrettyJson(value));
-      this.snack.open('Copied to clipboard', 'Close', { duration: 1500 });
+      await this.api.copy(this.payloadText());
+      this.snack.open('Payload copied', 'Close', { duration: 1500 });
     } catch {
       this.snack.open('Copy failed', 'Close', { duration: 2500 });
     }
   }
 
-  targetDisplay() {
-    return this.data?.row?.target_name || this.data?.row?.target_id || 'Unknown target';
+  deliveryValidationLabel(): string {
+    const status = String(this.deliveryValidation()?.status ?? '').toUpperCase();
+    if (status === 'READY') return 'Ready to send';
+    if (status === 'WARNING') return 'Review warnings';
+    if (status === 'BLOCKED') return 'Blocked';
+    return 'Not evaluated';
   }
 
-  statusClass() {
-    switch (this.currentStatus()) {
-      case 'DELIVERED':
-        return 'good';
-      case 'FAILED':
-      case 'BLOCKED':
-        return 'bad';
-      case 'SENDING':
-        return 'warn';
-      case 'PENDING':
-        return 'info';
-      default:
-        return 'idle';
-    }
+  deliveryValidationClass(): string {
+    const status = String(this.deliveryValidation()?.status ?? '').toUpperCase();
+    if (status === 'READY') return 'success';
+    if (status === 'WARNING') return 'warn';
+    if (status === 'BLOCKED') return 'bad';
+    return 'info';
   }
 
-  statusText() {
-    switch (this.currentStatus()) {
-      case 'DELIVERED':
-        return 'Delivery completed successfully.';
-      case 'FAILED':
-        return 'Last delivery attempt failed. Review the error and payload before retrying.';
-      case 'BLOCKED':
-        return 'Payload is blocked by transform or duplicate-result validation.';
-      case 'SENDING':
-        return 'Delivery is currently in progress.';
-      case 'PENDING':
-        return 'Payload is queued and ready for delivery once validation passes.';
-      default:
-        return 'Current queue state is not available.';
-    }
-  }
-
-  readinessClass() {
-    if (this.errors().length || this.resultHandling()?.blockedExistingCount) return 'bad';
-    if (this.warnings().length || this.resultHandling()?.skippedDuplicateCount) return 'warn';
-    return 'good';
-  }
-
-  readinessLabel() {
-    if (this.errors().length || this.resultHandling()?.blockedExistingCount) return 'Blocked';
-    if (this.warnings().length || this.resultHandling()?.skippedDuplicateCount) return 'Review warnings';
-    return 'Ready';
-  }
-
-  payloadSource() {
-    switch (this.preview()?.payloadSource) {
-      case 'stored_queue':
-        return 'Stored queue payload';
-      case 'stored_delivery':
-        return 'Stored delivery payload';
-      case 'regenerated':
-        return 'Regenerated preview';
-      default:
-        return this.preview() ? 'Transform preview' : 'Stored queue payload';
-    }
-  }
-
-  payloadRowsCount() {
-    const payload = this.payload();
+  payloadRowsCount(): number {
+    const payload = this.parseJson(this.preview()?.payload ?? this.data?.row?.payload_json ?? {});
     if (Array.isArray(payload)) return payload.length;
     if (Array.isArray(payload?.body)) return payload.body.length;
-    if (Array.isArray(payload?.payload)) return payload.payload.length;
-    if (Array.isArray(payload?.events)) return payload.events.length;
+    if (Array.isArray(payload?.payload?.body)) return payload.payload.body.length;
+    if (Array.isArray(payload?.results)) return payload.results.length;
     return 0;
   }
 
-  payloadKind() {
-    const payload = this.payload();
-    return payload?.resourceType || payload?.endpoint || payload?.kind || payload?.type || 'Destination payload';
-  }
-
-  resultHandlingLabel() {
-    const handling = this.resultHandling();
-    if (!handling) return 'No handling data';
-    if (handling.blockedExistingCount) return 'Blocked existing results';
-    if (handling.skippedDuplicateCount) return 'Duplicates skipped';
-    if (handling.correctionCount) return 'Correction mode';
-    if (handling.repeatCount) return 'Repeat mode';
-    return 'Initial result flow';
-  }
-
-  handlingDecisionClass(row: any) {
-    const decision = String(row?.decision ?? '').toUpperCase();
-    if (decision.includes('BLOCK')) return 'bad';
-    if (decision.includes('SKIP')) return 'warn';
-    if (decision.includes('CORRECTION') || decision.includes('REPEAT')) return 'info';
-    return 'good';
-  }
-
-  formatDateTime(value?: string | null) {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-
-    return new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(d);
-  }
-
-  private findResultHandling() {
-    const payload = this.payload();
-    const sourceDocument = this.sourceDocument();
-    const summary = this.summary();
-
-    return (
-      payload?.context?.resultHandling ??
-      payload?.resultHandling ??
-      sourceDocument?.resultHandling ??
-      sourceDocument?.lis?.resultHandling ??
-      summary?.resultHandling ??
-      null
-    );
+  private deriveDeliveryValidation() {
+    const errors = this.errors();
+    const warnings = this.warnings();
+    const status = errors.length ? 'BLOCKED' : warnings.length ? 'WARNING' : 'READY';
+    return {
+      status,
+      severity: status === 'BLOCKED' ? 'bad' : status === 'WARNING' ? 'warn' : 'success',
+      payloadRowCount: this.payloadRowsCount(),
+      errors,
+      warnings,
+      messages: status === 'READY' ? ['Payload passed delivery validation and can be sent.'] : [...errors, ...warnings],
+      missingRequiredCodes: [],
+      unexpectedAnalyzerCodes: [],
+    };
   }
 
   private parseJson(value: any) {

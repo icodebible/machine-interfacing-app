@@ -167,6 +167,9 @@
           <div class="meta">
             {{ row.updated_by_username || row.created_by_username || 'System managed' }}
           </div>
+          <div class="meta security-meta" [class.warn]="securityTone(row) === 'warn'">
+            {{ securityLabel(row) }}
+          </div>
         </td>
       </ng-container>
 
@@ -237,6 +240,14 @@
                     <div>
                       <strong>Updated</strong>
                       <div class="meta">{{ formatDateTime(row.updated_at) }}</div>
+                    </div>
+                    <div>
+                      <strong>Security</strong>
+                      <div class="meta" [class.warn]="securityTone(row) === 'warn'">{{ securityLabel(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>TLS mode</strong>
+                      <div class="meta">{{ row.allow_insecure_tls ? 'Insecure TLS allowed' : 'Strict TLS' }}</div>
                     </div>
                   </div>
                 </section>
@@ -629,6 +640,9 @@
           <div class="meta">
             {{ row.updated_by_username || row.created_by_username || 'System managed' }}
           </div>
+          <div class="meta security-meta" [class.warn]="securityTone(row) === 'warn'">
+            {{ securityLabel(row) }}
+          </div>
         </td>
       </ng-container>
 
@@ -699,6 +713,14 @@
                     <div>
                       <strong>Updated</strong>
                       <div class="meta">{{ formatDateTime(row.updated_at) }}</div>
+                    </div>
+                    <div>
+                      <strong>Security</strong>
+                      <div class="meta" [class.warn]="securityTone(row) === 'warn'">{{ securityLabel(row) }}</div>
+                    </div>
+                    <div>
+                      <strong>TLS mode</strong>
+                      <div class="meta">{{ row.allow_insecure_tls ? 'Insecure TLS allowed' : 'Strict TLS' }}</div>
                     </div>
                   </div>
                 </section>

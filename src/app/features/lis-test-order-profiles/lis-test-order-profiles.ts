@@ -433,8 +433,11 @@ export class LisTestOrderProfiles {
   }
 
   async deleteProfile(profile: ProfileRow): Promise<void> {
-    const ok = confirm(`Delete LIS test-order profile "${profile.profile_name}"?`);
-    if (!ok) return;
+    if (!this.confirmDanger(
+      'Delete LIS test-order profile',
+      `Profile "${profile.profile_name}" will no longer participate in LIS preview, rebuild, or delivery validation. Historical audit and queue records remain unchanged.`,
+      'DELETE',
+    )) return;
 
     try {
       await this.api.lisTestOrderProfileDelete(profile.id);
@@ -444,6 +447,16 @@ export class LisTestOrderProfiles {
     } catch (error: unknown) {
       this.notifyError(error, 'Failed to delete LIS test-order profile');
     }
+  }
+
+
+  private confirmDanger(title: string, message: string, keyword: string) {
+    const value = window.prompt(`${title}
+
+${message}
+
+Type ${keyword} to continue.`);
+    return String(value ?? '').trim().toUpperCase() === keyword;
   }
 
   requiredCount(profile: ProfileRow): number {

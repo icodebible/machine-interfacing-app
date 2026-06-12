@@ -24,6 +24,10 @@
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   }
 
+  <mat-tab-group class="dashboard-tabs" animationDuration="0ms">
+    <mat-tab label="Operations overview">
+      <div class="dashboard-tab-panel">
+
   <div class="summary-grid">
     <div class="summary-card primary">
       <div class="summary-label">Machines</div>
@@ -551,8 +555,8 @@
         <a class="launch-tile" routerLink="/app/audit-logs">
           <mat-icon>history</mat-icon>
           <div>
-            <div class="item-title">Audit Logs</div>
-            <div class="item-sub">System and delivery accountability</div>
+            <div class="item-title">Audit & Readiness</div>
+            <div class="item-sub">Audit trail, delivery accountability, and production readiness</div>
           </div>
         </a>
 
@@ -566,4 +570,157 @@
       </div>
     </div>
   </div>
+
+      </div>
+    </mat-tab>
+
+    <mat-tab label="LIS mapping coverage">
+      <div class="dashboard-tab-panel mapping-coverage-tab">
+        <section class="summary-grid coverage-summary" aria-label="LIS mapping coverage summary">
+          <article class="summary-card primary">
+            <div class="summary-label">LIS profiles</div>
+            <div class="summary-value">{{ mappingCoverageSummary().profiles }}</div>
+            <div class="summary-sub">Configured test-order profiles across LIS targets</div>
+          </article>
+          <article class="summary-card success">
+            <div class="summary-label">Ready</div>
+            <div class="summary-value">{{ mappingCoverageSummary().ready }}</div>
+            <div class="summary-sub">Profiles with complete required mapping coverage</div>
+          </article>
+          <article class="summary-card warning">
+            <div class="summary-label">Needs review</div>
+            <div class="summary-value">{{ mappingCoverageSummary().warnings }}</div>
+            <div class="summary-sub">Mostly ready but with operational warnings</div>
+          </article>
+          <article class="summary-card danger">
+            <div class="summary-label">Blocked</div>
+            <div class="summary-value">{{ mappingCoverageSummary().blocked }}</div>
+            <div class="summary-sub">Missing mapping coverage that can block delivery</div>
+          </article>
+          <article class="summary-card neutral">
+            <div class="summary-label">Mapping gaps</div>
+            <div class="summary-value">{{ mappingCoverageSummary().missingMappings }}</div>
+            <div class="summary-sub">Concept, coded-answer, instrument, tested-by, or required-code gaps</div>
+          </article>
+        </section>
+
+        <section class="card section span-2 coverage-hero">
+          <div class="section-head">
+            <div>
+              <div class="section-title">LIS mapping coverage dashboard</div>
+              <div class="section-sub">
+                Read-only readiness analysis for enabled LIS profiles. Use this to catch missing concept, coded-answer,
+                allocation, instrument, and tested-by mappings before payload rebuild or delivery.
+              </div>
+            </div>
+            <div class="coverage-actions">
+              <a mat-stroked-button routerLink="/app/lis-test-order-profiles">
+                <mat-icon>fact_check</mat-icon>
+                Profiles
+              </a>
+              <a mat-stroked-button routerLink="/app/mappings">
+                <mat-icon>tune</mat-icon>
+                Mappings
+              </a>
+              <a mat-stroked-button routerLink="/app/targets">
+                <mat-icon>hub</mat-icon>
+                Targets
+              </a>
+            </div>
+          </div>
+
+          @if (mappingCoverageAttention().length) {
+            <div class="coverage-attention-grid">
+              @for (row of mappingCoverageAttention(); track row.profileId) {
+                <article class="coverage-attention-card" [class.bad]="row.status === 'BLOCKED'" [class.warn]="row.status === 'WARNING'">
+                  <div class="coverage-card-head">
+                    <span class="status-pill" [class]="coverageTone(row.status)">{{ coverageStatusLabel(row.status) }}</span>
+                    <span class="coverage-target">{{ row.targetName }}</span>
+                  </div>
+                  <div class="item-title">{{ row.profileName }}</div>
+                  <div class="item-sub">{{ coverageMainIssue(row) }}</div>
+                  <div class="coverage-chip-row">
+                    <span class="metric-chip">Concept gaps: {{ row.missingConceptCount }}</span>
+                    <span class="metric-chip">Coded gaps: {{ row.missingCodedAnswerCount }}</span>
+                    <span class="metric-chip">Allocation warnings: {{ row.missingAllocationCount }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="empty-inline">No LIS mapping coverage issues are currently highlighted.</div>
+          }
+        </section>
+
+        <section class="card section span-2 coverage-table-card">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Profile-by-profile coverage</div>
+              <div class="section-sub">
+                Each row checks profile parameters against current LIS mapping rules and value translations.
+              </div>
+            </div>
+          </div>
+
+          @if (mappingCoverageRows().length) {
+            <div class="table-shell coverage-table-shell">
+              <table class="data-table coverage-table">
+                <thead>
+                  <tr>
+                    <th>Profile</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Parameters</th>
+                    <th>Concept gaps</th>
+                    <th>Coded-answer gaps</th>
+                    <th>Allocation warnings</th>
+                    <th>Instrument</th>
+                    <th>Tested by</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of mappingCoverageRows(); track row.profileId) {
+                    <tr>
+                      <td>
+                        <div class="item-title">{{ row.profileName }}</div>
+                        <div class="item-sub mono">{{ row.profileCode }} · {{ row.orderConceptUuid || 'No order UUID' }}</div>
+                      </td>
+                      <td>
+                        <div>{{ row.targetName }}</div>
+                        <div class="item-sub">{{ row.targetType }}</div>
+                      </td>
+                      <td>
+                        <span class="status-pill" [class]="coverageTone(row.status)">{{ coverageStatusLabel(row.status) }}</span>
+                        <div class="item-sub">{{ coverageMainIssue(row) }}</div>
+                      </td>
+                      <td>{{ row.requiredParameterCount }} required / {{ row.parameterCount }} total</td>
+                      <td><span class="status-pill" [class]="row.missingConceptCount > 0 ? 'bad' : 'ok'">{{ row.missingConceptCount }}</span></td>
+                      <td><span class="status-pill" [class]="row.missingCodedAnswerCount > 0 ? 'bad' : 'ok'">{{ row.missingCodedAnswerCount }}</span></td>
+                      <td><span class="status-pill" [class]="row.missingAllocationCount > 0 ? 'warn' : 'ok'">{{ row.missingAllocationCount }}</span></td>
+                      <td><span class="status-pill" [class]="row.instrumentReady ? 'ok' : 'bad'">{{ row.instrumentReady ? 'Ready' : 'Missing' }}</span></td>
+                      <td><span class="status-pill" [class]="row.testedByReady ? 'ok' : 'bad'">{{ row.testedByReady ? 'Ready' : 'Missing' }}</span></td>
+                    </tr>
+                    <tr class="coverage-notes-row">
+                      <td colspan="9">
+                        <div class="coverage-note-list">
+                          @for (message of row.messages.slice(0, 4); track message) {
+                            <span class="coverage-note" [class.bad]="row.status === 'BLOCKED'" [class.warn]="row.status === 'WARNING'">{{ message }}</span>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty-inline">
+              No LIS profiles were found. Configure profiles from LIS Test-Order Profiles, then return here for coverage analysis.
+            </div>
+          }
+        </section>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
 </div>

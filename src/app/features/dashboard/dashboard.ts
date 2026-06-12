@@ -7,6 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { PlatformApiService } from '../../core/platform/platform-api.service';
 
@@ -76,6 +77,81 @@ type ConnectorHealthRow = {
   failed: number;
 };
 
+type MappingRuleRow = {
+  id: string;
+  target_type: string;
+  source_field?: string | null;
+  destination_field: string;
+  transform_kind: 'direct' | 'constant' | 'lookup' | string;
+  constant_value?: string | null;
+  enabled: number;
+  value_mapping_enabled?: number | null;
+  unmapped_behavior?: string | null;
+  default_destination_value?: string | null;
+};
+
+type MappingValueTranslationRow = {
+  id: string;
+  mapping_rule_id: string;
+  source_value: string;
+  destination_value?: string | null;
+  enabled: number;
+  note?: string | null;
+};
+
+type LisProfileParameter = {
+  analyzer_code: string;
+  display_name?: string | null;
+  concept_uuid?: string | null;
+  allocation_uuid?: string | null;
+  datatype?: string | null;
+  value_type?: 'coded' | 'numeric' | 'text' | string | null;
+  required?: number | boolean | null;
+  aliases?: string[] | null;
+};
+
+type LisProfileRow = {
+  id: string;
+  target_id: string;
+  target_name?: string | null;
+  target_type?: string | null;
+  profile_code: string;
+  profile_name: string;
+  order_concept_uuid?: string | null;
+  order_display?: string | null;
+  enabled: number;
+  parameters: LisProfileParameter[];
+  updated_at?: string | null;
+};
+
+type MappingCoverageStatus = 'READY' | 'WARNING' | 'BLOCKED' | 'DISABLED';
+
+type MappingCoverageRow = {
+  profileId: string;
+  profileCode: string;
+  profileName: string;
+  targetId: string;
+  targetName: string;
+  targetType: string;
+  enabled: number;
+  orderConceptUuid?: string | null;
+  orderDisplay?: string | null;
+  status: MappingCoverageStatus;
+  tone: 'ok' | 'warn' | 'bad' | 'idle';
+  parameterCount: number;
+  requiredParameterCount: number;
+  codedParameterCount: number;
+  missingConceptCount: number;
+  missingAllocationCount: number;
+  missingCodedAnswerCount: number;
+  missingRequiredCodeCount: number;
+  instrumentReady: boolean;
+  testedByReady: boolean;
+  targetEnabled: boolean;
+  messages: string[];
+  quickActions: Array<{ label: string; route: string }>;
+};
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -87,6 +163,7 @@ type ConnectorHealthRow = {
     MatIconModule,
     MatProgressBarModule,
     MatSnackBarModule,
+    MatTabsModule,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
@@ -105,6 +182,9 @@ export class Dashboard {
   deliveryRows = signal<any[]>([]);
   deliveryAudit = signal<any[]>([]);
   trend24h = signal<TrendBucket[]>([]);
+  mappingRows = signal<MappingRuleRow[]>([]);
+  mappingTranslations = signal<MappingValueTranslationRow[]>([]);
+  lisProfiles = signal<LisProfileRow[]>([]);
 
   summary = computed(() => {
     const rows = this.machineRows();
@@ -138,6 +218,48 @@ export class Dashboard {
       activeTargets,
     };
   });
+
+  mappingCoverageRows = computed<MappingCoverageRow[]>(() => {
+    const targets = this.targets();
+    const profiles = this.lisProfiles();
+    const rules = this.mappingRows().filter((rule) => Number(rule.enabled ?? 0) === 1 && this.isLisTargetType(rule.target_type));
+    const translations = this.mappingTranslations().filter((row) => Number(row.enabled ?? 0) === 1);
+    const targetById = new Map(targets.map((target: any) => [String(target.id), target]));
+    const translationByRule = new Map<string, MappingValueTranslationRow[]>();
+
+    for (const translation of translations) {
+      const bucket = translationByRule.get(translation.mapping_rule_id) ?? [];
+      bucket.push(translation);
+      translationByRule.set(translation.mapping_rule_id, bucket);
+    }
+
+    return profiles
+      .map((profile) => this.buildMappingCoverageRow(profile, targetById.get(profile.target_id), rules, translationByRule))
+      .sort((a, b) => this.coverageSortWeight(a.status) - this.coverageSortWeight(b.status) || a.profileName.localeCompare(b.profileName));
+  });
+
+  mappingCoverageSummary = computed(() => {
+    const rows = this.mappingCoverageRows();
+    const activeRows = rows.filter((row) => row.status !== 'DISABLED');
+    const missingMappings = activeRows.reduce(
+      (sum, row) =>
+        sum + row.missingConceptCount + row.missingCodedAnswerCount + row.missingRequiredCodeCount + (row.instrumentReady ? 0 : 1) + (row.testedByReady ? 0 : 1),
+      0,
+    );
+
+    return {
+      profiles: rows.length,
+      ready: activeRows.filter((row) => row.status === 'READY').length,
+      warnings: activeRows.filter((row) => row.status === 'WARNING').length,
+      blocked: activeRows.filter((row) => row.status === 'BLOCKED').length,
+      missingMappings,
+      disabled: rows.filter((row) => row.status === 'DISABLED').length,
+    };
+  });
+
+  mappingCoverageAttention = computed(() =>
+    this.mappingCoverageRows().filter((row) => row.status === 'BLOCKED' || row.status === 'WARNING').slice(0, 8),
+  );
 
   machineAttention = computed<AttentionItem[]>(() =>
     this.machineRows()
@@ -361,6 +483,8 @@ export class Dashboard {
         queueRows,
         deliveryRows,
         deliveryAudit,
+        mappings,
+        lisProfiles,
       ] = await Promise.all([
         this.api.machinesList(),
         this.api.machinesRuntimeStates(),
@@ -370,10 +494,16 @@ export class Dashboard {
         this.api.outboundQueueList(200),
         this.api.deliveryHistoryList(200),
         this.api.deliveryAuditList({ limit: 100 }),
+        this.api.mappingsList(),
+        this.api.lisTestOrderProfilesList(null),
       ]);
 
-      const runtimeMap = new Map((runtimeStates ?? []).map((row: any) => [row.machineId, row]));
-      const simMap = new Map((simStates ?? []).map((row: any) => [row.machineId, row]));
+      const runtimeMap = new Map<string, { status?: RuntimeStatus | string; updatedAt?: string | null }>(
+        (runtimeStates ?? []).map((row: any) => [String(row.machineId), row]),
+      );
+      const simMap = new Map<string, { running?: boolean }>(
+        (simStates ?? []).map((row: any) => [String(row.machineId), row]),
+      );
 
       const activitySettled = await Promise.allSettled(
         (machines ?? []).map(async (machine: any) => {
@@ -411,9 +541,17 @@ export class Dashboard {
         }
       }
 
+      const lisMappingRules = (mappings ?? []).filter((rule: MappingRuleRow) => this.isLisTargetType(rule.target_type));
+      const translationSettled = await Promise.allSettled(
+        lisMappingRules.map((rule: MappingRuleRow) => this.api.mappingValueTranslationsList(rule.id)),
+      );
+      const mappingTranslations = translationSettled.flatMap((result: PromiseSettledResult<MappingValueTranslationRow[]>) =>
+        result.status === 'fulfilled' ? ((result.value ?? []) as MappingValueTranslationRow[]) : [],
+      );
+
       const machineRows: MachineOverviewRow[] = (machines ?? []).map((machine: any) => {
-        const runtime = runtimeMap.get(machine.id);
-        const sim = simMap.get(machine.id);
+        const runtime = runtimeMap.get(String(machine.id));
+        const sim = simMap.get(String(machine.id));
         const activity = activityMap.get(machine.id) ?? { parsed: [], normalized: [] };
         const latestParsedAt = activity.parsed?.[0]?.created_at ?? null;
         const latestNormalizedAt = activity.normalized?.[0]?.created_at ?? null;
@@ -441,6 +579,9 @@ export class Dashboard {
       this.queueRows.set(queueRows ?? []);
       this.deliveryRows.set(deliveryRows ?? []);
       this.deliveryAudit.set(deliveryAudit ?? []);
+      this.mappingRows.set((mappings ?? []) as MappingRuleRow[]);
+      this.mappingTranslations.set(mappingTranslations);
+      this.lisProfiles.set((lisProfiles ?? []) as LisProfileRow[]);
       this.trend24h.set(this.build24hTrend(parsedTimes, normalizedTimes));
       this.lastRefreshed.set(new Date().toISOString());
 
@@ -506,6 +647,39 @@ export class Dashboard {
     return tone;
   }
 
+  coverageTone(status: MappingCoverageStatus): 'ok' | 'warn' | 'bad' | 'idle' {
+    if (status === 'READY') return 'ok';
+    if (status === 'BLOCKED') return 'bad';
+    if (status === 'WARNING') return 'warn';
+    return 'idle';
+  }
+
+  coverageStatusLabel(status: MappingCoverageStatus): string {
+    switch (status) {
+      case 'READY':
+        return 'Ready';
+      case 'BLOCKED':
+        return 'Blocked';
+      case 'WARNING':
+        return 'Needs review';
+      case 'DISABLED':
+      default:
+        return 'Disabled';
+    }
+  }
+
+  coverageMainIssue(row: MappingCoverageRow): string {
+    if (!row.targetEnabled) return 'Target disabled';
+    if (row.status === 'DISABLED') return 'Profile disabled';
+    if (row.missingRequiredCodeCount > 0) return `${row.missingRequiredCodeCount} required analyzer code gap${row.missingRequiredCodeCount === 1 ? '' : 's'}`;
+    if (row.missingConceptCount > 0) return `${row.missingConceptCount} concept mapping gap${row.missingConceptCount === 1 ? '' : 's'}`;
+    if (row.missingCodedAnswerCount > 0) return `${row.missingCodedAnswerCount} coded-answer gap${row.missingCodedAnswerCount === 1 ? '' : 's'}`;
+    if (!row.instrumentReady) return 'Instrument default missing';
+    if (!row.testedByReady) return 'Tested-by default missing';
+    if (row.missingAllocationCount > 0) return `${row.missingAllocationCount} allocation warning${row.missingAllocationCount === 1 ? '' : 's'}`;
+    return 'Profile mappings look ready';
+  }
+
   private runtimeLabel(status: RuntimeStatus): string {
     switch (status) {
       case 'connected':
@@ -544,6 +718,161 @@ export class Dashboard {
   private dateValue(value?: string | null): number {
     const time = value ? new Date(value).getTime() : Number.NaN;
     return Number.isNaN(time) ? 0 : time;
+  }
+
+  private buildMappingCoverageRow(
+    profile: LisProfileRow,
+    target: any | undefined,
+    rules: MappingRuleRow[],
+    translationsByRule: Map<string, MappingValueTranslationRow[]>,
+  ): MappingCoverageRow {
+    const parameters = profile.parameters ?? [];
+    const enabled = Number(profile.enabled ?? 0) === 1;
+    const targetEnabled = Number(target?.enabled ?? 0) === 1;
+    const messages: string[] = [];
+    const conceptRules = rules.filter((rule) => this.isConceptDestination(rule.destination_field));
+    const allocationRules = rules.filter((rule) => this.isAllocationDestination(rule.destination_field));
+    const codedAnswerRules = rules.filter((rule) => this.isCodedAnswerDestination(rule.destination_field));
+    const instrumentReady = this.hasConstantDestination(rules, ['lis.instrument.uuid', 'instrument.uuid']);
+    const testedByReady = this.hasConstantDestination(rules, ['lis.testedby', 'lis.testedby.uuid', 'testedby']);
+
+    const missingRequiredCodeCount = parameters.filter((parameter) => Number(parameter.required ?? 0) === 1 && !this.clean(parameter.analyzer_code)).length;
+    const missingConceptCount = parameters.filter((parameter) => {
+      if (this.clean(parameter.concept_uuid)) return false;
+      return !this.hasTranslationForParameter(parameter, conceptRules, translationsByRule, 'code');
+    }).length;
+    const missingAllocationCount = parameters.filter((parameter) => {
+      if (this.clean(parameter.allocation_uuid)) return false;
+      return !this.hasTranslationForParameter(parameter, allocationRules, translationsByRule, 'code');
+    }).length;
+    const codedParameters = parameters.filter((parameter) => this.isCodedParameter(parameter));
+    const missingCodedAnswerCount = codedParameters.filter(
+      (parameter) => !this.hasTranslationForParameter(parameter, codedAnswerRules, translationsByRule, 'result'),
+    ).length;
+
+    if (!profile.order_concept_uuid) messages.push('Order concept UUID is missing from this profile.');
+    if (!parameters.length) messages.push('No profile parameters are configured.');
+    if (missingRequiredCodeCount) messages.push(`${missingRequiredCodeCount} required parameter(s) have no analyzer code.`);
+    if (missingConceptCount) messages.push(`${missingConceptCount} parameter concept mapping gap(s) were found.`);
+    if (missingCodedAnswerCount) messages.push(`${missingCodedAnswerCount} coded parameter(s) need analyzer value → OpenMRS coded answer mappings.`);
+    if (!instrumentReady) messages.push('Default LIS instrument UUID mapping is not configured.');
+    if (!testedByReady) messages.push('Default tested-by mapping is not configured.');
+    if (missingAllocationCount) messages.push(`${missingAllocationCount} allocation mapping warning(s); runtime sample allocation fallback may be required.`);
+    if (!targetEnabled) messages.push('Target is disabled, so this coverage is not currently actionable for delivery.');
+
+    let status: MappingCoverageStatus = 'READY';
+    if (!enabled) status = 'DISABLED';
+    else if (!targetEnabled || !profile.order_concept_uuid || !parameters.length || missingRequiredCodeCount || missingConceptCount || missingCodedAnswerCount || !instrumentReady || !testedByReady) {
+      status = 'BLOCKED';
+    } else if (missingAllocationCount) {
+      status = 'WARNING';
+    }
+
+    return {
+      profileId: profile.id,
+      profileCode: profile.profile_code,
+      profileName: profile.profile_name,
+      targetId: profile.target_id,
+      targetName: profile.target_name || target?.name || profile.target_id,
+      targetType: profile.target_type || target?.type || 'LIS',
+      enabled: Number(profile.enabled ?? 0),
+      orderConceptUuid: profile.order_concept_uuid,
+      orderDisplay: profile.order_display,
+      status,
+      tone: this.coverageTone(status),
+      parameterCount: parameters.length,
+      requiredParameterCount: parameters.filter((parameter) => Number(parameter.required ?? 0) === 1).length,
+      codedParameterCount: codedParameters.length,
+      missingConceptCount,
+      missingAllocationCount,
+      missingCodedAnswerCount,
+      missingRequiredCodeCount,
+      instrumentReady,
+      testedByReady,
+      targetEnabled,
+      messages: messages.length ? messages : ['All key LIS mapping coverage checks passed for this profile.'],
+      quickActions: [
+        { label: 'Profiles', route: '/app/lis-test-order-profiles' },
+        { label: 'Mappings', route: '/app/mappings' },
+        { label: 'Targets', route: '/app/targets' },
+      ],
+    };
+  }
+
+  private hasTranslationForParameter(
+    parameter: LisProfileParameter,
+    rules: MappingRuleRow[],
+    translationsByRule: Map<string, MappingValueTranslationRow[]>,
+    mode: 'code' | 'result',
+  ): boolean {
+    const aliases = this.parameterAliases(parameter);
+    if (!aliases.length || !rules.length) return false;
+
+    for (const rule of rules) {
+      const rows = translationsByRule.get(rule.id) ?? [];
+      for (const translation of rows) {
+        const source = this.clean(translation.source_value).toUpperCase();
+        if (!source) continue;
+        if (mode === 'code' && aliases.some((alias) => source === alias || source.includes(alias))) return true;
+        if (mode === 'result' && aliases.some((alias) => source.startsWith(`${alias}=`) || source.includes(`${alias}=`))) return true;
+      }
+    }
+
+    return false;
+  }
+
+  private parameterAliases(parameter: LisProfileParameter): string[] {
+    const values = [parameter.analyzer_code, parameter.display_name, ...(parameter.aliases ?? [])]
+      .map((value) => this.clean(value).toUpperCase().replace(/[^A-Z0-9]/g, ''))
+      .filter(Boolean);
+    return Array.from(new Set(values));
+  }
+
+  private isCodedParameter(parameter: LisProfileParameter): boolean {
+    const valueType = this.clean(parameter.value_type).toLowerCase();
+    const datatype = this.clean(parameter.datatype).toLowerCase();
+    return valueType === 'coded' || datatype.includes('coded') || datatype.includes('ce');
+  }
+
+  private isLisTargetType(value: unknown): boolean {
+    const type = this.clean(value).toUpperCase();
+    return type === 'LIS' || type === 'OPENMRS';
+  }
+
+  private isConceptDestination(value: unknown): boolean {
+    const destination = this.clean(value).toLowerCase();
+    return destination === 'lis.parameter.conceptuuid' || destination === 'lis.concept.uuid' || destination.endsWith('.conceptuuid') || destination.endsWith('.concept.uuid');
+  }
+
+  private isAllocationDestination(value: unknown): boolean {
+    const destination = this.clean(value).toLowerCase();
+    return destination === 'lis.parameter.allocationuuid' || destination === 'lis.testallocation.uuid' || destination.endsWith('.allocationuuid') || destination.endsWith('.testallocation.uuid');
+  }
+
+  private isCodedAnswerDestination(value: unknown): boolean {
+    const destination = this.clean(value).toLowerCase();
+    return destination === 'lis.valuecoded.uuid' || destination === 'lis.value_coded.uuid' || destination.endsWith('.valuecoded.uuid') || destination.endsWith('.value_coded.uuid');
+  }
+
+  private hasConstantDestination(rules: MappingRuleRow[], destinations: string[]): boolean {
+    const keys = new Set(destinations.map((destination) => destination.toLowerCase()));
+    return rules.some((rule) =>
+      Number(rule.enabled ?? 0) === 1 &&
+      rule.transform_kind === 'constant' &&
+      keys.has(this.clean(rule.destination_field).toLowerCase()) &&
+      !!this.clean(rule.constant_value),
+    );
+  }
+
+  private coverageSortWeight(status: MappingCoverageStatus): number {
+    if (status === 'BLOCKED') return 0;
+    if (status === 'WARNING') return 1;
+    if (status === 'READY') return 2;
+    return 3;
+  }
+
+  private clean(value: unknown): string {
+    return String(value ?? '').trim();
   }
 
   private toBreakdown(

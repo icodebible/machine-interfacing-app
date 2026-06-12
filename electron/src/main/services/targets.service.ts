@@ -6,7 +6,6 @@
 // import { buildAuthHeaders } from '../security/delivery-auth.util';
 // import { SecureHttpClient } from '../security/secure-http.client';
 // import { getCurrentActorStamp } from './actor-context.service';
-
 // const nowIso = () => new Date().toISOString();
 
 // export type TargetDto = {
@@ -346,7 +345,7 @@
 //             id,
 //             dto.type,
 //             dto.name,
-//             normalizeBaseUrl(dto.base_url),
+//             safeBaseUrl(dto.base_url),
 //             intOr(dto.enabled, 1),
 //             intOr(dto.auto_retry_enabled, 1),
 //             Math.max(0, intOr(dto.max_retry_attempts, 4)),
@@ -400,7 +399,7 @@
 //             .run(
 //                 dto.type ?? null,
 //                 dto.name ?? null,
-//                 dto.base_url ? normalizeBaseUrl(dto.base_url) : null,
+//                 dto.base_url ? safeBaseUrl(dto.base_url) : null,
 //                 dto.enabled ?? null,
 //                 dto.auto_retry_enabled ?? null,
 //                 dto.max_retry_attempts ?? null,
@@ -479,6 +478,7 @@ import { TargetSecretsService } from './target-secrets.service';
 import { buildAuthHeaders } from '../security/delivery-auth.util';
 import { SecureHttpClient } from '../security/secure-http.client';
 import { getCurrentActorStamp } from './actor-context.service';
+import { auditService } from './audit.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -496,6 +496,35 @@ export type TargetDto = {
 };
 
 const normalizeBaseUrl = (value: string) => (value ?? '').trim().replace(/\/+$/, '');
+const SENSITIVE_URL_KEY = /(password|passwd|token|secret|api[_-]?key|authorization|credential|bearer)/i;
+
+function assertSafeBaseUrl(value: string) {
+    const raw = String(value ?? '').trim();
+    if (!raw) throw new Error('Target base URL is required.');
+    if (/\b(password|passwd|token|secret|api[_-]?key|authorization|credential)=/i.test(raw)) {
+        throw new Error('Do not put credentials, tokens, API keys, or authorization values in the target base URL. Save them in Security & test instead.');
+    }
+    try {
+        const parsed = new URL(raw);
+        if (parsed.username || parsed.password) {
+            throw new Error('Do not put username or password in the target base URL. Save credentials in Security & test instead.');
+        }
+        for (const key of parsed.searchParams.keys()) {
+            if (SENSITIVE_URL_KEY.test(key)) {
+                throw new Error(`Sensitive URL query parameter "${key}" is not allowed in the target base URL. Save it in Security & test instead.`);
+            }
+        }
+    } catch (error: any) {
+        if (error?.message?.includes('Do not put') || error?.message?.includes('Sensitive URL')) throw error;
+        // Keep existing behavior for non-standard/internal connector URLs; only block obvious credential leakage above.
+    }
+}
+
+function safeBaseUrl(value: string) {
+    const normalized = normalizeBaseUrl(value);
+    assertSafeBaseUrl(normalized);
+    return normalized;
+}
 const intOr = (value: unknown, fallback: number) => {
     const n = Number(value);
     return Number.isFinite(n) ? Math.trunc(n) : fallback;
@@ -788,7 +817,16 @@ export class TargetsService {
 
     list() {
         const db = getDb();
-        return db.prepare(`SELECT * FROM targets ORDER BY type ASC, name ASC`).all();
+        return db.prepare(`
+            SELECT
+                t.*,
+                COALESCE(s.auth_type, 'none') AS auth_type,
+                CASE WHEN s.target_id IS NOT NULL AND COALESCE(s.auth_type, 'none') <> 'none' THEN 1 ELSE 0 END AS auth_configured,
+                COALESCE(s.allow_insecure_tls, 0) AS allow_insecure_tls
+            FROM targets t
+            LEFT JOIN target_secrets s ON s.target_id = t.id
+            ORDER BY t.type ASC, t.name ASC
+        `).all();
     }
 
     create(dto: TargetDto) {
@@ -821,7 +859,7 @@ export class TargetsService {
             id,
             dto.type,
             dto.name,
-            normalizeBaseUrl(dto.base_url),
+            safeBaseUrl(dto.base_url),
             intOr(dto.enabled, 1),
             intOr(dto.auto_retry_enabled, 1),
             Math.max(0, intOr(dto.max_retry_attempts, 4)),
@@ -843,6 +881,17 @@ export class TargetsService {
             entityType: 'target',
             entityId: id,
             message: 'Target created',
+        });
+        auditService.record({
+            source: 'TARGET',
+            category: 'CONFIGURATION',
+            action: 'TARGET_CREATED',
+            entityType: 'target',
+            entityId: id,
+            entityLabel: dto.name,
+            summary: `Target created: ${dto.name}`,
+            details: { type: dto.type, base_url: safeBaseUrl(dto.base_url), enabled: intOr(dto.enabled, 1) },
+            actor,
         });
         return { id };
     }
@@ -875,7 +924,7 @@ export class TargetsService {
             .run(
                 dto.type ?? null,
                 dto.name ?? null,
-                dto.base_url ? normalizeBaseUrl(dto.base_url) : null,
+                dto.base_url ? safeBaseUrl(dto.base_url) : null,
                 dto.enabled ?? null,
                 dto.auto_retry_enabled ?? null,
                 dto.max_retry_attempts ?? null,
@@ -897,6 +946,16 @@ export class TargetsService {
             entityId: id,
             message: 'Target updated',
         });
+        auditService.record({
+            source: 'TARGET',
+            category: 'CONFIGURATION',
+            action: 'TARGET_UPDATED',
+            entityType: 'target',
+            entityId: id,
+            summary: 'Target configuration updated',
+            details: dto,
+            actor,
+        });
         return true;
     }
 
@@ -909,6 +968,16 @@ export class TargetsService {
             entityType: 'target',
             entityId: id,
             message: 'Target deleted',
+        });
+        auditService.record({
+            source: 'TARGET',
+            category: 'CONFIGURATION',
+            action: 'TARGET_DELETED',
+            severity: 'WARNING',
+            entityType: 'target',
+            entityId: id,
+            summary: 'Target deleted',
+            actor: getCurrentActorStamp(),
         });
         return true;
     }
@@ -924,6 +993,18 @@ export class TargetsService {
             entityType: 'target',
             entityId: id,
             message: 'Target test requested',
+        });
+        auditService.record({
+            source: 'TARGET',
+            category: 'DIAGNOSTICS',
+            action: 'TARGET_TEST_REQUESTED',
+            status: 'REQUESTED',
+            entityType: 'target',
+            entityId: id,
+            entityLabel: row.name,
+            summary: `Target diagnostics requested: ${row.name}`,
+            details: { type: row.type, base_url: row.base_url },
+            actor: getCurrentActorStamp(),
         });
 
         return {

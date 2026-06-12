@@ -19,6 +19,14 @@ type LogRow = {
   event_type: string;
   payload?: string | null;
   payload_preview?: string | null;
+  parsed_message_id?: string | null;
+  normalized_result_id?: string | null;
+  processing_status?: string | null;
+  processing_message?: string | null;
+  session_id?: string | null;
+  session_mode?: string | null;
+  replay_of_log_id?: string | null;
+  replay_mode?: string | null;
   created_at: string;
 };
 
@@ -34,6 +42,7 @@ type EventFilter =
   | 'disconnected'
   | 'parse_success'
   | 'parse_error'
+  | 'replay'
   | 'test'
   | 'error';
 
@@ -68,6 +77,7 @@ export class MachineLogsDialog {
   directionFilter = signal<DirectionFilter>('ALL');
   eventFilter = signal<EventFilter>('ALL');
   selectedLogId = signal<string | null>(null);
+  replaying = signal(false);
 
   filteredLogs = computed(() => {
     const search = this.search().trim().toLowerCase();
@@ -206,6 +216,33 @@ export class MachineLogsDialog {
 
   payloadText(log: LogRow | null) {
     return log?.payload ?? log?.payload_preview ?? '—';
+  }
+
+  canReplay(log: LogRow | null) {
+    return !!log?.payload && log.direction !== 'outbound';
+  }
+
+  statusBadgeClass(status?: string | null) {
+    const value = String(status ?? '').toUpperCase();
+    if (value.includes('ERROR')) return 'status-badge--error';
+    if (value.includes('EMPTY') || value.includes('WARN')) return 'status-badge--warning';
+    if (value.includes('NORMALIZED') || value.includes('PARSED')) return 'status-badge--success';
+    return 'status-badge--neutral';
+  }
+
+  async replaySelected(mode: 'PARSE_ONLY' | 'PARSE_AND_NORMALIZE' | 'FULL_WORKFLOW') {
+    const log = this.selectedLog();
+    if (!log?.id || !this.canReplay(log)) return;
+    try {
+      this.replaying.set(true);
+      const result = await this.api.machinesLogsReplay(log.id, mode);
+      this.snack.open(result?.ok ? 'Replay completed' : 'Replay completed with warnings', 'Close', { duration: 2600 });
+      await this.refresh();
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Replay failed', 'Close', { duration: 3500 });
+    } finally {
+      this.replaying.set(false);
+    }
   }
 
   close() {

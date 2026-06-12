@@ -47,6 +47,16 @@ interface RecentLogRow {
   createdAt: string | null;
 }
 
+interface RecentSessionRow {
+  id: string;
+  mode: string;
+  status: string;
+  startedAt: string | null;
+  stoppedAt: string | null;
+  lastActivityAt: string | null;
+  message: string | null;
+}
+
 interface LiveMonitorRow {
   id: string;
   name: string;
@@ -70,6 +80,9 @@ interface LiveMonitorRow {
   latestTrafficPreview: string | null;
   latestTrafficAt: string | null;
   recentLogs: RecentLogRow[];
+  recentSessions: RecentSessionRow[];
+  activeSessionId: string | null;
+  latestProcessingStatus: string | null;
 
   parsedRecentCount: number;
   normalizedRecentCount: number;
@@ -213,10 +226,11 @@ export class LiveMonitor {
 
       const activitySettled = await Promise.allSettled(
         (machines ?? []).map(async (machine: any) => {
-          const [logs, parsed, normalized] = await Promise.all([
+          const [logs, parsed, normalized, sessions] = await Promise.all([
             this.api.machinesLogsList(machine.id, 8),
             this.api.machinesParsedList(machine.id, 20),
             this.api.machinesNormalizedList(machine.id, 20),
+            this.api.machinesRuntimeSessionsList(machine.id, 5),
           ]);
 
           return {
@@ -224,11 +238,12 @@ export class LiveMonitor {
             logs: logs ?? [],
             parsed: parsed ?? [],
             normalized: normalized ?? [],
+            sessions: sessions ?? [],
           };
         }),
       );
 
-      const activityMap = new Map<string, { logs: any[]; parsed: any[]; normalized: any[] }>();
+      const activityMap = new Map<string, { logs: any[]; parsed: any[]; normalized: any[]; sessions: any[] }>();
       let failedSources = 0;
 
       for (const settled of activitySettled) {
@@ -237,6 +252,7 @@ export class LiveMonitor {
             logs: settled.value.logs,
             parsed: settled.value.parsed,
             normalized: settled.value.normalized,
+            sessions: settled.value.sessions,
           });
         } else {
           failedSources += 1;
@@ -246,7 +262,7 @@ export class LiveMonitor {
       const rows: LiveMonitorRow[] = (machines ?? []).map((machine: any) => {
         const runtime = runtimeMap.get(machine.id);
         const sim = simMap.get(machine.id);
-        const activity = activityMap.get(machine.id) ?? { logs: [], parsed: [], normalized: [] };
+        const activity = activityMap.get(machine.id) ?? { logs: [], parsed: [], normalized: [], sessions: [] };
         const latestLog = activity.logs[0] ?? null;
         const latestParsed = activity.parsed[0] ?? null;
         const latestNormalized = activity.normalized[0] ?? null;
@@ -280,6 +296,17 @@ export class LiveMonitor {
             payloadPreview: log.payload_preview ?? null,
             createdAt: log.created_at ?? null,
           })),
+          recentSessions: (activity.sessions ?? []).map((session: any) => ({
+            id: session.id,
+            mode: session.mode,
+            status: session.status,
+            startedAt: session.started_at ?? null,
+            stoppedAt: session.stopped_at ?? null,
+            lastActivityAt: session.last_activity_at ?? null,
+            message: session.message ?? null,
+          })),
+          activeSessionId: (activity.sessions ?? []).find((session: any) => session.status === 'STARTED')?.id ?? null,
+          latestProcessingStatus: latestLog?.processing_status ?? null,
 
           parsedRecentCount: (activity.parsed ?? []).length,
           normalizedRecentCount: (activity.normalized ?? []).length,
@@ -360,12 +387,13 @@ export class LiveMonitor {
 
   async refreshMachine(row: LiveMonitorRow) {
     try {
-      const [runtime, sim, logs, parsed, normalized] = await Promise.all([
+      const [runtime, sim, logs, parsed, normalized, sessions] = await Promise.all([
         this.api.machinesRuntimeState(row.id),
         this.api.machinesSimState(row.id),
         this.api.machinesLogsList(row.id, 8),
         this.api.machinesParsedList(row.id, 20),
         this.api.machinesNormalizedList(row.id, 20),
+        this.api.machinesRuntimeSessionsList(row.id, 5),
       ]);
 
       this.rows.update((rows) =>
@@ -390,6 +418,17 @@ export class LiveMonitor {
               payloadPreview: log.payload_preview ?? null,
               createdAt: log.created_at ?? null,
             })),
+            recentSessions: (sessions ?? []).map((session: any) => ({
+              id: session.id,
+              mode: session.mode,
+              status: session.status,
+              startedAt: session.started_at ?? null,
+              stoppedAt: session.stopped_at ?? null,
+              lastActivityAt: session.last_activity_at ?? null,
+              message: session.message ?? null,
+            })),
+            activeSessionId: (sessions ?? []).find((session: any) => session.status === 'STARTED')?.id ?? null,
+            latestProcessingStatus: latestLog?.processing_status ?? null,
             parsedRecentCount: (parsed ?? []).length,
             normalizedRecentCount: (normalized ?? []).length,
             latestParsedAt: parsed?.[0]?.created_at ?? null,

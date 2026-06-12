@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { getDb } from '../db/db';
 import { logEvent } from '../logging/auditLog';
 import { getCurrentActorSnapshot } from './resource-actor.util';
+import { auditService } from './audit.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -133,6 +134,17 @@ export class MachinesService {
             entityId: id,
             message: actor ? `Machine created by ${actor.username}` : 'Machine created',
         });
+        auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_CREATED',
+            entityType: 'machine',
+            entityId: id,
+            entityLabel: dto.name,
+            summary: `Machine created: ${dto.name}`,
+            details: { connection_type: dto.connection_type, protocol: dto.protocol, lab_id: dto.lab_id },
+            actor,
+        });
         return { id };
     }
 
@@ -218,6 +230,16 @@ export class MachinesService {
             entityId: id,
             message: actor ? `Machine updated by ${actor.username}` : 'Machine updated',
         });
+        auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_UPDATED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine configuration updated',
+            details: dto,
+            actor,
+        });
         return true;
     }
 
@@ -232,6 +254,16 @@ export class MachinesService {
             entityId: id,
             message: actor ? `Machine deleted by ${actor.username}` : 'Machine deleted',
         });
+        auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_DELETED',
+            severity: 'WARNING',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine deleted',
+            actor,
+        });
         return true;
     }
 
@@ -244,6 +276,16 @@ export class MachinesService {
             entityId: id,
             message: actor ? `Connect requested by ${actor.username}` : 'Connect requested',
         });
+        auditService.record({
+            source: 'MACHINE',
+            category: 'RUNTIME',
+            action: 'MACHINE_CONNECT_REQUESTED',
+            status: 'REQUESTED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine connect requested',
+            actor,
+        });
         return true;
     }
 
@@ -255,6 +297,17 @@ export class MachinesService {
             entityType: 'machine',
             entityId: id,
             message: actor ? `Disconnect requested by ${actor.username}` : 'Disconnect requested',
+        });
+        auditService.record({
+            source: 'MACHINE',
+            category: 'RUNTIME',
+            action: 'MACHINE_DISCONNECT_REQUESTED',
+            severity: 'WARNING',
+            status: 'REQUESTED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine disconnect requested',
+            actor,
         });
         return true;
     }

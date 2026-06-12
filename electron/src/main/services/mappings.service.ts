@@ -4,6 +4,7 @@ import {
   OpenMrsLisMetadataRequest,
   OpenMrsLisMetadataService,
 } from "./openmrs-lis-metadata.service";
+import { auditService } from "./audit.service";
 
 const nowIso = () => new Date().toISOString();
 
@@ -125,6 +126,7 @@ export type OpenMrsLisTestOrderProfileSeed = {
 };
 
 export type OpenMrsLisMappingSeedInput = {
+  targetId?: string | null;
   endpoint?: string | null;
   instrumentUuid?: string | null;
   testedBy?: string | null;
@@ -193,6 +195,17 @@ export class MappingsService {
       ts,
     );
 
+    auditService.record({
+      source: 'MAPPING',
+      category: 'MAPPING',
+      action: 'MAPPING_RULE_CREATED',
+      entityType: 'target_mapping',
+      entityId: id,
+      entityLabel: `${dto.target_type}:${dto.source_field}`,
+      summary: 'Target mapping rule created',
+      details: dto,
+    });
+
     return { id };
   }
 
@@ -222,12 +235,32 @@ export class MappingsService {
       id,
     );
 
+    auditService.record({
+      source: 'MAPPING',
+      category: 'MAPPING',
+      action: 'MAPPING_RULE_UPDATED',
+      entityType: 'target_mapping',
+      entityId: id,
+      entityLabel: `${dto.target_type}:${dto.source_field}`,
+      summary: 'Target mapping rule updated',
+      details: dto,
+    });
+
     return true;
   }
 
   delete(id: string) {
     const db = getDb();
     db.prepare(`DELETE FROM target_mappings WHERE id = ?`).run(id);
+    auditService.record({
+      source: 'MAPPING',
+      category: 'MAPPING',
+      action: 'MAPPING_RULE_DELETED',
+      severity: 'WARNING',
+      entityType: 'target_mapping',
+      entityId: id,
+      summary: 'Target mapping rule deleted',
+    });
     return true;
   }
 
@@ -425,6 +458,15 @@ export class MappingsService {
     });
 
     inTransaction();
+    auditService.record({
+      source: 'MAPPING',
+      category: 'MAPPING',
+      action: 'OPENMRS_LIS_MAPPING_SEEDED',
+      entityType: 'target',
+      entityId: input.targetId ?? input.endpoint ?? null,
+      summary: 'OpenMRS LIS mapping seed completed',
+      details: summary,
+    });
     return {
       ok: true,
       message: `LIS mapping seed completed. ${summary.rulesCreated} rules created, ${summary.rulesUpdated} rules updated, ${summary.translationsCreated} value mappings created, ${summary.translationsUpdated} value mappings updated${summary.profilesUpdated ? `, ${summary.profilesUpdated} test-order profile(s) saved` : ''}.`,

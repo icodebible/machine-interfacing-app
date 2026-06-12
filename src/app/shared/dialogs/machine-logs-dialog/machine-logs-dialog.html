@@ -78,6 +78,7 @@
                 <mat-option value="disconnected">Disconnected</mat-option>
                 <mat-option value="parse_success">Parse success</mat-option>
                 <mat-option value="parse_error">Parse error</mat-option>
+                <mat-option value="replay">Replay</mat-option>
                 <mat-option value="test">Test</mat-option>
                 <mat-option value="error">Error</mat-option>
             </mat-select>
@@ -142,6 +143,11 @@
                             {{ log.event_type }}
                         </span>
                         <span class="status-badge status-badge--info">{{ log.protocol }}</span>
+                        @if (log.processing_status) {
+                        <span class="status-badge" [ngClass]="statusBadgeClass(log.processing_status)">
+                            {{ log.processing_status }}
+                        </span>
+                        }
                     </div>
                     <div class="terminal-line__preview mono">
                         {{ log.payload_preview || log.payload || '—' }}
@@ -159,11 +165,25 @@
                     <div class="dialog-section__subtitle">Read-only payload and transport context.</div>
                 </div>
 
-                @if (selectedLog()) {
-                <button mat-stroked-button (click)="copy(payloadText(selectedLog()))">
-                    <mat-icon>content_copy</mat-icon>
-                    Copy payload
-                </button>
+                @if (selectedLog(); as selectedForActions) {
+                <div class="inspector-actions">
+                    <button mat-stroked-button (click)="copy(payloadText(selectedForActions))">
+                        <mat-icon>content_copy</mat-icon>
+                        Copy payload
+                    </button>
+                    <button mat-stroked-button (click)="replaySelected('PARSE_ONLY')" [disabled]="!canReplay(selectedForActions) || replaying()">
+                        <mat-icon>replay</mat-icon>
+                        Parse only
+                    </button>
+                    <button mat-stroked-button (click)="replaySelected('PARSE_AND_NORMALIZE')" [disabled]="!canReplay(selectedForActions) || replaying()">
+                        <mat-icon>sync_alt</mat-icon>
+                        Parse + normalize
+                    </button>
+                    <button mat-flat-button color="primary" (click)="replaySelected('FULL_WORKFLOW')" [disabled]="!canReplay(selectedForActions) || replaying()">
+                        <mat-icon>play_circle</mat-icon>
+                        Replay workflow
+                    </button>
+                </div>
                 }
             </div>
 
@@ -195,6 +215,14 @@
                     <b>Machine ID:</b> <span class="mono">{{ selected.machine_id }}</span>
                 </div>
                 <div><b>Event:</b> {{ selected.event_type }}</div>
+            </div>
+
+            <div class="trace-grid">
+                <div><b>Session:</b> <span class="mono">{{ selected.session_id || '—' }}</span></div>
+                <div><b>Session mode:</b> {{ selected.session_mode || '—' }}</div>
+                <div><b>Parsed ID:</b> <span class="mono">{{ selected.parsed_message_id || '—' }}</span></div>
+                <div><b>Normalized ID:</b> <span class="mono">{{ selected.normalized_result_id || '—' }}</span></div>
+                <div class="span-2"><b>Processing:</b> {{ selected.processing_message || selected.processing_status || '—' }}</div>
             </div>
 
             <div class="payload-shell mono">{{ payloadText(selected) }}</div>

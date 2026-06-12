@@ -4,6 +4,7 @@ exports.MappingsService = exports.SUPPORTED_TARGET_TYPES = void 0;
 const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
 const openmrs_lis_metadata_service_1 = require("./openmrs-lis-metadata.service");
+const audit_service_1 = require("./audit.service");
 const nowIso = () => new Date().toISOString();
 exports.SUPPORTED_TARGET_TYPES = [
     "DHIS2",
@@ -121,6 +122,16 @@ class MappingsService {
                     updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(id, dto.target_type, (dto.source_field ?? "").trim(), (dto.destination_field ?? "").trim(), dto.transform_kind ?? "direct", dto.constant_value ?? null, dto.enabled ?? 1, ts, ts);
+        audit_service_1.auditService.record({
+            source: 'MAPPING',
+            category: 'MAPPING',
+            action: 'MAPPING_RULE_CREATED',
+            entityType: 'target_mapping',
+            entityId: id,
+            entityLabel: `${dto.target_type}:${dto.source_field}`,
+            summary: 'Target mapping rule created',
+            details: dto,
+        });
         return { id };
     }
     update(id, dto) {
@@ -136,11 +147,30 @@ class MappingsService {
                     updated_at = ?
                 WHERE id = ?
             `).run(dto.target_type, (dto.source_field ?? "").trim(), (dto.destination_field ?? "").trim(), dto.transform_kind ?? "direct", dto.constant_value ?? null, dto.enabled ?? 1, nowIso(), id);
+        audit_service_1.auditService.record({
+            source: 'MAPPING',
+            category: 'MAPPING',
+            action: 'MAPPING_RULE_UPDATED',
+            entityType: 'target_mapping',
+            entityId: id,
+            entityLabel: `${dto.target_type}:${dto.source_field}`,
+            summary: 'Target mapping rule updated',
+            details: dto,
+        });
         return true;
     }
     delete(id) {
         const db = (0, db_1.getDb)();
         db.prepare(`DELETE FROM target_mappings WHERE id = ?`).run(id);
+        audit_service_1.auditService.record({
+            source: 'MAPPING',
+            category: 'MAPPING',
+            action: 'MAPPING_RULE_DELETED',
+            severity: 'WARNING',
+            entityType: 'target_mapping',
+            entityId: id,
+            summary: 'Target mapping rule deleted',
+        });
         return true;
     }
     discoverOpenMrsLisMetadata(input) {
@@ -272,6 +302,15 @@ class MappingsService {
             }
         });
         inTransaction();
+        audit_service_1.auditService.record({
+            source: 'MAPPING',
+            category: 'MAPPING',
+            action: 'OPENMRS_LIS_MAPPING_SEEDED',
+            entityType: 'target',
+            entityId: input.targetId ?? input.endpoint ?? null,
+            summary: 'OpenMRS LIS mapping seed completed',
+            details: summary,
+        });
         return {
             ok: true,
             message: `LIS mapping seed completed. ${summary.rulesCreated} rules created, ${summary.rulesUpdated} rules updated, ${summary.translationsCreated} value mappings created, ${summary.translationsUpdated} value mappings updated${summary.profilesUpdated ? `, ${summary.profilesUpdated} test-order profile(s) saved` : ''}.`,

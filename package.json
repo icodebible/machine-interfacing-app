@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "dist-electron/main.js",
   "scripts": {
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild:native": "electron-builder install-app-deps",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
@@ -16,7 +16,12 @@
     "electron:dev-legacy": "concurrently \"npm run build:native\" \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_DEVTOOLS=0 && cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing\"",
     "electron:dev": "concurrently \"npm run build:electron -- --watch\" \"ng serve\" \"wait-on http://localhost:4200 && cross-env ELECTRON_DEVTOOLS=0 cross-env ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11 --disable-gpu --disable-gpu-compositing --disable-gpu-sandbox --disable-software-rasterizer\"",
     "electron:build": "npm run build:web && npm run build:electron && electron-builder",
-    "clean": "rimraf dist dist-electron release"
+    "clean": "rimraf dist dist-electron release",
+    "build:release": "npm run clean && npm run build:web && npm run build:electron",
+    "electron:pack": "npm run build:release && electron-builder --dir --publish never",
+    "electron:dist": "npm run build:release && electron-builder --publish never",
+    "electron:dist:linux": "npm run build:release && electron-builder --linux AppImage deb --x64 --publish never",
+    "release:clean": "rimraf release dist dist-electron"
   },
   "build": {
     "appId": "tz.ac.udsm.dhis.machineinterfacing",
@@ -55,14 +60,19 @@
         "AppImage",
         "deb"
       ],
-      "icon": "build/icons"
+      "icon": "build/icons/512x512.png",
+      "category": "Utility",
+      "maintainer": "UDSM DHIS2 Lab <dhis2lab@udsm.ac.tz>",
+      "vendor": "UDSM DHIS2 Lab",
+      "synopsis": "Laboratory analyzer machine interfacing platform"
     },
-    "icon": "build/icons/icon.png",
+    "icon": "build/icons/512x512.png",
     "publish": [
       {
         "provider": "github",
-        "owner": "UDSM DHIS2 Lab",
-        "repo": "YOUR_REPO"
+        "owner": "udsm-dhis2-lab",
+        "repo": "machine-interfacing-app",
+        "releaseType": "release"
       }
     ]
   },
@@ -109,7 +119,6 @@
     "cross-env": "^10.1.0",
     "electron": "^39.7.0",
     "electron-builder": "^26.8.1",
-    "electron-rebuild": "^3.2.9",
     "esbuild": "^0.27.3",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
@@ -128,5 +137,16 @@
       "owner": "UDSM DHIS2 Lab",
       "repo": "YOUR_REPO"
     }
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/udsm-dhis2-lab/machine-interfacing-app.git"
+  },
+  "description": "Machine interfacing platform for laboratory analyzer integration, LIS delivery, audit, and deployment readiness.",
+  "author": {
+    "name": "UDSM DHIS2 Lab",
+    "email": "walter.faustine@udsm.ac.tz"
+  },
+  "homepage": "https://www.dhis2.udsm.ac.tz",
+  "license": "UNLICENSED"
 }

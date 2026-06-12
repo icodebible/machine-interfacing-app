@@ -1,0 +1,12 @@
+version: 1.0.0
+files:
+  - url: Machine-Interfacing-App-1.0.0-linux-x86_64.AppImage
+    sha512: N1LGSlO8xCCIw+ZXN329f1MdVxW/V/cX2f2eBi//thEu+5POSHP0lWfWDu4e28YinEqppZHWwBdsm7KLx3JTCQ==
+    size: 130274053
+    blockMapSize: 135961
+  - url: Machine-Interfacing-App-1.0.0-linux-amd64.deb
+    sha512: PqP7LK+DmxSKjYgY8R2S9QXML0QPkVnZRoop7+Um/v1AIG2K7q3nZMlm84VN8j8AenFSsg5wfFnx667akE38NA==
+    size: 101411452
+path: Machine-Interfacing-App-1.0.0-linux-x86_64.AppImage
+sha512: N1LGSlO8xCCIw+ZXN329f1MdVxW/V/cX2f2eBi//thEu+5POSHP0lWfWDu4e28YinEqppZHWwBdsm7KLx3JTCQ==
+releaseDate: '2026-06-12T11:37:04.165Z'

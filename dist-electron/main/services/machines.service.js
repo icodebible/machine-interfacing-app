@@ -5,6 +5,7 @@ const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
 const auditLog_1 = require("../logging/auditLog");
 const resource_actor_util_1 = require("./resource-actor.util");
+const audit_service_1 = require("./audit.service");
 const nowIso = () => new Date().toISOString();
 class MachinesService {
     list() {
@@ -58,6 +59,17 @@ class MachinesService {
             entityId: id,
             message: actor ? `Machine created by ${actor.username}` : 'Machine created',
         });
+        audit_service_1.auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_CREATED',
+            entityType: 'machine',
+            entityId: id,
+            entityLabel: dto.name,
+            summary: `Machine created: ${dto.name}`,
+            details: { connection_type: dto.connection_type, protocol: dto.protocol, lab_id: dto.lab_id },
+            actor,
+        });
         return { id };
     }
     update(id, dto) {
@@ -108,6 +120,16 @@ class MachinesService {
             entityId: id,
             message: actor ? `Machine updated by ${actor.username}` : 'Machine updated',
         });
+        audit_service_1.auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_UPDATED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine configuration updated',
+            details: dto,
+            actor,
+        });
         return true;
     }
     delete(id) {
@@ -121,6 +143,16 @@ class MachinesService {
             entityId: id,
             message: actor ? `Machine deleted by ${actor.username}` : 'Machine deleted',
         });
+        audit_service_1.auditService.record({
+            source: 'MACHINE',
+            category: 'CONFIGURATION',
+            action: 'MACHINE_DELETED',
+            severity: 'WARNING',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine deleted',
+            actor,
+        });
         return true;
     }
     connect(id) {
@@ -132,6 +164,16 @@ class MachinesService {
             entityId: id,
             message: actor ? `Connect requested by ${actor.username}` : 'Connect requested',
         });
+        audit_service_1.auditService.record({
+            source: 'MACHINE',
+            category: 'RUNTIME',
+            action: 'MACHINE_CONNECT_REQUESTED',
+            status: 'REQUESTED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine connect requested',
+            actor,
+        });
         return true;
     }
     disconnect(id) {
@@ -142,6 +184,17 @@ class MachinesService {
             entityType: 'machine',
             entityId: id,
             message: actor ? `Disconnect requested by ${actor.username}` : 'Disconnect requested',
+        });
+        audit_service_1.auditService.record({
+            source: 'MACHINE',
+            category: 'RUNTIME',
+            action: 'MACHINE_DISCONNECT_REQUESTED',
+            severity: 'WARNING',
+            status: 'REQUESTED',
+            entityType: 'machine',
+            entityId: id,
+            summary: 'Machine disconnect requested',
+            actor,
         });
         return true;
     }

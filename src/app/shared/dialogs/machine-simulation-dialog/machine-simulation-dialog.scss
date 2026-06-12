@@ -1,469 +1,806 @@
-// :host {
-//     display: block;
-
-//     --status-success-bg: rgba(34, 197, 94, 0.12);
-//     --status-success-border: rgba(34, 197, 94, 0.28);
-//     --status-success-text: #166534;
-
-//     --status-warn-bg: rgba(245, 158, 11, 0.12);
-//     --status-warn-border: rgba(245, 158, 11, 0.28);
-//     --status-warn-text: #92400e;
-
-//     --status-error-bg: rgba(239, 68, 68, 0.12);
-//     --status-error-border: rgba(239, 68, 68, 0.28);
-//     --status-error-text: #991b1b;
-
-//     --status-neutral-bg: rgba(100, 116, 139, 0.12);
-//     --status-neutral-border: rgba(100, 116, 139, 0.24);
-//     --status-neutral-text: #334155;
-
-//     --status-info-bg: rgba(59, 130, 246, 0.12);
-//     --status-info-border: rgba(59, 130, 246, 0.26);
-//     --status-info-text: #1d4ed8;
-// }
-
-// .dlg-header {
-//     text-align: left;
-// }
-
-// .dlg-header__text {
-//     flex: 1 1 auto;
-//     align-items: flex-start;
-//     text-align: left;
-// }
-
-// .dlg-header__title,
-// .dlg-header__subtitle {
-//     width: 100%;
-//     text-align: left;
-// }
-
-// .dlg-header__subtitle {
-//     font-size: 12px;
-//     opacity: 0.74;
-//     line-height: 1.4;
-//     word-break: break-word;
-// }
-
-// .dlg-header__meta {
-//     display: flex;
-//     align-items: center;
-//     gap: 10px;
-//     flex-wrap: wrap;
-// }
-
-// .status-badge {
-//     display: inline-flex;
-//     align-items: center;
-//     gap: 8px;
-//     padding: 6px 10px;
-//     border-radius: 999px;
-//     font-size: 12px;
-//     font-weight: 600;
-//     border: 1px solid transparent;
-//     white-space: nowrap;
-// }
-
-// .status-badge::before {
-//     content: '';
-//     width: 8px;
-//     height: 8px;
-//     border-radius: 999px;
-//     background: currentColor;
-//     opacity: 0.85;
-// }
-
-// .status-badge--running,
-// .status-badge--connected,
-// .status-badge--success {
-//     background: var(--status-success-bg);
-//     border-color: var(--status-success-border);
-//     color: var(--status-success-text);
-// }
-
-// .status-badge--warning,
-// .status-badge--connecting {
-//     background: var(--status-warn-bg);
-//     border-color: var(--status-warn-border);
-//     color: var(--status-warn-text);
-// }
-
-// .status-badge--error {
-//     background: var(--status-error-bg);
-//     border-color: var(--status-error-border);
-//     color: var(--status-error-text);
-// }
-
-// .status-badge--neutral,
-// .status-badge--stopped,
-// .status-badge--idle {
-//     background: var(--status-neutral-bg);
-//     border-color: var(--status-neutral-border);
-//     color: var(--status-neutral-text);
-// }
-
-// .status-badge--info,
-// .status-badge--simulation {
-//     background: var(--status-info-bg);
-//     border-color: var(--status-info-border);
-//     color: var(--status-info-text);
-// }
-
-// .dialog-shell {
-//     display: grid;
-//     gap: 14px;
-//     width: 100%;
-//     max-width: 100%;
-//     overflow-x: hidden;
-// }
-
-// .dialog-section {
-//     display: grid;
-//     gap: 10px;
-//     padding: 14px;
-//     border: 1px solid rgba(0, 0, 0, 0.08);
-//     border-radius: 14px;
-//     background: rgba(0, 0, 0, 0.02);
-// }
-
-// .dialog-section__title {
-//     font-size: 13px;
-//     font-weight: 700;
-// }
-
-// .dialog-section__subtitle {
-//     font-size: 12px;
-//     opacity: 0.72;
-// }
-
-// .context-grid,
-// .form-grid {
-//     display: grid;
-//     grid-template-columns: repeat(2, minmax(0, 1fr));
-//     gap: 12px;
-//     align-items: start;
-// }
-
-// .context-grid>*,
-// .form-grid>* {
-//     min-width: 0;
-// }
-
-// .kv {
-//     display: grid;
-//     gap: 4px;
-// }
-
-// .k {
-//     font-size: 12px;
-//     opacity: 0.72;
-// }
-
-// .v {
-//     font-size: 13px;
-//     font-weight: 600;
-//     line-height: 1.35;
-//     word-break: break-word;
-// }
-
-// mat-form-field {
-//     width: 100%;
-//     min-width: 0;
-// }
-
-// .scenario-option {
-//     display: grid;
-//     gap: 2px;
-//     min-width: 0;
-// }
-
-// .scenario-option__label {
-//     font-weight: 600;
-//     line-height: 1.25;
-// }
-
-// .scenario-option__value {
-//     font-size: 11px;
-//     opacity: 0.68;
-//     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-//     white-space: nowrap;
-//     overflow: hidden;
-//     text-overflow: ellipsis;
-// }
-
-// .preview-box {
-//     min-height: 88px;
-//     padding: 12px;
-//     border-radius: 12px;
-//     background: rgba(15, 23, 42, 0.04);
-//     border: 1px solid rgba(0, 0, 0, 0.06);
-//     white-space: pre-wrap;
-//     word-break: break-word;
-//     font-size: 12px;
-//     line-height: 1.5;
-// }
-
-// .mono {
-//     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-// }
-
-// .dlg-actions {
-//     display: flex;
-//     gap: 10px;
-//     flex-wrap: wrap;
-// }
-
-// @media (max-width: 760px) {
-//     .dlg-header {
-//         flex-direction: column;
-//         align-items: flex-start;
-//     }
-
-//     .context-grid,
-//     .form-grid {
-//         grid-template-columns: 1fr;
-//     }
-
-//     .dlg-actions button {
-//         width: 100%;
-//     }
-// }
-
-
 :host {
-    display: block;
-
-    --status-success-bg: rgba(34, 197, 94, 0.12);
-    --status-success-border: rgba(34, 197, 94, 0.28);
-    --status-success-text: #166534;
-
-    --status-warn-bg: rgba(245, 158, 11, 0.12);
-    --status-warn-border: rgba(245, 158, 11, 0.28);
-    --status-warn-text: #92400e;
-
-    --status-error-bg: rgba(239, 68, 68, 0.12);
-    --status-error-border: rgba(239, 68, 68, 0.28);
-    --status-error-text: #991b1b;
-
-    --status-neutral-bg: rgba(100, 116, 139, 0.12);
-    --status-neutral-border: rgba(100, 116, 139, 0.24);
-    --status-neutral-text: #334155;
-
-    --status-info-bg: rgba(59, 130, 246, 0.12);
-    --status-info-border: rgba(59, 130, 246, 0.26);
-    --status-info-text: #1d4ed8;
+  display: block;
 }
 
-// .dlg-header {
-//     display: flex;
-//     align-items: flex-start;
-//     justify-content: space-between;
-//     gap: 16px;
-//     padding-bottom: 6px;
-// }
-
-// .dlg-header__text {
-//     min-width: 0;
-//     display: grid;
-//     gap: 4px;
-// }
-
-// .dlg-header__title {
-//     font-size: 18px;
-//     font-weight: 700;
-//     line-height: 1.2;
-// }
-
-.dlg-header {
-    text-align: left;
+.simulation-dialog {
+  width: min(1400px, 90vw);
+  max-width: 90vw;
+  height: min(860px, 92vh);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  color: #0f172a;
 }
 
-.dlg-header__text {
-    flex: 1 1 auto;
-    align-items: flex-start;
-    text-align: left;
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 0 0 auto;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  position: relative;
+  z-index: 8;
 }
 
-.dlg-header__title,
-.dlg-header__subtitle {
-    width: 100%;
-    text-align: left;
+.dialog-header h2 {
+  margin: 2px 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
-.dlg-header__subtitle {
-    font-size: 12px;
-    opacity: 0.74;
-    line-height: 1.4;
-    word-break: break-word;
+.dialog-header p,
+.micro-copy,
+.section-sub,
+.muted {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
-.dlg-header__meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+.eyebrow,
+.section-title,
+.micro-copy {
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    white-space: nowrap;
+.eyebrow {
+  text-transform: uppercase;
+  color: #2563eb;
+  font-size: 11px;
 }
 
-.status-badge::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: currentColor;
-    opacity: 0.85;
+.dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 22px 12px;
+  background: #ffffff;
 }
 
-.status-badge--running,
-.status-badge--connected,
-.status-badge--success {
-    background: var(--status-success-bg);
-    border-color: var(--status-success-border);
-    color: var(--status-success-text);
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.status-badge--warning,
-.status-badge--connecting {
-    background: var(--status-warn-bg);
-    border-color: var(--status-warn-border);
-    color: var(--status-warn-text);
+.use-case-list,
+.workspace-main,
+.result-card,
+.history-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
 }
 
-.status-badge--error {
-    background: var(--status-error-bg);
-    border-color: var(--status-error-border);
-    color: var(--status-error-text);
+.use-case-list {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  scrollbar-gutter: stable;
 }
 
-.status-badge--neutral,
-.status-badge--stopped,
-.status-badge--idle {
-    background: var(--status-neutral-bg);
-    border-color: var(--status-neutral-border);
-    color: var(--status-neutral-text);
+.list-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: -12px -12px 10px;
+  padding: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.status-badge--info,
-.status-badge--simulation {
-    background: var(--status-info-bg);
-    border-color: var(--status-info-border);
-    color: var(--status-info-text);
+.list-head,
+.run-head,
+.result-head,
+.history-head,
+.editor-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.dialog-shell {
-    display: grid;
-    gap: 14px;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+.use-case-row {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 10px;
+  margin-top: 10px;
+  cursor: pointer;
 }
 
-.dialog-section {
-    display: grid;
-    gap: 10px;
-    padding: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 14px;
-    background: rgba(0, 0, 0, 0.02);
+.use-case-row.active {
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, 0.24);
 }
 
-.dialog-section__title {
-    font-size: 13px;
-    font-weight: 700;
+.use-case-main {
+  display: grid;
+  gap: 3px;
 }
 
-.dialog-section__subtitle {
-    font-size: 12px;
-    opacity: 0.72;
+.use-case-main span,
+.use-case-meta,
+.history-head span {
+  color: #64748b;
+  font-size: 12px;
 }
 
-.context-grid,
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    align-items: start;
+.use-case-meta,
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.context-grid>*,
-.form-grid>* {
-    min-width: 0;
+.status-pill,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
-.kv {
-    display: grid;
-    gap: 4px;
+.status-pill.info,
+.chip {
+  background: #e0f2fe;
+  color: #075985;
 }
 
-.k {
-    font-size: 12px;
-    opacity: 0.72;
+.status-pill.ok,
+.log-line.success {
+  background: #dcfce7;
+  color: #166534;
 }
 
-.v {
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.35;
-    word-break: break-word;
+.status-pill.warn,
+.log-line.warn {
+  background: #ffedd5;
+  color: #9a3412;
 }
 
-mat-form-field {
-    width: 100%;
-    min-width: 0;
+.log-line.error {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
-.preview-box {
-    min-height: 88px;
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 12px;
-    line-height: 1.5;
+.workspace-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-group {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-header {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-body {
+  min-height: 0;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-content {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 12px 18px;
+  scrollbar-gutter: stable;
+}
+
+.run-panel,
+.editor-panel {
+  min-width: 0;
+}
+
+.run-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -14px -12px 14px;
+  padding: 14px 12px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.metric-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-grid > div {
+  display: grid;
+  gap: 3px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 10px;
+  min-width: 0;
+}
+
+.metric-grid span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.metric-grid b {
+  font-size: 14px;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.full,
+.span-2 {
+  width: 100%;
+  grid-column: span 2;
+}
+
+.message-preview,
+.result-card,
+.history-card {
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.message-preview pre,
+.payload-preview {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.log-list,
+.history-logs {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: min(260px, 32vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+}
+
+.log-line b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 84px;
+}
+
+.editor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+  margin: 4px -12px -18px;
+  padding: 14px 12px 16px;
+  align-items: center;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.editor-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30px;
+  height: 30px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 85%);
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.empty-inline {
+  border: 1px dashed rgba(15, 23, 42, 0.16);
+  border-radius: 14px;
+  padding: 18px;
+  color: #64748b;
+  background: #f8fafc;
 }
 
 .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
 }
 
-.dlg-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+:host ::ng-deep .simulation-dialog-actions,
+:host ::ng-deep .mat-mdc-dialog-actions {
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  min-height: 56px;
+  margin: 0;
+  padding: 10px 22px 14px;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -12px 26px rgba(15, 23, 42, 0.08);
 }
 
-@media (max-width: 760px) {
-    .dlg-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .context-grid,
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .dlg-actions button {
-        width: 100%;
-    }
+:host ::ng-deep .simulation-dialog-actions::before,
+:host ::ng-deep .mat-mdc-dialog-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -28px;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 88%);
 }
-.scenario-code,
-.muted {
+
+@media (max-width: 1100px) {
+  .workspace-grid {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .simulation-dialog {
+    width: 90vw;
+    height: 92vh;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .use-case-list {
+    max-height: 240px;
+  }
+
+  .editor-grid,
+  .metric-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .full,
+  .span-2 {
+    grid-column: span 1;
+  }
+
+  .log-line {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final footer anchoring: keep the bottom Close action at the dialog edge,
+   independent from the scrollable simulation workspace. */
+.simulation-dialog {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.dialog-content {
+  box-sizing: border-box;
+  max-height: none !important;
+  padding-bottom: 84px;
+}
+
+.workspace-grid {
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .simulation-dialog-actions,
+:host ::ng-deep .mat-mdc-dialog-actions.simulation-dialog-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  min-height: 64px;
+  margin: 0;
+  padding: 12px 22px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -12px 26px rgba(15, 23, 42, 0.08);
+}
+
+:host ::ng-deep .simulation-dialog-actions::before,
+:host ::ng-deep .mat-mdc-dialog-actions.simulation-dialog-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -34px;
+  height: 34px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 88%);
+}
+
+@media (max-height: 720px) {
+  .dialog-header {
+    padding-top: 14px;
+    padding-bottom: 10px;
+  }
+
+  .dialog-content {
+    padding-top: 12px;
+    padding-bottom: 76px;
+  }
+
+  :host ::ng-deep .simulation-dialog-actions,
+  :host ::ng-deep .mat-mdc-dialog-actions.simulation-dialog-actions {
+    min-height: 58px;
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+}
+
+/* Single-scroll correction: avoid nested right-side scrollbars.
+   The Material tab body is only a viewport. Each active tab panel owns one vertical scroller. */
+:host ::ng-deep .mat-mdc-dialog-content.dialog-content,
+:host ::ng-deep .dialog-content.mat-mdc-dialog-content {
+  overflow: hidden !important;
+  max-height: none !important;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-group,
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-wrapper,
+:host ::ng-deep .workspace-main .mat-mdc-tab-body,
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-content {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-wrapper,
+:host ::ng-deep .workspace-main .mat-mdc-tab-body,
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-content {
+  overflow: hidden !important;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-body-content {
+  padding: 0 !important;
+  scrollbar-gutter: auto !important;
+}
+
+.run-panel,
+.editor-panel,
+.history-list {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: 14px 12px 18px;
+  scrollbar-gutter: stable;
+}
+
+.run-panel {
   display: block;
-  opacity: 0.72;
-  font-size: 0.76rem;
-  line-height: 1.25;
+}
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-list {
+  align-content: start;
+  padding-bottom: 18px;
+}
+
+.run-head {
+  top: 0;
+  margin: -14px -12px 14px;
+}
+
+.editor-actions {
+  bottom: 0;
+  margin: 4px -12px -18px;
+}
+
+/* Keep internal long-text areas scrollable without creating a second page-level scrollbar. */
+.message-preview pre,
+.payload-preview,
+.log-list,
+.history-logs,
+textarea[matinput],
+textarea[matInput] {
+  overscroll-behavior: contain;
+}
+
+@media (max-height: 720px) {
+  .run-panel,
+  .editor-panel,
+  .history-list {
+    padding-top: 12px;
+    padding-bottom: 14px;
+  }
+
+  .run-head {
+    margin: -12px -12px 12px;
+  }
+}
+
+/* Final scroll-mask alignment: keep sticky sections flush with their viewport edges.
+   - The Run Simulation header sits directly below the Material tab header.
+   - The Configure Use Case actions sit directly at the bottom of the tab viewport,
+     just above the dialog footer, so no scrolled content is visible through gaps. */
+.simulation-dialog {
+  --simulation-footer-height: 64px;
+}
+
+.dialog-content {
+  padding-bottom: var(--simulation-footer-height) !important;
+}
+
+.workspace-grid,
+.use-case-list,
+.workspace-main {
+  height: 100%;
+  min-height: 0;
+}
+
+:host ::ng-deep .workspace-main .mat-mdc-tab-header {
+  top: 0 !important;
+  z-index: 30 !important;
+  background: #ffffff;
+}
+
+.run-panel,
+.editor-panel,
+.history-list {
+  padding: 0 12px 18px !important;
+}
+
+.run-head {
+  position: sticky;
+  top: 0 !important;
+  z-index: 28 !important;
+  margin: 0 -12px 14px !important;
+  padding: 14px 12px 12px !important;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
+}
+
+.run-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  background: #ffffff;
+}
+
+.editor-grid {
+  padding-top: 14px;
+  padding-bottom: 92px !important;
+}
+
+.editor-actions {
+  position: sticky;
+  bottom: 0 !important;
+  z-index: 28 !important;
+  margin: 0 -12px 0 !important;
+  padding: 14px 12px 16px !important;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.editor-actions::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: #ffffff;
+}
+
+.history-list {
+  padding-top: 14px !important;
+}
+
+:host ::ng-deep .simulation-dialog-actions,
+:host ::ng-deep .mat-mdc-dialog-actions.simulation-dialog-actions {
+  min-height: var(--simulation-footer-height) !important;
+  height: var(--simulation-footer-height);
+  background: #ffffff;
+}
+
+@media (max-height: 720px) {
+  .simulation-dialog {
+    --simulation-footer-height: 58px;
+  }
+
+  .run-panel,
+  .editor-panel,
+  .history-list {
+    padding: 0 12px 14px !important;
+  }
+
+  .run-head {
+    margin-bottom: 12px !important;
+    padding-top: 12px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .editor-grid {
+    padding-top: 12px;
+    padding-bottom: 84px !important;
+  }
+
+  .editor-actions {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+}
+
+/* Gap removal between Configure Use Case sticky actions and dialog footer.
+   The scroll viewport should end exactly at the footer boundary; only the editor content
+   receives bottom breathing room so fields are not hidden behind the sticky actions. */
+.dialog-content {
+  padding-bottom: 0 !important;
+}
+
+.editor-panel {
+  padding-bottom: 0 !important;
+}
+
+.editor-grid {
+  padding-bottom: 96px !important;
+}
+
+.editor-actions {
+  bottom: 0 !important;
+  margin-bottom: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 0 16px 16px;
+}
+
+.editor-actions::after {
+  bottom: 0 !important;
+  height: 0 !important;
+}
+
+:host ::ng-deep .simulation-dialog-actions,
+:host ::ng-deep .mat-mdc-dialog-actions.simulation-dialog-actions {
+  flex: 0 0 var(--simulation-footer-height) !important;
+  min-height: var(--simulation-footer-height) !important;
+  height: var(--simulation-footer-height) !important;
+  margin: 0 !important;
+  padding: 12px 22px !important;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -10px 22px rgba(15, 23, 42, 0.05);
+  position: relative;
+  z-index: 35;
+}
+
+@media (max-height: 720px) {
+  .dialog-content {
+    padding-bottom: 0 !important;
+  }
+
+  .editor-panel {
+    padding-bottom: 0 !important;
+  }
+
+  .editor-grid {
+    padding-bottom: 84px !important;
+  }
+}
+
+/* Final Configure Use Case action placement.
+   Keep Delete / Save close to the dialog footer without relying only on opacity masks.
+   When the editor content is short, margin-top:auto pushes the row down;
+   when the editor content is long, sticky bottom keeps it available while scrolling. */
+.editor-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.editor-grid {
+  flex: 0 0 auto !important;
+  padding-bottom: 76px !important;
+}
+
+.editor-actions {
+  margin: auto -12px 6px !important;
+  bottom: 6px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+@media (max-height: 720px) {
+  .editor-grid {
+    padding-bottom: 68px !important;
+  }
+
+  .editor-actions {
+    margin-bottom: 4px !important;
+    bottom: 4px !important;
+  }
 }

@@ -1,5 +1,126 @@
 "use strict";
+// import { app, BrowserWindow } from 'electron';
+// import { hardenSecurity } from './security/harden';
+// import { registerIpcHandlers } from './ipc/app.ipc';
+// import { logger } from './logging/logger';
+// import { createMainWindow } from './windows/main.window';
+// import { registerMachineIpc } from './ipc/machine.ipc';
+// import { setupAutoUpdater } from './main/updater/autoUpdater';
+// import { buildAppMenu } from './main/menu/app.menu';
+// import { runMigrations } from './main/db/migrations';
+// import { registerAuthIpc } from './main/ipc/auth.ipc';
+// import { registerPlatformIpc } from './main/ipc/platform.ipc';
+// import { registerMachinesCrudIpc } from './main/ipc/machines.crud.ipc';
+// import { registerMachinesRuntimeIpc } from './main/ipc/machines.runtime.ipc';
+// import { registerMachinesLogsIpc } from './main/ipc/machines.logs.ipc';
+// import { registerMachinesSimulationIpc } from './main/ipc/machines.sim.ipc';
+// import { registerMachinesParsedIpc } from './main/ipc/machines.parsed.ipc';
+// import { registerMachinesNormalizedIpc } from './main/ipc/machines.normalized.ipc';
+// import { registerApprovalPoliciesIpc } from './main/ipc/approval-policies.ipc';
+// import { registerResultApprovalsIpc } from './main/ipc/result-approvals.ipc';
+// import { registerOutboundQueueIpc } from './main/ipc/outbound-queue.ipc';
+// import { registerTargetTransformPreviewIpc } from './main/ipc/target-transform-preview.ipc';
+// import { RetryWorkerService } from './main/services/retry-worker.service';
+// import { registerTargetSecretsIpc } from './main/ipc/target-secrets.ipc';
+// import { registerMappingsIpc } from './main/ipc/mappings.ipc';
+// import { registerDeliveryAuditIpc } from './main/ipc/delivery-audit.ipc';
+// import { registerMappingValueTranslationsIpc } from './main/ipc/mapping-value-translations.ipc';
+// import { registerUsersIpc } from './main/ipc/users.ipc';
+// import { registerRolesIpc } from './main/ipc/roles.ipc';
+// import { registerRoutingRulesIpc } from './main/ipc/routing-rules.ipc';
+// import { registerLisTestOrderProfilesIpc } from './main/ipc/lis-test-order-profiles.ipc';
+// import { registerAuditReadinessIpc } from './main/ipc/audit-readiness.ipc';
+// import { registerAppDiagnosticsIpc } from './main/ipc/app-diagnostics.ipc';
 Object.defineProperty(exports, "__esModule", { value: true });
+// // ✅ Catch crashes early (top-level)
+// process.on('uncaughtException', (err) => logger.error('uncaughtException', err));
+// process.on('unhandledRejection', (err) => logger.error('unhandledRejection', err as any));
+// // ✅ Single instance lock (enterprise)
+// const gotLock = app.requestSingleInstanceLock();
+// if (!gotLock) {
+//   app.quit();
+// } else {
+//   app.on('second-instance', () => {
+//     const win = BrowserWindow.getAllWindows()[0];
+//     if (win) {
+//       if (win.isMinimized()) win.restore();
+//       win.focus();
+//     }
+//   });
+// }
+// // ✅ Permanent Linux stability
+// if (process.platform === 'linux') {
+//   app.commandLine.appendSwitch('ozone-platform', 'x11');
+//   app.disableHardwareAcceleration();
+//   app.commandLine.appendSwitch('disable-gpu');
+//   app.commandLine.appendSwitch('disable-gpu-compositing');
+// }
+// app.commandLine.appendSwitch('disable-gpu-sandbox');
+// app.commandLine.appendSwitch('disable-software-rasterizer');
+// app.whenReady().then(async () => {
+//   logger.info('App starting...');
+//   await hardenSecurity();
+//   // ✅ DB first
+//   await runMigrations();
+//   const retryWorker = new RetryWorkerService();
+//   retryWorker.start(30_000);
+//   // ✅ IPC next
+//   registerIpcHandlers();
+//   registerAuthIpc();
+//   registerPlatformIpc();
+//   registerUsersIpc();
+//   registerRolesIpc();
+//   registerMachinesCrudIpc();
+//   registerMachinesLogsIpc();
+//   const runtime = registerMachinesRuntimeIpc();
+//   registerMachinesSimulationIpc(runtime);
+//   registerMachinesParsedIpc();
+//   registerMachinesNormalizedIpc();
+//   registerApprovalPoliciesIpc();
+//   registerResultApprovalsIpc();
+//   registerOutboundQueueIpc();
+//   registerDeliveryAuditIpc();
+//   registerTargetTransformPreviewIpc();
+//   registerTargetSecretsIpc();
+//   registerMappingsIpc();
+//   registerMappingValueTranslationsIpc();
+//   registerMachinesCrudIpc();
+//   registerMachinesLogsIpc();
+//   registerRoutingRulesIpc();
+//   registerLisTestOrderProfilesIpc();
+//   registerAuditReadinessIpc();
+//   registerAppDiagnosticsIpc();
+//   // ✅ Window
+//   const win = createMainWindow();
+//   // auto-start active machines marked auto_connect
+//   runtime.startAutoConnectMachines().catch(() => {});
+//   // ✅ Machine IPC (needs window)
+//   const cleanupMachineIpc = registerMachineIpc(win);
+//   // ✅ Menu (File / Help / About)
+//   buildAppMenu();
+//   // ✅ Diagnostics
+//   win.webContents.on('render-process-gone', (_e, details) => {
+//     logger.error('Renderer gone', details);
+//   });
+//   win.on('unresponsive', () => logger.warn('Window unresponsive'));
+//   app.on('before-quit', () => {
+//     cleanupMachineIpc?.();
+//     retryWorker.stop();
+//   });
+//   // ✅ macOS behavior
+//   app.on('activate', () => {
+//     if (BrowserWindow.getAllWindows().length === 0) {
+//       createMainWindow();
+//     }
+//   });
+//   // ✅ Auto-update (packaged only)
+//   if (app.isPackaged) {
+//     setupAutoUpdater(win);
+//   }
+// });
+// app.on('window-all-closed', () => {
+//   if (process.platform !== 'darwin') app.quit();
+// });
 const electron_1 = require("electron");
 const harden_1 = require("./security/harden");
 const app_ipc_1 = require("./ipc/app.ipc");
@@ -30,6 +151,22 @@ const users_ipc_1 = require("./main/ipc/users.ipc");
 const roles_ipc_1 = require("./main/ipc/roles.ipc");
 const routing_rules_ipc_1 = require("./main/ipc/routing-rules.ipc");
 const lis_test_order_profiles_ipc_1 = require("./main/ipc/lis-test-order-profiles.ipc");
+const audit_readiness_ipc_1 = require("./main/ipc/audit-readiness.ipc");
+// Linux packaged-runtime stability.
+// These switches must be registered before requestSingleInstanceLock() and before app.whenReady().
+if (process.platform === 'linux') {
+    electron_1.app.commandLine.appendSwitch('ozone-platform', 'x11');
+    electron_1.app.commandLine.appendSwitch('disable-gpu');
+    electron_1.app.commandLine.appendSwitch('disable-gpu-compositing');
+    electron_1.app.commandLine.appendSwitch('disable-gpu-rasterization');
+    electron_1.app.commandLine.appendSwitch('disable-accelerated-2d-canvas');
+    electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
+    // Required on some packaged Linux deployments where Chromium sandbox crashes before renderer startup.
+    if (electron_1.app.isPackaged) {
+        electron_1.app.commandLine.appendSwitch('no-sandbox');
+    }
+    electron_1.app.disableHardwareAcceleration();
+}
 // ✅ Catch crashes early (top-level)
 process.on('uncaughtException', (err) => logger_1.logger.error('uncaughtException', err));
 process.on('unhandledRejection', (err) => logger_1.logger.error('unhandledRejection', err));
@@ -48,15 +185,6 @@ else {
         }
     });
 }
-// ✅ Permanent Linux stability
-if (process.platform === 'linux') {
-    electron_1.app.commandLine.appendSwitch('ozone-platform', 'x11');
-    electron_1.app.disableHardwareAcceleration();
-    electron_1.app.commandLine.appendSwitch('disable-gpu');
-    electron_1.app.commandLine.appendSwitch('disable-gpu-compositing');
-}
-electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
-electron_1.app.commandLine.appendSwitch('disable-software-rasterizer');
 electron_1.app.whenReady().then(async () => {
     logger_1.logger.info('App starting...');
     await (0, harden_1.hardenSecurity)();
@@ -88,6 +216,7 @@ electron_1.app.whenReady().then(async () => {
     (0, machines_logs_ipc_1.registerMachinesLogsIpc)();
     (0, routing_rules_ipc_1.registerRoutingRulesIpc)();
     (0, lis_test_order_profiles_ipc_1.registerLisTestOrderProfilesIpc)();
+    (0, audit_readiness_ipc_1.registerAuditReadinessIpc)();
     // ✅ Window
     const win = (0, main_window_1.createMainWindow)();
     // auto-start active machines marked auto_connect
@@ -111,9 +240,16 @@ electron_1.app.whenReady().then(async () => {
             (0, main_window_1.createMainWindow)();
         }
     });
-    // ✅ Auto-update (packaged only)
-    if (electron_1.app.isPackaged) {
+    // ✅ Auto-update is disabled by default for controlled/offline deployments.
+    // Enable only after package.json publish.owner/repo points to a real release repository.
+    const autoUpdateEnabled = electron_1.app.isPackaged &&
+        process.env.MI_ENABLE_AUTO_UPDATE === '1' &&
+        process.env.MI_DISABLE_AUTO_UPDATE !== '1';
+    if (autoUpdateEnabled) {
         (0, autoUpdater_1.setupAutoUpdater)(win);
+    }
+    else {
+        logger_1.logger.info('Auto-update disabled for this build/session.');
     }
 });
 electron_1.app.on('window-all-closed', () => {
