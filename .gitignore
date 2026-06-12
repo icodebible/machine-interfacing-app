@@ -5,6 +5,8 @@
 /tmp
 /out-tsc
 /bazel-out
+/release/Machine Interfacing App-1.0.0-linux-amd64.deb
+/release/Machine Interfacing App-1.0.0-linux-x86_64.AppImage
 
 # Node
 /node_modules
