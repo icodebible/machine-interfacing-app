@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist-electron/main.js",
   "scripts": {
-    "postinstall": "node scripts/vendor-packaged-font-assets.mjs && electron-builder install-app-deps",
+    "postinstall": "electron-builder install-app-deps",
     "rebuild:native": "electron-builder install-app-deps",
     "ng": "ng",
     "start": "ng serve",
@@ -21,7 +21,12 @@
     "electron:pack": "npm run build:release && electron-builder --dir --publish never",
     "electron:dist": "npm run build:release && electron-builder --publish never",
     "electron:dist:linux": "npm run build:release && electron-builder --linux AppImage deb --x64 --publish never",
-    "release:clean": "rimraf release dist dist-electron"
+    "release:clean": "rimraf release dist dist-electron",
+    "apply:material-icons": "node scripts/apply-material-icons-embedded-font-fix.mjs",
+    "vendor:material-icons": "node scripts/vendor-material-icons-production.mjs",
+    "verify:material-icons": "node scripts/verify-material-icons-embedded-font-fix.mjs",
+    "apply:material-icons-runtime": "node scripts/apply-material-icons-runtime-registry-fix.mjs",
+    "verify:material-icons-runtime": "node scripts/verify-material-icons-runtime-fix.mjs"
   },
   "build": {
     "appId": "tz.ac.udsm.dhis.machineinterfacing",
@@ -108,7 +113,8 @@
     "zod": "^4.3.6",
     "zone.js": "~0.15.0",
     "@fontsource/roboto": "^5.2.10",
-    "material-icons": "^1.13.14"
+    "material-icons": "^1.13.14",
+    "material-symbols": "^0.35.0"
   },
   "devDependencies": {
     "@angular/build": "^20.1.6",
