@@ -6,7 +6,7 @@
   </div>
 
   <button mat-icon-button type="button" (click)="cancel()" aria-label="Close machine dialog">
-    <mat-icon>close</mat-icon>
+    <mat-icon svgIcon="close"></mat-icon>
   </button>
 </h2>
 
@@ -21,7 +21,7 @@
     <div class="section">
       <div class="section-head">
         <div class="section-title">
-          <mat-icon>memory</mat-icon>
+          <mat-icon svgIcon="memory"></mat-icon>
           <span>Machine Information</span>
         </div>
         <div class="section-sub">Identify the machine and where it is located</div>
@@ -78,7 +78,7 @@
     <div class="section">
       <div class="section-head">
         <div class="section-title">
-          <mat-icon>lan</mat-icon>
+          <mat-icon svgIcon="lan"></mat-icon>
           <span>Connection</span>
         </div>
         <div class="section-sub">Choose how this machine sends results to the computer</div>
@@ -107,7 +107,7 @@
       @if (needsTcp()) {
         <div class="subsection">
           <div class="sub-head">
-            <mat-icon>dns</mat-icon>
+            <mat-icon svgIcon="dns"></mat-icon>
             <span>Network Settings</span>
           </div>
 
@@ -151,7 +151,7 @@
       @if (needsSerial()) {
         <div class="subsection">
           <div class="sub-head">
-            <mat-icon>cable</mat-icon>
+            <mat-icon svgIcon="cable"></mat-icon>
             <span>Serial Settings</span>
           </div>
 
@@ -207,7 +207,7 @@
       @if (needsFtp()) {
         <div class="subsection">
           <div class="sub-head">
-            <mat-icon>cloud_download</mat-icon>
+            <mat-icon svgIcon="cloud_download"></mat-icon>
             <span>FTP / SFTP Settings</span>
           </div>
 
@@ -245,7 +245,7 @@
       @if (needsWatch()) {
         <div class="subsection">
           <div class="sub-head">
-            <mat-icon>folder</mat-icon>
+            <mat-icon svgIcon="folder"></mat-icon>
             <span>Folder Watcher</span>
           </div>
 
@@ -270,7 +270,7 @@
     <div class="section">
       <div class="section-head">
         <div class="section-title">
-          <mat-icon>tune</mat-icon>
+          <mat-icon svgIcon="tune"></mat-icon>
           <span>Options</span>
         </div>
         <div class="section-sub">Operational settings for this machine</div>
@@ -307,12 +307,12 @@
       (click)="testConnection()"
       [disabled]="testing()"
     >
-      <mat-icon>network_check</mat-icon>
+      <mat-icon svgIcon="network_check"></mat-icon>
       @if (testing()) { <span>Testing…</span> } @else { <span>Test connection</span> }
     </button>
 
     <button type="submit" mat-flat-button color="primary">
-      <mat-icon>save</mat-icon>
+      <mat-icon svgIcon="save"></mat-icon>
       {{ mode === 'create' ? 'Create' : 'Save changes' }}
     </button>
   </div>

@@ -10,27 +10,27 @@
 
     <div class="head-actions">
       <button mat-stroked-button [class.active]="scope() === 'DELIVERY'" (click)="switchScope('DELIVERY')">
-        <mat-icon>local_shipping</mat-icon>
+        <mat-icon svgIcon="local_shipping"></mat-icon>
         Delivery audit
       </button>
       <button mat-stroked-button [class.active]="scope() === 'AUDIT'" (click)="switchScope('AUDIT')">
-        <mat-icon>manage_search</mat-icon>
+        <mat-icon svgIcon="manage_search"></mat-icon>
         Audit trail
       </button>
       <button mat-stroked-button [class.active]="scope() === 'READINESS'" (click)="switchScope('READINESS')">
-        <mat-icon>verified_user</mat-icon>
+        <mat-icon svgIcon="verified_user"></mat-icon>
         Readiness
       </button>
       <button mat-stroked-button [class.active]="scope() === 'SYSTEM'" (click)="switchScope('SYSTEM')">
-        <mat-icon>policy</mat-icon>
+        <mat-icon svgIcon="policy"></mat-icon>
         System logs
       </button>
       <button mat-stroked-button type="button" (click)="toggleFilters()">
-        <mat-icon>{{ showFilters() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        <mat-icon [svgIcon]="showFilters() ? 'filter_alt_off' : 'filter_alt'"></mat-icon>
         {{ showFilters() ? 'Hide filters' : 'Open filters' }}
       </button>
       <button mat-flat-button color="primary" (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
+        <mat-icon svgIcon="refresh"></mat-icon>
         Refresh
       </button>
     </div>
@@ -132,11 +132,11 @@
 
         <div class="filter-actions">
           <button mat-stroked-button (click)="clearFilters()">
-            <mat-icon>filter_alt_off</mat-icon>
+            <mat-icon svgIcon="filter_alt_off"></mat-icon>
             Clear
           </button>
           <button mat-flat-button color="primary" (click)="applyFilters()">
-            <mat-icon>search</mat-icon>
+            <mat-icon svgIcon="search"></mat-icon>
             Apply
           </button>
         </div>
@@ -397,11 +397,11 @@
 
         <div class="filter-actions">
           <button mat-stroked-button (click)="clearFilters()">
-            <mat-icon>filter_alt_off</mat-icon>
+            <mat-icon svgIcon="filter_alt_off"></mat-icon>
             Clear
           </button>
           <button mat-flat-button color="primary" (click)="applyFilters()">
-            <mat-icon>search</mat-icon>
+            <mat-icon svgIcon="search"></mat-icon>
             Apply
           </button>
         </div>
@@ -532,7 +532,7 @@
             <div class="filters-sub">Database, targets, mappings, LIS profiles, queue health, runtime tracing, and audit readiness.</div>
           </div>
           <button mat-flat-button color="primary" (click)="refresh()">
-            <mat-icon>refresh</mat-icon>
+            <mat-icon svgIcon="refresh"></mat-icon>
             Re-run checks
           </button>
         </div>
@@ -571,7 +571,7 @@
               <div class="filters-sub">Version, runtime, database path, backup location, storage permissions, and packaging script readiness.</div>
             </div>
             <button mat-stroked-button type="button" (click)="createDatabaseBackup()" [disabled]="backupRunning()">
-              <mat-icon>backup</mat-icon>
+              <mat-icon svgIcon="backup"></mat-icon>
               {{ backupRunning() ? 'Creating backup…' : 'Create DB backup' }}
             </button>
           </div>
@@ -660,7 +660,7 @@
         </div>
 
         <div class="release-callout">
-          <mat-icon>info</mat-icon>
+          <mat-icon svgIcon="info"></mat-icon>
           <div>
             This checklist is intentionally manual. The automated readiness report proves the environment is technically prepared;
             this section confirms the operator, LIS workflow, delivery path, backup, and rollback procedures have been validated.
@@ -671,7 +671,7 @@
           @for (group of releaseChecklistGroups; track group.key) {
             <article class="release-group">
               <div class="release-group__head">
-                <div class="release-group__icon"><mat-icon>{{ group.icon }}</mat-icon></div>
+                <div class="release-group__icon"><mat-icon [svgIcon]="group.icon"></mat-icon></div>
                 <div>
                   <div class="item-title">{{ group.title }}</div>
                   <div class="item-sub">{{ group.description }}</div>
@@ -682,7 +682,7 @@
                 @for (item of group.items; track item.id) {
                   <div class="release-item" [class.required]="item.risk === 'REQUIRED'">
                     <div class="release-item__marker">
-                      <mat-icon>{{ item.risk === 'REQUIRED' ? 'priority_high' : 'task_alt' }}</mat-icon>
+                      <mat-icon [svgIcon]="item.risk === 'REQUIRED' ? 'priority_high' : 'task_alt'"></mat-icon>
                     </div>
                     <div class="release-item__body">
                       <div class="release-item__title-row">
@@ -799,11 +799,11 @@
 
         <div class="filter-actions">
           <button mat-stroked-button (click)="clearFilters()">
-            <mat-icon>filter_alt_off</mat-icon>
+            <mat-icon svgIcon="filter_alt_off"></mat-icon>
             Clear
           </button>
           <button mat-flat-button color="primary" (click)="applyFilters()">
-            <mat-icon>search</mat-icon>
+            <mat-icon svgIcon="search"></mat-icon>
             Apply
           </button>
         </div>

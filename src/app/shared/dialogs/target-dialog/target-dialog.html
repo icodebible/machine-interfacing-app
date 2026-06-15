@@ -41,7 +41,7 @@
       [class.active]="activeSection() === 'overview'"
       (click)="setActiveSection('overview')"
     >
-      <mat-icon>dashboard_customize</mat-icon>
+      <mat-icon svgIcon="dashboard_customize"></mat-icon>
       Overview
     </button>
 
@@ -51,7 +51,7 @@
       [class.active]="activeSection() === 'security'"
       (click)="setActiveSection('security')"
     >
-      <mat-icon>shield</mat-icon>
+      <mat-icon svgIcon="shield"></mat-icon>
       Security &amp; test
     </button>
 
@@ -61,7 +61,7 @@
       [class.active]="activeSection() === 'preview'"
       (click)="setActiveSection('preview')"
     >
-      <mat-icon>preview</mat-icon>
+      <mat-icon svgIcon="preview"></mat-icon>
       Preview
     </button>
   </section>
@@ -352,7 +352,7 @@
     @if (activeSection() === 'overview') {
       <button mat-stroked-button type="button" (click)="setActiveSection('security')" [disabled]="!isPersisted()">Security &amp; test</button>
       <button mat-flat-button color="primary" type="button" (click)="saveTarget()" [disabled]="savingTarget()">
-        <mat-icon>save</mat-icon>
+        <mat-icon svgIcon="save"></mat-icon>
         {{ isPersisted() ? 'Save target' : 'Create target' }}
       </button>
     }
@@ -360,11 +360,11 @@
     @if (activeSection() === 'security') {
       <button mat-stroked-button type="button" (click)="setActiveSection('overview')">Overview</button>
       <button mat-stroked-button type="button" (click)="saveSecurity()" [disabled]="!isPersisted() || savingSecrets() || loadingSecrets()">
-        <mat-icon>key</mat-icon>
+        <mat-icon svgIcon="key"></mat-icon>
         Save security
       </button>
       <button mat-flat-button color="primary" type="button" (click)="testConnection()" [disabled]="!isPersisted() || testingConnection()">
-        <mat-icon>health_and_safety</mat-icon>
+        <mat-icon svgIcon="health_and_safety"></mat-icon>
         Test connection
       </button>
     }
@@ -372,7 +372,7 @@
     @if (activeSection() === 'preview') {
       <button mat-stroked-button type="button" (click)="setActiveSection('security')">Security &amp; test</button>
       <button mat-flat-button color="primary" type="button" (click)="generatePreview()" [disabled]="!isPersisted() || generatingPreview()">
-        <mat-icon>preview</mat-icon>
+        <mat-icon svgIcon="preview"></mat-icon>
         Run preview
       </button>
     }

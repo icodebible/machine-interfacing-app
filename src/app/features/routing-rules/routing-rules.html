@@ -9,15 +9,15 @@
 
         <div class="toolbar-actions">
             <button mat-stroked-button type="button" (click)="toggleFilters()">
-                <mat-icon>{{ filtersOpen() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+                <mat-icon [svgIcon]="filtersOpen() ? 'filter_alt_off' : 'filter_alt'"></mat-icon>
                 {{ filtersOpen() ? 'Hide filters' : 'Filters' }}
             </button>
             <button mat-stroked-button type="button" (click)="load()" [disabled]="loading()">
-                <mat-icon>refresh</mat-icon>
+                <mat-icon svgIcon="refresh"></mat-icon>
                 Refresh
             </button>
             <button mat-flat-button color="primary" type="button" (click)="openCreateDialog()">
-                <mat-icon>add</mat-icon>
+                <mat-icon svgIcon="add"></mat-icon>
                 New rule
             </button>
         </div>
@@ -74,7 +74,7 @@
                         (ngModelChange)="search.set($event)"
                         placeholder="Rule, target, lab, machine, test code..."
                     />
-                    <mat-icon matPrefix>search</mat-icon>
+                    <mat-icon matPrefix svgIcon="search"></mat-icon>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
@@ -132,7 +132,7 @@
                             [attr.aria-label]="isExpanded(rule) ? 'Collapse routing rule' : 'Expand routing rule'"
                             (click)="toggleRow(rule); $event.stopPropagation()"
                         >
-                            <mat-icon>{{ isExpanded(rule) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                            <mat-icon [svgIcon]="isExpanded(rule) ? 'expand_less' : 'expand_more'"></mat-icon>
                         </button>
 
                         <div>
@@ -193,13 +193,13 @@
                 <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
                 <td mat-cell *matCellDef="let rule" class="actions-col">
                     <button mat-icon-button type="button" matTooltip="Edit rule" (click)="openEditDialog(rule); $event.stopPropagation()">
-                        <mat-icon>edit</mat-icon>
+                        <mat-icon svgIcon="edit"></mat-icon>
                     </button>
                     <button mat-icon-button type="button" matTooltip="Toggle status" (click)="toggle(rule); $event.stopPropagation()">
-                        <mat-icon>{{ isEnabled(rule) ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                        <mat-icon [svgIcon]="isEnabled(rule) ? 'toggle_on' : 'toggle_off'"></mat-icon>
                     </button>
                     <button mat-icon-button type="button" color="warn" matTooltip="Delete rule" (click)="delete(rule); $event.stopPropagation()">
-                        <mat-icon>delete</mat-icon>
+                        <mat-icon svgIcon="delete"></mat-icon>
                     </button>
                 </td>
             </ng-container>
@@ -248,15 +248,15 @@
 
                             <div class="expansion-actions">
                                 <button mat-stroked-button type="button" (click)="openEditDialog(rule); $event.stopPropagation()">
-                                    <mat-icon>edit</mat-icon>
+                                    <mat-icon svgIcon="edit"></mat-icon>
                                     Edit rule
                                 </button>
                                 <button mat-stroked-button type="button" (click)="toggle(rule); $event.stopPropagation()">
-                                    <mat-icon>{{ isEnabled(rule) ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                                    <mat-icon [svgIcon]="isEnabled(rule) ? 'toggle_off' : 'toggle_on'"></mat-icon>
                                     {{ isEnabled(rule) ? 'Disable' : 'Enable' }}
                                 </button>
                                 <button mat-stroked-button color="warn" type="button" (click)="delete(rule); $event.stopPropagation()">
-                                    <mat-icon>delete</mat-icon>
+                                    <mat-icon svgIcon="delete"></mat-icon>
                                     Delete
                                 </button>
                             </div>
@@ -283,7 +283,7 @@
 
         @if (!loading() && filteredRules().length === 0) {
             <div class="empty-state">
-                <mat-icon>alt_route</mat-icon>
+                <mat-icon svgIcon="alt_route"></mat-icon>
                 <h3>No routing rules found</h3>
                 <p>Create a rule to route approved results automatically, or clear filters if rules are hidden.</p>
                 <button mat-flat-button color="primary" type="button" (click)="openCreateDialog()">Add first rule</button>

@@ -1,3 +1,120 @@
+<!-- <div class="sidebar">
+    <div class="sidebar__accent" aria-hidden="true"></div>
+
+    <div class="brand-card">
+        <div class="brand-card__top">
+            <div class="logo" aria-hidden="true">
+                <span class="logo__core">MI</span>
+                <span class="logo__glint"></span>
+            </div>
+
+            <div class="title">
+                <div class="title__app">Machine Interfacing</div>
+                <div class="title__org">UDSM · DHIS2 Lab</div>
+            </div>
+        </div>
+
+        <div class="brand-ribbon" aria-hidden="true">
+            <span class="brand-ribbon__green"></span>
+            <span class="brand-ribbon__gold"></span>
+            <span class="brand-ribbon__black"></span>
+            <span class="brand-ribbon__blue"></span>
+        </div>
+
+        <div class="brand-meta">
+            National laboratory machine connectivity and traceability workspace
+        </div>
+    </div>
+
+    <div class="sidebar__scroll">
+        <div class="section">
+            <div class="section-title">Operations</div>
+            <mat-nav-list class="nav">
+                @for (item of navOperations; track item.route) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+            </mat-nav-list>
+        </div>
+
+        @if (showResults()) {
+        <div class="section">
+            <div class="section-title">Results</div>
+            <mat-nav-list class="nav">
+                @for (item of navResults; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
+
+        @if (showRouting()) {
+        <div class="section">
+            <div class="section-title">Routing</div>
+            <mat-nav-list class="nav">
+                @for (item of navRouting; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
+
+        @if (showAdmin()) {
+        <div class="section">
+            <div class="section-title">Administration</div>
+            <mat-nav-list class="nav">
+                @for (item of navAdmin; track item.route) {
+                @if (can(item.requires)) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }">
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+                }
+                }
+            </mat-nav-list>
+        </div>
+        }
+    </div>
+
+    <div class="footer-card">
+        <a class="settings" mat-button [routerLink]="navBottom[0].route" routerLinkActive="active-btn">
+            <mat-icon [svgIcon]="navBottom[0].icon"></mat-icon>
+            <span>{{ navBottom[0].label }}</span>
+        </a>
+
+        <button mat-stroked-button class="logout" (click)="logout()" matTooltip="Sign out">
+            <mat-icon svgIcon="logout"></mat-icon>
+            <span>Logout</span>
+        </button>
+
+        @if (user(); as u) {
+        <div class="user-card">
+            <div class="user-card__avatar">{{ (u.username || 'O').slice(0, 2).toUpperCase() }}</div>
+            <div class="user-card__copy">
+                <div class="user-card__label">Signed in as</div>
+                <div class="user-card__name">{{ u.username }}</div>
+            </div>
+        </div>
+        }
+    </div>
+</div> -->
+
 <div class="sidebar">
     <div class="sidebar__accent" aria-hidden="true"></div>
 
@@ -33,7 +150,7 @@
                 @for (item of navOperations; track item.route) {
                 <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
                     [routerLinkActiveOptions]="{ exact: true }">
-                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
                 </a>
                 }
@@ -48,7 +165,7 @@
                 @if (can(item.requires)) {
                 <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
                     [routerLinkActiveOptions]="{ exact: true }">
-                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
                 </a>
                 }
@@ -65,7 +182,7 @@
                 @if (can(item.requires)) {
                 <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
                     [routerLinkActiveOptions]="{ exact: true }">
-                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
                 </a>
                 }
@@ -82,7 +199,7 @@
                 @if (can(item.requires)) {
                 <a mat-list-item [routerLink]="item.route" routerLinkActive="active"
                     [routerLinkActiveOptions]="{ exact: true }">
-                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <mat-icon matListItemIcon [svgIcon]="item.icon"></mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
                 </a>
                 }
@@ -94,12 +211,12 @@
 
     <div class="footer-card">
         <a class="settings" mat-button [routerLink]="navBottom[0].route" routerLinkActive="active-btn">
-            <mat-icon>{{ navBottom[0].icon }}</mat-icon>
+            <mat-icon [svgIcon]="navBottom[0].icon"></mat-icon>
             <span>{{ navBottom[0].label }}</span>
         </a>
 
         <button mat-stroked-button class="logout" (click)="logout()" matTooltip="Sign out">
-            <mat-icon>logout</mat-icon>
+            <mat-icon svgIcon="logout"></mat-icon>
             <span>Logout</span>
         </button>
 

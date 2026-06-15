@@ -16,7 +16,7 @@
         <span class="status-badge status-badge--neutral"> {{ filteredLogs().length }} visible </span>
 
         <button mat-icon-button aria-label="Close machine logs dialog" (click)="close()">
-            <mat-icon>close</mat-icon>
+            <mat-icon svgIcon="close"></mat-icon>
         </button>
     </div>
 </h2>
@@ -96,15 +96,15 @@
 
         <div class="toolbar-actions">
             <button mat-stroked-button (click)="clearFilters()">
-                <mat-icon>filter_alt_off</mat-icon>
+                <mat-icon svgIcon="filter_alt_off"></mat-icon>
                 Clear filters
             </button>
             <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
+                <mat-icon svgIcon="refresh"></mat-icon>
                 Refresh
             </button>
             <button mat-stroked-button color="warn" (click)="clear()">
-                <mat-icon>delete_sweep</mat-icon>
+                <mat-icon svgIcon="delete_sweep"></mat-icon>
                 Clear logs
             </button>
         </div>
@@ -168,19 +168,19 @@
                 @if (selectedLog(); as selectedForActions) {
                 <div class="inspector-actions">
                     <button mat-stroked-button (click)="copy(payloadText(selectedForActions))">
-                        <mat-icon>content_copy</mat-icon>
+                        <mat-icon svgIcon="content_copy"></mat-icon>
                         Copy payload
                     </button>
                     <button mat-stroked-button (click)="replaySelected('PARSE_ONLY')" [disabled]="!canReplay(selectedForActions) || replaying()">
-                        <mat-icon>replay</mat-icon>
+                        <mat-icon svgIcon="replay"></mat-icon>
                         Parse only
                     </button>
                     <button mat-stroked-button (click)="replaySelected('PARSE_AND_NORMALIZE')" [disabled]="!canReplay(selectedForActions) || replaying()">
-                        <mat-icon>sync_alt</mat-icon>
+                        <mat-icon svgIcon="sync_alt"></mat-icon>
                         Parse + normalize
                     </button>
                     <button mat-flat-button color="primary" (click)="replaySelected('FULL_WORKFLOW')" [disabled]="!canReplay(selectedForActions) || replaying()">
-                        <mat-icon>play_circle</mat-icon>
+                        <mat-icon svgIcon="play_circle"></mat-icon>
                         Replay workflow
                     </button>
                 </div>

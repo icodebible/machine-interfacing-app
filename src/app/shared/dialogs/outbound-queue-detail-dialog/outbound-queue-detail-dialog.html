@@ -54,7 +54,7 @@
                     <div class="section-sub">Queue lifecycle, ownership, retry scheduling, and operational warnings.</div>
                 </div>
                 <button mat-stroked-button type="button" (click)="loadPreview()" [disabled]="previewLoading()">
-                    <mat-icon>refresh</mat-icon>
+                    <mat-icon svgIcon="refresh"></mat-icon>
                     Refresh preview
                 </button>
             </div>
@@ -73,7 +73,7 @@
 
             @for (alert of operationalAlerts(data.row); track alert.text) {
                 <div class="context-note" [class.bad]="alert.kind === 'bad'" [class.warn]="alert.kind === 'warn'" [class.info]="alert.kind === 'info'">
-                    <mat-icon>{{ alert.kind === 'bad' ? 'error' : alert.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
+                    <mat-icon [svgIcon]="alert.kind === 'bad' ? 'error' : alert.kind === 'warn' ? 'warning' : 'info'"></mat-icon>
                     <span>{{ alert.text }}</span>
                 </div>
             }
@@ -139,7 +139,7 @@
                     <div class="section-sub">Payload currently persisted on this queue row.</div>
                 </div>
                 <button mat-stroked-button type="button" (click)="copyJson(data.row?.payload_json)">
-                    <mat-icon>content_copy</mat-icon>
+                    <mat-icon svgIcon="content_copy"></mat-icon>
                     Copy stored payload
                 </button>
             </div>
@@ -158,7 +158,7 @@
 
                 @if (previewErrors().length) {
                     <div class="context-note bad">
-                        <mat-icon>error</mat-icon>
+                        <mat-icon svgIcon="error"></mat-icon>
                         <span>
                             <b>Errors</b><br />
                             @for (e of previewErrors(); track e) {
@@ -170,7 +170,7 @@
 
                 @if (previewWarnings().length) {
                     <div class="context-note warn">
-                        <mat-icon>warning</mat-icon>
+                        <mat-icon svgIcon="warning"></mat-icon>
                         <span>
                             <b>Warnings</b><br />
                             @for (w of previewWarnings(); track w) {
@@ -182,7 +182,7 @@
 
                 @if (previewSummary()) {
                     <div class="context-note info">
-                        <mat-icon>summarize</mat-icon>
+                        <mat-icon svgIcon="summarize"></mat-icon>
                         <span>
                             <b>Transformation summary</b><br />
                             Rules: {{ previewSummary()?.ruleCount ?? 0 }} ·
@@ -196,7 +196,7 @@
                 <div class="panel-head payload-head sub-panel-head">
                     <div class="section-title">Rendered payload</div>
                     <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.payload)">
-                        <mat-icon>content_copy</mat-icon>
+                        <mat-icon svgIcon="content_copy"></mat-icon>
                         Copy rendered payload
                     </button>
                 </div>
@@ -206,7 +206,7 @@
                     <div class="panel-head payload-head sub-panel-head">
                         <div class="section-title">Canonical source document</div>
                         <button mat-stroked-button type="button" (click)="copyJson(queuePreview()?.sourceDocument)">
-                            <mat-icon>content_copy</mat-icon>
+                            <mat-icon svgIcon="content_copy"></mat-icon>
                             Copy source document
                         </button>
                     </div>
@@ -219,7 +219,7 @@
             <section class="panel error-panel">
                 <div class="section-title">Last error</div>
                 <div class="context-note bad">
-                    <mat-icon>error</mat-icon>
+                    <mat-icon svgIcon="error"></mat-icon>
                     <span>{{ data.row?.last_error }}</span>
                 </div>
             </section>

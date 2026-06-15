@@ -11,14 +11,14 @@
     </div>
 
     <button mat-icon-button type="button" (click)="close()" aria-label="Close value translation editor">
-        <mat-icon>close</mat-icon>
+        <mat-icon svgIcon="close"></mat-icon>
     </button>
 </h2>
 
 <div mat-dialog-content class="dialog-shell">
     @if (error()) {
     <div class="banner banner--error">
-        <mat-icon>error</mat-icon>
+        <mat-icon svgIcon="error"></mat-icon>
         <span>{{ error() }}</span>
     </div>
     }
@@ -63,7 +63,7 @@
         </mat-form-field>
 
         <div class="inline-note">
-            <mat-icon>info</mat-icon>
+            <mat-icon svgIcon="info"></mat-icon>
             <span>
                 Keep source and destination values short, stable, and unambiguous. Use notes only when the mapping needs
                 operator context.

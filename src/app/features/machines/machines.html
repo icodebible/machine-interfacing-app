@@ -11,12 +11,12 @@
 
       <div class="toolbar-actions">
         <button mat-stroked-button (click)="refreshAll()">
-          <mat-icon>refresh</mat-icon>
+          <mat-icon svgIcon="refresh"></mat-icon>
           Refresh
         </button>
 
         <button mat-flat-button color="primary" (click)="openCreate()">
-          <mat-icon>add</mat-icon>
+          <mat-icon svgIcon="add"></mat-icon>
           Add Machine
         </button>
       </div>
@@ -29,7 +29,7 @@
     <div class="card">
       <div class="table-controls">
         <mat-form-field appearance="outline" class="search">
-          <mat-icon matPrefix>search</mat-icon>
+          <mat-icon matPrefix svgIcon="search"></mat-icon>
           <input
             matInput
             placeholder="Search machines…"
@@ -137,7 +137,7 @@
               matTooltip="View details"
               (click)="viewDetails(m); $event.stopPropagation()"
             >
-              <mat-icon>info</mat-icon>
+              <mat-icon svgIcon="info"></mat-icon>
             </button>
 
             <button
@@ -146,59 +146,59 @@
               matTooltip="Actions"
               (click)="$event.stopPropagation()"
             >
-              <mat-icon>more_vert</mat-icon>
+              <mat-icon svgIcon="more_vert"></mat-icon>
             </button>
 
             <mat-menu #rowMenu="matMenu">
               <button mat-menu-item (click)="viewDetails(m)">
-                <mat-icon>visibility</mat-icon>
+                <mat-icon svgIcon="visibility"></mat-icon>
                 <span>View details</span>
               </button>
 
               <button mat-menu-item (click)="openLogs(m)">
-                <mat-icon>receipt_long</mat-icon>
+                <mat-icon svgIcon="receipt_long"></mat-icon>
                 <span>View traffic logs</span>
               </button>
 
               <button mat-menu-item (click)="openParsed(m)">
-                <mat-icon>data_object</mat-icon>
+                <mat-icon svgIcon="data_object"></mat-icon>
                 <span>View parsed results</span>
               </button>
 
               <button mat-menu-item (click)="openNormalized(m)">
-                <mat-icon>science</mat-icon>
+                <mat-icon svgIcon="science"></mat-icon>
                 <span>View normalized results</span>
               </button>
 
               <button mat-menu-item (click)="openSimulation(m)">
-                <mat-icon>smart_toy</mat-icon>
+                <mat-icon svgIcon="smart_toy"></mat-icon>
                 <span>Open simulation workspace</span>
               </button>
 
               <mat-divider></mat-divider>
 
               <button mat-menu-item (click)="test(m)">
-                <mat-icon>fact_check</mat-icon>
+                <mat-icon svgIcon="fact_check"></mat-icon>
                 <span>Test configuration</span>
               </button>
 
               @if (canStartRuntime(m)) {
                 <button mat-menu-item (click)="startRuntime(m)">
-                  <mat-icon>play_arrow</mat-icon>
+                  <mat-icon svgIcon="play_arrow"></mat-icon>
                   <span>Start runtime</span>
                 </button>
               }
 
               @if (canStopRuntime(m)) {
                 <button mat-menu-item (click)="stopRuntime(m)">
-                  <mat-icon>stop</mat-icon>
+                  <mat-icon svgIcon="stop"></mat-icon>
                   <span>Stop runtime</span>
                 </button>
               }
 
               @if (canRestartRuntime(m)) {
                 <button mat-menu-item (click)="restartRuntime(m)">
-                  <mat-icon>restart_alt</mat-icon>
+                  <mat-icon svgIcon="restart_alt"></mat-icon>
                   <span>Restart runtime</span>
                 </button>
               }
@@ -207,14 +207,14 @@
 
               @if (canStartSimulation(m)) {
                 <button mat-menu-item (click)="startSimulation(m)">
-                  <mat-icon>smart_toy</mat-icon>
+                  <mat-icon svgIcon="smart_toy"></mat-icon>
                   <span>Start simulation</span>
                 </button>
               }
 
               @if (canStopSimulation(m)) {
                 <button mat-menu-item (click)="stopSimulation(m)">
-                  <mat-icon>stop_circle</mat-icon>
+                  <mat-icon svgIcon="stop_circle"></mat-icon>
                   <span>Stop simulation</span>
                 </button>
               }
@@ -222,26 +222,26 @@
               <mat-divider></mat-divider>
 
               <button mat-menu-item (click)="openEdit(m)">
-                <mat-icon>edit</mat-icon>
+                <mat-icon svgIcon="edit"></mat-icon>
                 <span>Edit</span>
               </button>
 
               <button mat-menu-item (click)="toggleEnabled(m)">
-                <mat-icon>{{ m.is_active === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                <mat-icon [svgIcon]="m.is_active === 1 ? 'toggle_off' : 'toggle_on'"></mat-icon>
                 <span>{{ m.is_active === 1 ? 'Disable' : 'Enable' }}</span>
               </button>
 
               <mat-divider></mat-divider>
 
               <button mat-menu-item (click)="copy(m.id)">
-                <mat-icon>content_copy</mat-icon>
+                <mat-icon svgIcon="content_copy"></mat-icon>
                 <span>Copy ID</span>
               </button>
 
               <mat-divider></mat-divider>
 
               <button mat-menu-item (click)="remove(m)" class="danger">
-                <mat-icon>delete</mat-icon>
+                <mat-icon svgIcon="delete"></mat-icon>
                 <span>Delete</span>
               </button>
             </mat-menu>
@@ -287,7 +287,7 @@
         </div>
 
         <button mat-icon-button (click)="closeDetails()" matTooltip="Close">
-          <mat-icon>close</mat-icon>
+          <mat-icon svgIcon="close"></mat-icon>
         </button>
       </div>
 
@@ -351,7 +351,7 @@
           <div class="v mono">
             {{ s.id }}
             <button mat-icon-button class="mini" (click)="copy(s.id)" matTooltip="Copy">
-              <mat-icon>content_copy</mat-icon>
+              <mat-icon svgIcon="content_copy"></mat-icon>
             </button>
           </div>
         </div>
@@ -388,48 +388,48 @@
 
       <div class="drawer-actions">
         <button mat-stroked-button (click)="openParsed(s)">
-          <mat-icon>data_object</mat-icon>
+          <mat-icon svgIcon="data_object"></mat-icon>
           Open Parsed Results
         </button>
 
         <button mat-stroked-button (click)="openNormalized(s)">
-          <mat-icon>science</mat-icon>
+          <mat-icon svgIcon="science"></mat-icon>
           Open Normalized Results
         </button>
 
         <button mat-stroked-button (click)="openEdit(s)">
-          <mat-icon>edit</mat-icon>
+          <mat-icon svgIcon="edit"></mat-icon>
           Edit
         </button>
 
         <button mat-stroked-button (click)="test(s)">
-          <mat-icon>fact_check</mat-icon>
+          <mat-icon svgIcon="fact_check"></mat-icon>
           Test
         </button>
 
         @if (canStartRuntime(s)) {
           <button mat-stroked-button (click)="startRuntime(s)">
-            <mat-icon>play_arrow</mat-icon>
+            <mat-icon svgIcon="play_arrow"></mat-icon>
             Start runtime
           </button>
         }
 
         @if (canStopRuntime(s)) {
           <button mat-stroked-button (click)="stopRuntime(s)">
-            <mat-icon>stop</mat-icon>
+            <mat-icon svgIcon="stop"></mat-icon>
             Stop runtime
           </button>
         }
 
         @if (canRestartRuntime(s)) {
           <button mat-stroked-button (click)="restartRuntime(s)">
-            <mat-icon>restart_alt</mat-icon>
+            <mat-icon svgIcon="restart_alt"></mat-icon>
             Restart runtime
           </button>
         }
 
         <button mat-flat-button color="warn" (click)="remove(s)">
-          <mat-icon>delete</mat-icon>
+          <mat-icon svgIcon="delete"></mat-icon>
           Delete
         </button>
       </div>
@@ -438,25 +438,25 @@
 
       <div class="drawer-actions">
         <button mat-stroked-button (click)="openLogs(s)">
-          <mat-icon>receipt_long</mat-icon>
+          <mat-icon svgIcon="receipt_long"></mat-icon>
           Open Logs
         </button>
 
         <button mat-stroked-button (click)="openSimulation(s)">
-          <mat-icon>smart_toy</mat-icon>
+          <mat-icon svgIcon="smart_toy"></mat-icon>
           Open simulation workspace
         </button>
 
         @if (canStartSimulation(s)) {
           <button mat-stroked-button (click)="startSimulation(s)">
-            <mat-icon>smart_toy</mat-icon>
+            <mat-icon svgIcon="smart_toy"></mat-icon>
             Start simulation
           </button>
         }
 
         @if (canStopSimulation(s)) {
           <button mat-stroked-button (click)="stopSimulation(s)">
-            <mat-icon>stop_circle</mat-icon>
+            <mat-icon svgIcon="stop_circle"></mat-icon>
             Stop simulation
           </button>
         }

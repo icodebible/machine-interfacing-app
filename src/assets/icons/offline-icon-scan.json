@@ -1,0 +1,689 @@
+{
+  "generatedAt": "2026-06-15T13:42:11.200Z",
+  "count": 87,
+  "icons": [
+    {
+      "name": "add",
+      "files": [
+        "src/app/features/approval-policies/approval-policies.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/features/roles/roles.html",
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/features/targets/targets.html",
+        "src/app/shared/dialogs/lis-test-order-profile-dialog/lis-test-order-profile-dialog.html",
+        "src/app/shared/dialogs/machine-simulation-dialog/machine-simulation-dialog.html",
+        "src/app/shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "add_task",
+      "files": [
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html"
+      ]
+    },
+    {
+      "name": "admin_panel_settings",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "alt_route",
+      "files": [
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/features/targets/targets.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "approval",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "archive",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "arrow_forward",
+      "files": [
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "assignment",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "auto_awesome",
+      "files": [
+        "src/app/features/targets/targets.html"
+      ]
+    },
+    {
+      "name": "backup",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/features/audit-logs/audit-logs.ts"
+      ]
+    },
+    {
+      "name": "cable",
+      "files": [
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "check",
+      "files": [
+        "src/app/features/pending-approvals/pending-approvals.html"
+      ]
+    },
+    {
+      "name": "check_circle",
+      "files": [
+        "src/app/features/settings/settings.html"
+      ]
+    },
+    {
+      "name": "close",
+      "files": [
+        "src/app/features/labs/labs.html",
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/pending-approvals/pending-approvals.html",
+        "src/app/shared/dialogs/approval-action-dialog/approval-action-dialog.html",
+        "src/app/shared/dialogs/approval-history-detail-dialog/approval-history-detail-dialog.html",
+        "src/app/shared/dialogs/approval-policy-dialog/approval-policy-dialog.html",
+        "src/app/shared/dialogs/lab-form-dialog/lab-form-dialog.html",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html",
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html",
+        "src/app/shared/dialogs/machine-normalized-dialog/machine-normalized-dialog.html",
+        "src/app/shared/dialogs/machine-parsed-dialog/machine-parsed-dialog.html",
+        "src/app/shared/dialogs/machine-simulation-dialog/machine-simulation-dialog.html",
+        "src/app/shared/dialogs/mapping-dialog/mapping-dialog.html",
+        "src/app/shared/dialogs/mapping-value-translation-entry-dialog/mapping-value-translation-entry-dialog.html",
+        "src/app/shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html",
+        "src/app/shared/dialogs/pending-approval-detail-dialog/pending-approval-detail-dialog.html",
+        "src/app/shared/dialogs/starter-template-info-dialog/starter-template-info-dialog.html"
+      ]
+    },
+    {
+      "name": "cloud_download",
+      "files": [
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "cloud_sync",
+      "files": [
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "content_copy",
+      "files": [
+        "src/app/features/labs/labs.html",
+        "src/app/features/machines/machines.html",
+        "src/app/shared/dialogs/approval-history-detail-dialog/approval-history-detail-dialog.html",
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html",
+        "src/app/shared/dialogs/machine-parsed-dialog/machine-parsed-dialog.html",
+        "src/app/shared/dialogs/normalized-result-detail-dialog/normalized-result-detail-dialog.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html",
+        "src/app/shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog.html"
+      ]
+    },
+    {
+      "name": "dashboard",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "dashboard_customize",
+      "files": [
+        "src/app/features/targets/targets.html",
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "data_object",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/shared/dialogs/machine-normalized-dialog/machine-normalized-dialog.html",
+        "src/app/shared/dialogs/machine-parsed-dialog/machine-parsed-dialog.html"
+      ]
+    },
+    {
+      "name": "delete",
+      "files": [
+        "src/app/features/approval-policies/approval-policies.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/features/roles/roles.html",
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/features/targets/targets.html",
+        "src/app/features/users/users.html",
+        "src/app/shared/dialogs/machine-simulation-dialog/machine-simulation-dialog.html",
+        "src/app/shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog.html"
+      ]
+    },
+    {
+      "name": "delete_outline",
+      "files": [
+        "src/app/shared/dialogs/lis-test-order-profile-dialog/lis-test-order-profile-dialog.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "delete_sweep",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html"
+      ]
+    },
+    {
+      "name": "dns",
+      "files": [
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "edit",
+      "files": [
+        "src/app/features/approval-policies/approval-policies.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/features/roles/roles.html",
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/features/targets/targets.html",
+        "src/app/features/users/users.html",
+        "src/app/shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog.html"
+      ]
+    },
+    {
+      "name": "edit_note",
+      "files": [
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/targets/targets.html"
+      ]
+    },
+    {
+      "name": "error",
+      "files": [
+        "src/app/features/login/login.html",
+        "src/app/features/settings/settings.html",
+        "src/app/shared/dialogs/mapping-value-translation-entry-dialog/mapping-value-translation-entry-dialog.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html",
+        "src/app/shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog.html"
+      ]
+    },
+    {
+      "name": "expand_more",
+      "files": [
+        "src/app/layout/topbar/topbar.html"
+      ]
+    },
+    {
+      "name": "fact_check",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.ts",
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/delivery-history/delivery-history.html",
+        "src/app/features/machines/machines.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "filter_alt_off",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html"
+      ]
+    },
+    {
+      "name": "folder",
+      "files": [
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "group",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "health_and_safety",
+      "files": [
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "history",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "hourglass_top",
+      "files": [
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html"
+      ]
+    },
+    {
+      "name": "hub",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "inventory_2",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.ts"
+      ]
+    },
+    {
+      "name": "key",
+      "files": [
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "keyboard_capslock",
+      "files": [
+        "src/app/features/login/login.html",
+        "src/app/features/settings/settings.html"
+      ]
+    },
+    {
+      "name": "lan",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "local_shipping",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "lock_reset",
+      "files": [
+        "src/app/features/users/users.html"
+      ]
+    },
+    {
+      "name": "login",
+      "files": [
+        "src/app/features/login/login.html"
+      ]
+    },
+    {
+      "name": "logout",
+      "files": [
+        "src/app/layout/sidebar/sidebar.html",
+        "src/app/layout/topbar/topbar.html"
+      ]
+    },
+    {
+      "name": "manage_search",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html"
+      ]
+    },
+    {
+      "name": "memory",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "menu",
+      "files": [
+        "src/app/layout/topbar/topbar.html"
+      ]
+    },
+    {
+      "name": "monitor_heart",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.ts",
+        "src/app/features/dashboard/dashboard.html"
+      ]
+    },
+    {
+      "name": "more_vert",
+      "files": [
+        "src/app/features/labs/labs.html",
+        "src/app/features/machines/machines.html"
+      ]
+    },
+    {
+      "name": "network_check",
+      "files": [
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "open_in_new",
+      "files": [
+        "src/app/features/approval-history/approval-history.html",
+        "src/app/features/delivery-history/delivery-history.html",
+        "src/app/features/normalized-results/normalized-results.html",
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/features/parsed-results/parsed-results.html",
+        "src/app/features/pending-approvals/pending-approvals.html"
+      ]
+    },
+    {
+      "name": "outbox",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.ts",
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/targets/targets.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "person_add",
+      "files": [
+        "src/app/features/users/users.html"
+      ]
+    },
+    {
+      "name": "person_check",
+      "files": [
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "play_arrow",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html",
+        "src/app/shared/dialogs/machine-simulation-dialog/machine-simulation-dialog.html"
+      ]
+    },
+    {
+      "name": "play_circle",
+      "files": [
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html"
+      ]
+    },
+    {
+      "name": "playlist_add_check",
+      "files": [
+        "src/app/features/mappings/mappings.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html"
+      ]
+    },
+    {
+      "name": "policy",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "preview",
+      "files": [
+        "src/app/features/targets/targets.html",
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "receipt_long",
+      "files": [
+        "src/app/features/machines/machines.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "refresh",
+      "files": [
+        "src/app/features/approval-history/approval-history.html",
+        "src/app/features/approval-policies/approval-policies.html",
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/delivery-history/delivery-history.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/features/normalized-results/normalized-results.html",
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/features/parsed-results/parsed-results.html",
+        "src/app/features/pending-approvals/pending-approvals.html",
+        "src/app/features/roles/roles.html",
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/features/targets/targets.html",
+        "src/app/features/users/users.html",
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html",
+        "src/app/shared/dialogs/machine-normalized-dialog/machine-normalized-dialog.html",
+        "src/app/shared/dialogs/machine-parsed-dialog/machine-parsed-dialog.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html",
+        "src/app/shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog.html"
+      ]
+    },
+    {
+      "name": "replay",
+      "files": [
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html"
+      ]
+    },
+    {
+      "name": "restart_alt",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html"
+      ]
+    },
+    {
+      "name": "route",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "rule",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "rule_folder",
+      "files": [
+        "src/app/features/pending-approvals/pending-approvals.html"
+      ]
+    },
+    {
+      "name": "save",
+      "files": [
+        "src/app/shared/dialogs/lis-test-order-profile-dialog/lis-test-order-profile-dialog.html",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html",
+        "src/app/shared/dialogs/machine-simulation-dialog/machine-simulation-dialog.html",
+        "src/app/shared/dialogs/mapping-value-translations-dialog/mapping-value-translations-dialog.html",
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "science",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/machines/machines.html",
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "search",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/routing-rules/routing-rules.html",
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html",
+        "src/app/shared/dialogs/routing-rule-dialog/routing-rule-dialog.html"
+      ]
+    },
+    {
+      "name": "send",
+      "files": [
+        "src/app/features/outbound-queue/outbound-queue.html"
+      ]
+    },
+    {
+      "name": "settings",
+      "files": [
+        "src/app/layout/sidebar/sidebar.ts"
+      ]
+    },
+    {
+      "name": "shield",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.ts",
+        "src/app/features/targets/targets.html",
+        "src/app/shared/dialogs/target-dialog/target-dialog.html"
+      ]
+    },
+    {
+      "name": "shield_lock",
+      "files": [
+        "src/app/features/settings/settings.html"
+      ]
+    },
+    {
+      "name": "smart_toy",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html"
+      ]
+    },
+    {
+      "name": "stop",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html"
+      ]
+    },
+    {
+      "name": "stop_circle",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html",
+        "src/app/features/machines/machines.html"
+      ]
+    },
+    {
+      "name": "summarize",
+      "files": [
+        "src/app/shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog.html"
+      ]
+    },
+    {
+      "name": "swap_horiz",
+      "files": [
+        "src/app/features/mappings/mappings.html"
+      ]
+    },
+    {
+      "name": "sync",
+      "files": [
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html"
+      ]
+    },
+    {
+      "name": "sync_alt",
+      "files": [
+        "src/app/shared/dialogs/machine-logs-dialog/machine-logs-dialog.html"
+      ]
+    },
+    {
+      "name": "task_alt",
+      "files": [
+        "src/app/features/lis-test-order-profiles/lis-test-order-profiles.html"
+      ]
+    },
+    {
+      "name": "terminal",
+      "files": [
+        "src/app/features/live-monitor/live-monitor.html"
+      ]
+    },
+    {
+      "name": "tips_and_updates",
+      "files": [
+        "src/app/shared/dialogs/lis-test-order-profile-dialog/lis-test-order-profile-dialog.html"
+      ]
+    },
+    {
+      "name": "tune",
+      "files": [
+        "src/app/features/dashboard/dashboard.html",
+        "src/app/features/mappings/mappings.html",
+        "src/app/shared/dialogs/machine-form-dialog/machine-form-dialog.html"
+      ]
+    },
+    {
+      "name": "verified_user",
+      "files": [
+        "src/app/features/audit-logs/audit-logs.html"
+      ]
+    },
+    {
+      "name": "visibility",
+      "files": [
+        "src/app/features/approval-history/approval-history.html",
+        "src/app/features/delivery-history/delivery-history.html",
+        "src/app/features/labs/labs.html",
+        "src/app/features/machines/machines.html",
+        "src/app/features/normalized-results/normalized-results.html",
+        "src/app/features/outbound-queue/outbound-queue.html",
+        "src/app/features/parsed-results/parsed-results.html",
+        "src/app/features/pending-approvals/pending-approvals.html",
+        "src/app/shared/dialogs/normalized-result-detail-dialog/normalized-result-detail-dialog.html"
+      ]
+    },
+    {
+      "name": "warning",
+      "files": [
+        "src/app/shared/dialogs/openmrs-lis-mapping-assistant-dialog/openmrs-lis-mapping-assistant-dialog.html",
+        "src/app/shared/dialogs/outbound-payload-preview-dialog/outbound-payload-preview-dialog.html",
+        "src/app/shared/dialogs/outbound-queue-detail-dialog/outbound-queue-detail-dialog.html"
+      ]
+    }
+  ]
+}

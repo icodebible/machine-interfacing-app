@@ -6,7 +6,7 @@
     </div>
 
     <button mat-icon-button type="button" (click)="close()" aria-label="Close approval history detail dialog">
-        <mat-icon>close</mat-icon>
+        <mat-icon svgIcon="close"></mat-icon>
     </button>
 </h2>
 
@@ -117,15 +117,15 @@
         <div class="technical-content">
             <div class="technical-toolbar">
                 <button mat-stroked-button type="button" (click)="copyJson(row()?.snapshot_result, 'Result snapshot')">
-                    <mat-icon>content_copy</mat-icon>
+                    <mat-icon svgIcon="content_copy"></mat-icon>
                     Copy result snapshot
                 </button>
                 <button mat-stroked-button type="button" (click)="copyJson(row()?.snapshot_policy, 'Policy snapshot')">
-                    <mat-icon>content_copy</mat-icon>
+                    <mat-icon svgIcon="content_copy"></mat-icon>
                     Copy policy snapshot
                 </button>
                 <button mat-stroked-button type="button" (click)="copyJson(row()?.snapshot_route_targets, 'Route target snapshot')">
-                    <mat-icon>content_copy</mat-icon>
+                    <mat-icon svgIcon="content_copy"></mat-icon>
                     Copy route targets
                 </button>
             </div>

@@ -10,15 +10,15 @@
 
     <div class="toolbar-actions">
       <button mat-stroked-button type="button" (click)="toggleFilters()">
-        <mat-icon>{{ filtersOpen() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        <mat-icon [svgIcon]="filtersOpen() ? 'filter_alt_off' : 'filter_alt'"></mat-icon>
         {{ filtersOpen() ? 'Hide filters' : 'Filters' }}
       </button>
       <button mat-stroked-button type="button" (click)="refresh()" [disabled]="loading() || metadataLoading()">
-        <mat-icon>refresh</mat-icon>
+        <mat-icon svgIcon="refresh"></mat-icon>
         Refresh
       </button>
       <button mat-flat-button color="primary" type="button" (click)="openManualProfileDialog()" [disabled]="!selectedTargetId()">
-        <mat-icon>add</mat-icon>
+        <mat-icon svgIcon="add"></mat-icon>
         New profile
       </button>
     </div>
@@ -80,13 +80,13 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Sample barcode / label</mat-label>
-        <input matInput [ngModel]="sampleId()" (ngModelChange)="sampleId.set($event)" placeholder="NPHL/22/0000027" />
+        <input matInput [ngModel]="sampleId()" (ngModelChange)="sampleId.set($event)" placeholder="NPHL/22/0000099" />
         <mat-hint>Use a sample that represents the LIS test orders you want to configure.</mat-hint>
       </mat-form-field>
 
       <div class="discovery-actions">
         <button mat-flat-button color="primary" type="button" (click)="discoverOrders()" [disabled]="metadataLoading() || !selectedTargetId()">
-          <mat-icon>cloud_sync</mat-icon>
+          <mat-icon svgIcon="cloud_sync"></mat-icon>
           Fetch test orders
         </button>
       </div>
@@ -94,7 +94,7 @@
 
     @if (selectedTarget()) {
       <div class="target-note">
-        <mat-icon>dns</mat-icon>
+        <mat-icon svgIcon="dns"></mat-icon>
         <div>
           <strong>{{ selectedTarget()?.name }}</strong>
           <span>{{ selectedTarget()?.base_url || 'Base URL not shown' }}</span>
@@ -119,7 +119,7 @@
         <mat-form-field appearance="outline">
           <mat-label>Search</mat-label>
           <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Profile, order, UUID, analyzer code..." />
-          <mat-icon matPrefix>search</mat-icon>
+          <mat-icon matPrefix svgIcon="search"></mat-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -161,7 +161,7 @@
               [attr.aria-label]="isExpanded(profile) ? 'Collapse profile' : 'Expand profile'"
               (click)="toggleProfileRow(profile); $event.stopPropagation()"
             >
-              <mat-icon>{{ isExpanded(profile) ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon [svgIcon]="isExpanded(profile) ? 'expand_less' : 'expand_more'"></mat-icon>
             </button>
 
             <div>
@@ -197,7 +197,7 @@
         <td mat-cell *matCellDef="let profile">
           <div class="status-stack">
             <span class="profile-state-pill" [class.enabled]="profile.enabled === 1" [class.disabled]="profile.enabled !== 1">
-              <mat-icon>{{ profile.enabled === 1 ? 'verified' : 'pause_circle' }}</mat-icon>
+              <mat-icon [svgIcon]="profile.enabled === 1 ? 'verified' : 'pause_circle'"></mat-icon>
               {{ profile.enabled === 1 ? 'Enabled' : 'Disabled' }}
             </span>
             <!-- <div class="micro-copy">{{ profileReadinessLabel(profile) }}</div> -->
@@ -218,7 +218,7 @@
         <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
         <td mat-cell *matCellDef="let profile" class="actions-col">
           <button mat-icon-button type="button" matTooltip="Edit profile" (click)="editProfile(profile); $event.stopPropagation()">
-            <mat-icon>edit</mat-icon>
+            <mat-icon svgIcon="edit"></mat-icon>
           </button>
           <button
             mat-icon-button
@@ -229,10 +229,10 @@
             [matTooltip]="profile.enabled === 1 ? 'Disable profile' : 'Enable profile'"
             (click)="toggleProfile(profile); $event.stopPropagation()"
           >
-            <mat-icon>{{ profile.enabled === 1 ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+            <mat-icon [svgIcon]="profile.enabled === 1 ? 'toggle_on' : 'toggle_off'"></mat-icon>
           </button>
           <button mat-icon-button type="button" color="warn" matTooltip="Delete profile" (click)="deleteProfile(profile); $event.stopPropagation()">
-            <mat-icon>delete</mat-icon>
+            <mat-icon svgIcon="delete"></mat-icon>
           </button>
         </td>
       </ng-container>
@@ -290,15 +290,15 @@
 
               <div class="expansion-actions">
                 <button mat-stroked-button type="button" (click)="editProfile(profile); $event.stopPropagation()">
-                  <mat-icon>edit</mat-icon>
+                  <mat-icon svgIcon="edit"></mat-icon>
                   Edit profile
                 </button>
                 <button mat-stroked-button type="button" (click)="toggleProfile(profile); $event.stopPropagation()">
-                  <mat-icon>{{ profile.enabled === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                  <mat-icon [svgIcon]="profile.enabled === 1 ? 'toggle_off' : 'toggle_on'"></mat-icon>
                   {{ profile.enabled === 1 ? 'Disable' : 'Enable' }}
                 </button>
                 <button mat-stroked-button color="warn" type="button" (click)="deleteProfile(profile); $event.stopPropagation()">
-                  <mat-icon>delete</mat-icon>
+                  <mat-icon svgIcon="delete"></mat-icon>
                   Delete
                 </button>
               </div>
@@ -325,7 +325,7 @@
 
     @if (!loading() && filteredProfiles().length === 0) {
       <div class="empty-state">
-        <mat-icon>science</mat-icon>
+        <mat-icon svgIcon="science"></mat-icon>
         <h3>No LIS test-order profiles found</h3>
         <p>Fetch test orders and configure one profile per LIS order, or create a profile manually.</p>
         <button mat-flat-button color="primary" type="button" (click)="openManualProfileDialog()" [disabled]="!selectedTargetId()">Add first profile</button>
@@ -359,7 +359,7 @@
                   [attr.aria-label]="isOrderExpanded(order) ? 'Collapse discovered test order' : 'Expand discovered test order'"
                   (click)="toggleOrderRow(order); $event.stopPropagation()"
                 >
-                  <mat-icon>{{ isOrderExpanded(order) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                  <mat-icon [svgIcon]="isOrderExpanded(order) ? 'expand_less' : 'expand_more'"></mat-icon>
                 </button>
 
                 <div class="order-copy">
@@ -378,7 +378,7 @@
                   {{ orderReadinessLabel(order) }}
                 </span>
                 <button mat-stroked-button type="button" (click)="configureOrder(order)">
-                  <mat-icon>add_task</mat-icon>
+                  <mat-icon svgIcon="add_task"></mat-icon>
                   Configure profile
                 </button>
               </div>
@@ -405,7 +405,7 @@
                     </div>
                   </div>
                   <button mat-stroked-button type="button" (click)="configureOrder(order)">
-                    <mat-icon>edit_note</mat-icon>
+                    <mat-icon svgIcon="edit_note"></mat-icon>
                     Review in dialog
                   </button>
                 </div>
@@ -454,7 +454,7 @@
       </div>
     } @else {
       <div class="empty-state compact">
-        <mat-icon>task_alt</mat-icon>
+        <mat-icon svgIcon="task_alt"></mat-icon>
         <h3>No unconfigured discovered orders</h3>
         <p>Fetch sample metadata, or confirm that every discovered order already has a profile.</p>
       </div>

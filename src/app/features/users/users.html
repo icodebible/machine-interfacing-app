@@ -9,12 +9,12 @@
 
         <div class="toolbar-actions">
             <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
+                <mat-icon svgIcon="refresh"></mat-icon>
                 Refresh
             </button>
 
             <button mat-flat-button color="primary" (click)="openCreate()">
-                <mat-icon>person_add</mat-icon>
+                <mat-icon svgIcon="person_add"></mat-icon>
                 New User
             </button>
         </div>
@@ -115,22 +115,20 @@
                     <button mat-icon-button (click)="toggleDetails(row, $event)" [matTooltip]="
               detailsExpanded() && selected()?.id === row.id ? 'Hide details' : 'Show details'
             ">
-                        <mat-icon>{{
-                            detailsExpanded() && selected()?.id === row.id ? 'expand_less' : 'info'
-                            }}</mat-icon>
+                        <mat-icon [svgIcon]="detailsExpanded() && selected()?.id === row.id ? 'expand_less' : 'info'"></mat-icon>
                     </button>
 
                     <button mat-icon-button (click)="openEdit(row, $event)">
-                        <mat-icon>edit</mat-icon>
+                        <mat-icon svgIcon="edit"></mat-icon>
                     </button>
 
                     <button mat-icon-button (click)="openResetPassword(row, $event)" matTooltip="Reset password">
-                        <mat-icon>lock_reset</mat-icon>
+                        <mat-icon svgIcon="lock_reset"></mat-icon>
                     </button>
 
                     <button mat-icon-button color="warn" (click)="remove(row, $event)" [disabled]="isProtected(row)"
                         [matTooltip]="isProtected(row) ? 'Bootstrap admin cannot be deleted' : 'Delete user'">
-                        <mat-icon>delete</mat-icon>
+                        <mat-icon svgIcon="delete"></mat-icon>
                     </button>
                 </td>
             </ng-container>
@@ -172,7 +170,7 @@
                     </div>
 
                     <!-- <button mat-stroked-button type="button" (click)="toggleDetails(selected(), $event)">
-                        <mat-icon>{{ detailsExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                        <mat-icon [svgIcon]="detailsExpanded() ? 'expand_less' : 'expand_more'"></mat-icon>
                         {{ detailsExpanded() ? 'Hide details' : 'View more details' }}
                     </button> -->
                 </div>

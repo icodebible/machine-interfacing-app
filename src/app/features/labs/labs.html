@@ -9,12 +9,12 @@
 
             <div class="toolbar-actions">
                 <button mat-stroked-button (click)="refresh()">
-                    <mat-icon>refresh</mat-icon>
+                    <mat-icon svgIcon="refresh"></mat-icon>
                     Refresh
                 </button>
 
                 <button mat-flat-button color="primary" (click)="openCreate()">
-                    <mat-icon>add</mat-icon>
+                    <mat-icon svgIcon="add"></mat-icon>
                     Add Lab
                 </button>
             </div>
@@ -28,7 +28,7 @@
             <!-- Controls ABOVE table, aligned LEFT -->
             <div class="table-controls">
                 <mat-form-field appearance="outline" class="search">
-                    <mat-icon matPrefix>search</mat-icon>
+                    <mat-icon matPrefix svgIcon="search"></mat-icon>
                     <input matInput placeholder="Search labs…" [value]="q()"
                         (input)="q.set($any($event.target).value); pageIndex.set(0)" />
                 </mat-form-field>
@@ -82,43 +82,43 @@
                         <!-- ✅ Quick access: details -->
                         <button mat-icon-button matTooltip="View details"
                             (click)="viewDetails(r); $event.stopPropagation()">
-                            <mat-icon>info</mat-icon>
+                            <mat-icon svgIcon="info"></mat-icon>
                         </button>
 
                         <!-- ✅ Menu: edit / activate / delete / copy etc -->
                         <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="Actions"
                             (click)="$event.stopPropagation()">
-                            <mat-icon>more_vert</mat-icon>
+                            <mat-icon svgIcon="more_vert"></mat-icon>
                         </button>
 
                         <mat-menu #rowMenu="matMenu">
                             <button mat-menu-item (click)="viewDetails(r)">
-                                <mat-icon>visibility</mat-icon>
+                                <mat-icon svgIcon="visibility"></mat-icon>
                                 <span>View details</span>
                             </button>
 
                             <mat-divider></mat-divider>
 
                             <button mat-menu-item (click)="openEdit(r)">
-                                <mat-icon>edit</mat-icon>
+                                <mat-icon svgIcon="edit"></mat-icon>
                                 <span>Edit</span>
                             </button>
 
                             <button mat-menu-item (click)="toggleActive(r)">
-                                <mat-icon>{{ r.is_active === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                                <mat-icon [svgIcon]="r.is_active === 1 ? 'toggle_off' : 'toggle_on'"></mat-icon>
                                 <span>{{ r.is_active === 1 ? 'Deactivate' : 'Activate' }}</span>
                             </button>
 
                             <mat-divider></mat-divider>
 
                             <button mat-menu-item (click)="copy(r.id)">
-                                <mat-icon>content_copy</mat-icon>
+                                <mat-icon svgIcon="content_copy"></mat-icon>
                                 <span>Copy ID</span>
                             </button>
 
                             @if (r.code) {
                             <button mat-menu-item (click)="copy(r.code!)">
-                                <mat-icon>content_copy</mat-icon>
+                                <mat-icon svgIcon="content_copy"></mat-icon>
                                 <span>Copy Code</span>
                             </button>
                             }
@@ -126,7 +126,7 @@
                             <mat-divider></mat-divider>
 
                             <button mat-menu-item (click)="remove(r)" class="danger">
-                                <mat-icon>delete</mat-icon>
+                                <mat-icon svgIcon="delete"></mat-icon>
                                 <span>Delete</span>
                             </button>
                         </mat-menu>
@@ -174,7 +174,7 @@
             </div>
 
             <button mat-icon-button (click)="closeDetails()" matTooltip="Close">
-                <mat-icon>close</mat-icon>
+                <mat-icon svgIcon="close"></mat-icon>
             </button>
         </div>
 
@@ -196,7 +196,7 @@
                 <div class="v mono">
                     {{ s.id }}
                     <button mat-icon-button class="mini" (click)="copy(s.id)" matTooltip="Copy">
-                        <mat-icon>content_copy</mat-icon>
+                        <mat-icon svgIcon="content_copy"></mat-icon>
                     </button>
                 </div>
             </div>
@@ -226,17 +226,17 @@
 
         <div class="drawer-actions">
             <button mat-stroked-button (click)="openEdit(s)">
-                <mat-icon>edit</mat-icon>
+                <mat-icon svgIcon="edit"></mat-icon>
                 Edit
             </button>
 
             <button mat-stroked-button (click)="toggleActive(s)">
-                <mat-icon>{{ s.is_active === 1 ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                <mat-icon [svgIcon]="s.is_active === 1 ? 'toggle_off' : 'toggle_on'"></mat-icon>
                 {{ s.is_active === 1 ? 'Deactivate' : 'Activate' }}
             </button>
 
             <button mat-flat-button color="warn" (click)="remove(s)">
-                <mat-icon>delete</mat-icon>
+                <mat-icon svgIcon="delete"></mat-icon>
                 Delete
             </button>
         </div>

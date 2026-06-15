@@ -9,7 +9,7 @@
     </div>
 
     <button mat-icon-button type="button" (click)="close()" aria-label="Close value translation dialog">
-        <mat-icon>close</mat-icon>
+        <mat-icon svgIcon="close"></mat-icon>
     </button>
 </h2>
 
@@ -30,7 +30,7 @@
                 </div>
             </div>
             <button mat-flat-button color="primary" (click)="saveConfig()">
-                <mat-icon>save</mat-icon>
+                <mat-icon svgIcon="save"></mat-icon>
                 Save behavior
             </button>
         </div>
@@ -73,7 +73,7 @@
             </div>
 
             <button mat-stroked-button (click)="openCreate()">
-                <mat-icon>add</mat-icon>
+                <mat-icon svgIcon="add"></mat-icon>
                 Add value rule
             </button>
         </div>
@@ -110,11 +110,11 @@
                 <td mat-cell *matCellDef="let row" class="actions-col">
                     <div class="actions-bar">
                         <button mat-icon-button (click)="openEdit(row)" aria-label="Edit value translation">
-                            <mat-icon>edit</mat-icon>
+                            <mat-icon svgIcon="edit"></mat-icon>
                         </button>
                         <button mat-icon-button color="warn" (click)="remove(row)"
                             aria-label="Delete value translation">
-                            <mat-icon>delete</mat-icon>
+                            <mat-icon svgIcon="delete"></mat-icon>
                         </button>
                     </div>
                 </td>

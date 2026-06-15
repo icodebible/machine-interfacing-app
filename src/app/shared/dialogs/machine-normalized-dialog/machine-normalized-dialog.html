@@ -18,7 +18,7 @@
         </span>
 
         <button mat-icon-button aria-label="Close normalized results dialog" (click)="close()">
-            <mat-icon>close</mat-icon>
+            <mat-icon svgIcon="close"></mat-icon>
         </button>
     </div>
 </h2>
@@ -73,7 +73,7 @@
                 </mat-form-field>
 
                 <button mat-stroked-button (click)="refresh()">
-                    <mat-icon>refresh</mat-icon>
+                    <mat-icon svgIcon="refresh"></mat-icon>
                     Refresh
                 </button>
             </div>
@@ -165,7 +165,7 @@
 
                 <div class="normalized-actions">
                     <button mat-button (click)="copy(prettyJson(row.data_json))">
-                        <mat-icon>data_object</mat-icon>
+                        <mat-icon svgIcon="data_object"></mat-icon>
                         Copy JSON
                     </button>
                 </div>

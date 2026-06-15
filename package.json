@@ -26,7 +26,18 @@
     "vendor:material-icons": "node scripts/vendor-material-icons-production.mjs",
     "verify:material-icons": "node scripts/verify-material-icons-embedded-font-fix.mjs",
     "apply:material-icons-runtime": "node scripts/apply-material-icons-runtime-registry-fix.mjs",
-    "verify:material-icons-runtime": "node scripts/verify-material-icons-runtime-fix.mjs"
+    "verify:material-icons-runtime": "node scripts/verify-material-icons-runtime-fix.mjs",
+    "icons:scan": "node scripts/scan-offline-svg-icons.mjs",
+    "icons:convert": "node scripts/convert-mat-icons-to-svg.mjs",
+    "icons:sync": "npm run icons:scan && npm run icons:convert && npm run icons:scan && node scripts/sync-offline-svg-icons.mjs && npm run icons:verify",
+    "icons:verify": "node scripts/verify-offline-svg-icons.mjs",
+    "package:preflight": "npm run icons:verify && npm run build:release",
+    "package:linux": "npm run package:preflight && electron-builder --linux AppImage deb --x64 --publish never && npm run release:checksum",
+    "package:windows": "npm run package:preflight && electron-builder --win nsis --x64 --publish never && npm run release:checksum",
+    "package:macos": "npm run package:preflight && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg zip --x64 --arm64 --publish never && npm run release:checksum",
+    "package:current": "node scripts/package-current-platform.mjs",
+    "package:ci": "npm run icons:verify && npm run build:release",
+    "release:checksum": "node scripts/create-release-checksums.mjs"
   },
   "build": {
     "appId": "tz.ac.udsm.dhis.machineinterfacing",
@@ -45,25 +56,58 @@
     "extraResources": [
       {
         "from": "electron/resources",
-        "to": "resources"
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
-      "icon": "build/icons/icon.icns"
+      "icon": "build/icons/icon.icns",
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": false
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icons/icon.ico"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icons/512x512.png",
       "category": "Utility",
@@ -79,7 +123,20 @@
         "repo": "machine-interfacing-app",
         "releaseType": "release"
       }
-    ]
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/serialport/**/*",
+      "node_modules/@serialport/**/*"
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Machine Interfacing App"
+    }
   },
   "prettier": {
     "printWidth": 100,
@@ -103,18 +160,19 @@
     "@angular/material": "^20.2.14",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
+    "@fontsource/roboto": "^5.2.10",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
+    "material-design-icons": "^3.0.1",
+    "material-icons": "^1.13.14",
+    "material-symbols": "^0.35.0",
     "rxjs": "~7.8.0",
     "serialport": "^13.0.0",
     "tslib": "^2.3.0",
     "zod": "^4.3.6",
-    "zone.js": "~0.15.0",
-    "@fontsource/roboto": "^5.2.10",
-    "material-icons": "^1.13.14",
-    "material-symbols": "^0.35.0"
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
     "@angular/build": "^20.1.6",
@@ -137,15 +195,9 @@
     "rimraf": "^6.1.3",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
-    "wait-on": "^9.0.4"
+    "wait-on": "^9.0.4",
+    "@material-design-icons/svg": "^0.14.13"
   },
-  "publish": [
-    {
-      "provider": "github",
-      "owner": "UDSM DHIS2 Lab",
-      "repo": "YOUR_REPO"
-    }
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/icodebible/machine-interfacing-app.git"

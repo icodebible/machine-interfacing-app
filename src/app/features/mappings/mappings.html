@@ -10,7 +10,7 @@
 
     <div class="toolbar-actions mappings-toolbar-actions">
       <button mat-stroked-button type="button" (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
+        <mat-icon svgIcon="refresh"></mat-icon>
         Refresh
       </button>
 
@@ -20,7 +20,7 @@
         (click)="validate()"
         [disabled]="selectedTargetType() === 'ALL' && !selectedTemplate()"
       >
-        <mat-icon>rule</mat-icon>
+        <mat-icon svgIcon="rule"></mat-icon>
         Validate Selected
       </button>
 
@@ -30,7 +30,7 @@
         type="button"
         (click)="openCreate(selectedTargetType() === 'ALL' ? undefined : selectedTargetType())"
       >
-        <mat-icon>add</mat-icon>
+        <mat-icon svgIcon="add"></mat-icon>
         New Rule
       </button>
     </div>
@@ -82,7 +82,7 @@
         </div>
 
         <button mat-flat-button color="primary" type="button" (click)="openOpenMrsLisAssistant()">
-          <mat-icon>tune</mat-icon>
+          <mat-icon svgIcon="tune"></mat-icon>
           Configure LIS mappings
         </button>
       </div>
@@ -232,7 +232,7 @@
                   selectTemplate(template); applyTemplate(template); $event.stopPropagation()
                 "
               >
-                <mat-icon>playlist_add_check</mat-icon>
+                <mat-icon svgIcon="playlist_add_check"></mat-icon>
                 Apply
               </button>
               <button
@@ -240,7 +240,7 @@
                 type="button"
                 (click)="openTemplateInfo(template); $event.stopPropagation()"
               >
-                <mat-icon>info</mat-icon>
+                <mat-icon svgIcon="info"></mat-icon>
                 More info
               </button>
             </div>
@@ -348,7 +348,7 @@
               "
               (click)="toggleExpanded(row); $event.stopPropagation()"
             >
-              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon [svgIcon]="expandedId() === row.id ? 'expand_less' : 'expand_more'"></mat-icon>
             </button>
 
             <div>
@@ -430,7 +430,7 @@
               aria-label="Edit field mapping"
               (click)="openEdit(row); $event.stopPropagation()"
             >
-              <mat-icon>edit</mat-icon>
+              <mat-icon svgIcon="edit"></mat-icon>
             </button>
 
             <button
@@ -439,7 +439,7 @@
               aria-label="Configure value translation"
               (click)="openValueTranslations(row); $event.stopPropagation()"
             >
-              <mat-icon>swap_horiz</mat-icon>
+              <mat-icon svgIcon="swap_horiz"></mat-icon>
             </button>
 
             <button
@@ -449,7 +449,7 @@
               aria-label="Delete mapping rule"
               (click)="remove(row); $event.stopPropagation()"
             >
-              <mat-icon>delete</mat-icon>
+              <mat-icon svgIcon="delete"></mat-icon>
             </button>
           </div>
         </td>

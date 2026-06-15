@@ -55,7 +55,7 @@
                 <div class="preview-head">
                     <div class="section-title">Target preview</div>
                     <button mat-flat-button color="primary" (click)="previewTransform()">
-                        <mat-icon>visibility</mat-icon>
+                        <mat-icon svgIcon="visibility"></mat-icon>
                         Preview transform
                     </button>
                 </div>
@@ -160,7 +160,7 @@
                 <div class="preview-head">
                     <div class="section-title">Target preview</div>
                     <button mat-flat-button color="primary" (click)="previewTransform()">
-                        <mat-icon>visibility</mat-icon>
+                        <mat-icon svgIcon="visibility"></mat-icon>
                         Preview transform
                     </button>
                 </div>
@@ -209,7 +209,7 @@
                 <div class="preview-head">
                     <div class="section-title">Rendered payload</div>
                     <button mat-button type="button" (click)="copyJson(preview()?.payload)">
-                        <mat-icon>content_copy</mat-icon>
+                        <mat-icon svgIcon="content_copy"></mat-icon>
                         Copy
                     </button>
                 </div>
@@ -223,7 +223,7 @@
                 <div class="preview-head">
                     <div class="section-title">Canonical source document</div>
                     <button mat-button type="button" (click)="copyJson(preview()?.sourceDocument || data.row.dataJson)">
-                        <mat-icon>content_copy</mat-icon>
+                        <mat-icon svgIcon="content_copy"></mat-icon>
                         Copy
                     </button>
                 </div>

@@ -42,7 +42,7 @@
             <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Search targets</mat-label>
                 <input matInput [value]="targetSearch()" (input)="targetSearch.set($any($event.target).value)" placeholder="Search by target name, type, URL, or ID" />
-                <mat-icon matPrefix>search</mat-icon>
+                <mat-icon matPrefix svgIcon="search"></mat-icon>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -79,7 +79,7 @@
                 <mat-form-field appearance="outline">
                     <mat-label>Search machines</mat-label>
                     <input matInput [value]="machineSearch()" (input)="machineSearch.set($any($event.target).value)" placeholder="Name, code, protocol, or ID" />
-                    <mat-icon matPrefix>search</mat-icon>
+                    <mat-icon matPrefix svgIcon="search"></mat-icon>
                 </mat-form-field>
             </div>
 

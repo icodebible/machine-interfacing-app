@@ -14,7 +14,7 @@
       aria-label="Toggle navigation"
       (click)="openNav()"
     >
-      <mat-icon>menu</mat-icon>
+      <mat-icon svgIcon="menu"></mat-icon>
     </button>
 
     <div class="product-mark" aria-hidden="true">
@@ -51,7 +51,7 @@
         }
       </span> -->
 
-      <!-- <mat-icon class="profile-trigger__chevron">expand_more</mat-icon> -->
+      <!-- <mat-icon class="profile-trigger__chevron" svgIcon="expand_more"></mat-icon> -->
     </button>
   </div>
 </header>
@@ -89,7 +89,7 @@
   <mat-divider></mat-divider>
 
   <button mat-menu-item (click)="logout()">
-    <mat-icon>logout</mat-icon>
+    <mat-icon svgIcon="logout"></mat-icon>
     <span>Logout</span>
   </button>
 </mat-menu>

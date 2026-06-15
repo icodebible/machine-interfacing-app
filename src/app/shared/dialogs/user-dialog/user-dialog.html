@@ -36,7 +36,7 @@
             <mat-label>Temporary password</mat-label>
             <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="password" />
             <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
-                <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                <mat-icon [svgIcon]="showPassword ? 'visibility_off' : 'visibility'"></mat-icon>
             </button>
             <mat-hint>Set a starter password that can be rotated after first use.</mat-hint>
         </mat-form-field>

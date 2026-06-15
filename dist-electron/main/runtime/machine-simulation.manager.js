@@ -17,7 +17,7 @@ function transportForMachine(machine) {
 }
 function scenarioPayload(machine, scenario) {
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-    const sampleId = 'NPHL/22/0000027';
+    const sampleId = 'NPHL/22/0000099';
     switch (scenario) {
         case 'HL7_COBAS_HPV_FINAL_RESULT':
             return `MSH|^~\\&|COBAS6800/8800||LIS||${ts}||OUL^R22^OUL_R22|HPV-SIM-${Date.now()}|P|2.5||||||ASCII|||ROC-06^ROCHE\nPID|1||NPHL123^^^NPHL||KISILI^SEIF||19850101|M\nSPM|1|${sampleId}||RCCM^RocheCellCollectionMedia^99ROC|||||||P||||||||||||||||\nOBR|1|${sampleId}||71432-9^HPV-GT^LN|||||||A||||||||||||||F\nOBX|1|CE|HPV16^HPV16^99LIS||POS^Positive^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}\nOBX|2|CE|HPV18^HPV18^99LIS||NEG^Negative^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}\nOBX|3|CE|HRHPV^Hr-HPV^99LIS||INVALID^Invalid.^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}`;

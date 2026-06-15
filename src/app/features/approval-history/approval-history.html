@@ -9,7 +9,7 @@
 
         <div class="toolbar-actions">
             <button mat-stroked-button (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
+                <mat-icon svgIcon="refresh"></mat-icon>
                 Refresh
             </button>
         </div>
@@ -52,7 +52,7 @@
                             [attr.aria-label]="isExpanded(row) ? 'Collapse approval history row' : 'Expand approval history row'"
                             (click)="toggleRow(row); $event.stopPropagation()"
                         >
-                            <mat-icon>{{ isExpanded(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                            <mat-icon [svgIcon]="isExpanded(row) ? 'expand_less' : 'expand_more'"></mat-icon>
                         </button>
 
                         <div>
@@ -98,7 +98,7 @@
                 <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
                 <td mat-cell *matCellDef="let row" class="actions-col">
                     <button mat-icon-button matTooltip="Open detailed view" (click)="openDetailDialog(row); $event.stopPropagation()">
-                        <mat-icon>open_in_new</mat-icon>
+                        <mat-icon svgIcon="open_in_new"></mat-icon>
                     </button>
                 </td>
             </ng-container>
@@ -144,7 +144,7 @@
 
                         <div class="expansion-actions">
                             <button mat-stroked-button (click)="openDetailDialog(row); $event.stopPropagation()">
-                                <mat-icon>visibility</mat-icon>
+                                <mat-icon svgIcon="visibility"></mat-icon>
                                 View full details
                             </button>
                         </div>

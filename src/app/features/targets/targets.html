@@ -9,11 +9,11 @@
 
     <div class="toolbar-actions">
       <button mat-stroked-button type="button" (click)="toggleStarters()">
-        <mat-icon>{{ showStarters() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        <mat-icon [svgIcon]="showStarters() ? 'visibility_off' : 'visibility'"></mat-icon>
         {{ showStarters() ? 'Hide target templates' : 'Show target templates' }}
       </button>
       <button mat-flat-button color="primary" type="button" (click)="openCreate()">
-        <mat-icon>add</mat-icon>
+        <mat-icon svgIcon="add"></mat-icon>
         New target
       </button>
     </div>
@@ -106,7 +106,7 @@
 
             <div class="starter-actions">
               <button mat-stroked-button type="button" (click)="openCreate(starter)">
-                <mat-icon>auto_awesome</mat-icon>
+                <mat-icon svgIcon="auto_awesome"></mat-icon>
                 Use template
               </button>
             </div>
@@ -134,7 +134,7 @@
               [attr.aria-label]="expandedId() === row.id ? 'Collapse target row' : 'Expand target row'"
               (click)="toggleExpanded(row); $event.stopPropagation()"
             >
-              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon [svgIcon]="expandedId() === row.id ? 'expand_less' : 'expand_more'"></mat-icon>
             </button>
 
             <div>
@@ -184,7 +184,7 @@
               aria-label="Open target overview"
               (click)="openWorkspace(row, 'overview'); $event.stopPropagation()"
             >
-              <mat-icon>edit_note</mat-icon>
+              <mat-icon svgIcon="edit_note"></mat-icon>
             </button>
 
             <button
@@ -194,7 +194,7 @@
               aria-label="Open target security and test"
               (click)="openWorkspace(row, 'security'); $event.stopPropagation()"
             >
-              <mat-icon>shield</mat-icon>
+              <mat-icon svgIcon="shield"></mat-icon>
             </button>
 
             <button
@@ -205,7 +205,7 @@
               aria-label="Delete target"
               (click)="remove(row); $event.stopPropagation()"
             >
-              <mat-icon>delete</mat-icon>
+              <mat-icon svgIcon="delete"></mat-icon>
             </button>
           </div>
         </td>
@@ -284,15 +284,15 @@
 
                   <div class="quick-actions-row">
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'overview'); $event.stopPropagation()">
-                      <mat-icon>dashboard_customize</mat-icon>
+                      <mat-icon svgIcon="dashboard_customize"></mat-icon>
                       Overview
                     </button>
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'security'); $event.stopPropagation()">
-                      <mat-icon>shield</mat-icon>
+                      <mat-icon svgIcon="shield"></mat-icon>
                       Security &amp; test
                     </button>
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'preview')">
-                      <mat-icon>preview</mat-icon>
+                      <mat-icon svgIcon="preview"></mat-icon>
                       Preview transform
                     </button>
                   </div>
@@ -325,15 +325,15 @@
 
     <div class="toolbar-actions">
       <button mat-stroked-button type="button" (click)="toggleStarters()">
-        <mat-icon>{{ showStarters() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        <mat-icon [svgIcon]="showStarters() ? 'visibility_off' : 'visibility'"></mat-icon>
         {{ showStarters() ? 'Hide target templates' : 'Show target templates' }}
       </button>
       <button mat-stroked-button type="button" (click)="openRoutingWorkspace()">
-        <mat-icon>alt_route</mat-icon>
+        <mat-icon svgIcon="alt_route"></mat-icon>
         Routing rules
       </button>
       <button mat-flat-button color="primary" type="button" (click)="openCreate()">
-        <mat-icon>add</mat-icon>
+        <mat-icon svgIcon="add"></mat-icon>
         New target
       </button>
     </div>
@@ -384,7 +384,7 @@
         <div class="routing-actions">
           <span class="status-pill info">{{ routingRules().length }} rules</span>
           <button mat-stroked-button type="button" (click)="loadRoutingWorkspace()" [disabled]="routingLoading()">
-            <mat-icon>refresh</mat-icon>
+            <mat-icon svgIcon="refresh"></mat-icon>
             Refresh
           </button>
         </div>
@@ -476,7 +476,7 @@
 
       <div class="routing-form-actions">
         <button mat-flat-button color="primary" type="button" (click)="saveRoutingRule()" [disabled]="routingSaving()">
-          <mat-icon>{{ routingForm.id ? 'save' : 'add' }}</mat-icon>
+          <mat-icon [svgIcon]="routingForm.id ? 'save' : 'add'"></mat-icon>
           {{ routingForm.id ? 'Update rule' : 'Create rule' }}
         </button>
         <button mat-button type="button" (click)="resetRoutingRuleForm()">Clear</button>
@@ -500,7 +500,7 @@
                 </div>
                 <div class="routing-rule-meta">{{ routeScopeLabel(rule) }}</div>
                 <div class="routing-rule-target">
-                  <mat-icon>outbox</mat-icon>
+                  <mat-icon svgIcon="outbox"></mat-icon>
                   {{ routeTargetLabel(rule) }}
                   @if (rule.stop_on_match === 1) {
                     <span class="meta">· stops lower priority matches</span>
@@ -509,11 +509,11 @@
               </div>
               <div class="row-actions">
                 <button mat-button type="button" (click)="editRoutingRule(rule)">
-                  <mat-icon>edit</mat-icon>
+                  <mat-icon svgIcon="edit"></mat-icon>
                   Edit
                 </button>
                 <button mat-button type="button" class="danger-button" (click)="deleteRoutingRule(rule)">
-                  <mat-icon>delete</mat-icon>
+                  <mat-icon svgIcon="delete"></mat-icon>
                   Delete
                 </button>
               </div>
@@ -579,7 +579,7 @@
 
             <div class="starter-actions">
               <button mat-stroked-button type="button" (click)="openCreate(starter)">
-                <mat-icon>auto_awesome</mat-icon>
+                <mat-icon svgIcon="auto_awesome"></mat-icon>
                 Use template
               </button>
             </div>
@@ -607,7 +607,7 @@
               [attr.aria-label]="expandedId() === row.id ? 'Collapse target row' : 'Expand target row'"
               (click)="toggleExpanded(row); $event.stopPropagation()"
             >
-              <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon [svgIcon]="expandedId() === row.id ? 'expand_less' : 'expand_more'"></mat-icon>
             </button>
 
             <div>
@@ -657,7 +657,7 @@
               aria-label="Open target overview"
               (click)="openWorkspace(row, 'overview'); $event.stopPropagation()"
             >
-              <mat-icon>edit_note</mat-icon>
+              <mat-icon svgIcon="edit_note"></mat-icon>
             </button>
 
             <button
@@ -667,7 +667,7 @@
               aria-label="Open target security and test"
               (click)="openWorkspace(row, 'security'); $event.stopPropagation()"
             >
-              <mat-icon>shield</mat-icon>
+              <mat-icon svgIcon="shield"></mat-icon>
             </button>
 
             <button
@@ -678,7 +678,7 @@
               aria-label="Delete target"
               (click)="remove(row); $event.stopPropagation()"
             >
-              <mat-icon>delete</mat-icon>
+              <mat-icon svgIcon="delete"></mat-icon>
             </button>
           </div>
         </td>
@@ -757,15 +757,15 @@
 
                   <div class="quick-actions-row">
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'overview'); $event.stopPropagation()">
-                      <mat-icon>dashboard_customize</mat-icon>
+                      <mat-icon svgIcon="dashboard_customize"></mat-icon>
                       Overview
                     </button>
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'security'); $event.stopPropagation()">
-                      <mat-icon>shield</mat-icon>
+                      <mat-icon svgIcon="shield"></mat-icon>
                       Security &amp; test
                     </button>
                     <button mat-stroked-button type="button" (click)="openWorkspace(row, 'preview')">
-                      <mat-icon>preview</mat-icon>
+                      <mat-icon svgIcon="preview"></mat-icon>
                       Preview transform
                     </button>
                   </div>

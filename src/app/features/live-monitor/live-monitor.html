@@ -11,7 +11,7 @@
 
             <div class="toolbar-actions">
                 <button mat-stroked-button (click)="refresh()">
-                    <mat-icon>refresh</mat-icon>
+                    <mat-icon svgIcon="refresh"></mat-icon>
                     Refresh
                 </button>
             </div>
@@ -97,7 +97,7 @@
 
                 <div class="filter-actions">
                     <button mat-stroked-button (click)="clearFilters()">
-                        <mat-icon>filter_alt_off</mat-icon>
+                        <mat-icon svgIcon="filter_alt_off"></mat-icon>
                         Clear filters
                     </button>
                 </div>
@@ -190,19 +190,19 @@
                     <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
                     <td mat-cell *matCellDef="let row" class="actions-col">
                         <button mat-icon-button matTooltip="Open operator detail" (click)="openDetails(row)">
-                            <mat-icon>info</mat-icon>
+                            <mat-icon svgIcon="info"></mat-icon>
                         </button>
 
                         <button mat-icon-button matTooltip="Toggle inline details" (click)="toggleExpanded(row)">
-                            <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+                            <mat-icon [svgIcon]="expandedId() === row.id ? 'expand_less' : 'expand_more'"></mat-icon>
                         </button>
 
                         <button mat-icon-button matTooltip="Open logs console" (click)="openLogs(row)">
-                            <mat-icon>terminal</mat-icon>
+                            <mat-icon svgIcon="terminal"></mat-icon>
                         </button>
 
                         <button mat-icon-button matTooltip="Refresh machine activity" (click)="refreshMachine(row)">
-                            <mat-icon>refresh</mat-icon>
+                            <mat-icon svgIcon="refresh"></mat-icon>
                         </button>
                     </td>
                 </ng-container>
@@ -235,7 +235,7 @@
                                     <div class="section-head-inline">
                                         <div class="section-title">Latest Traffic Preview</div>
                                         <button mat-stroked-button (click)="openLogs(row)">
-                                            <mat-icon>terminal</mat-icon>
+                                            <mat-icon svgIcon="terminal"></mat-icon>
                                             Open console
                                         </button>
                                     </div>
@@ -277,7 +277,7 @@
             </div>
 
             <button mat-icon-button (click)="closeDetails()" matTooltip="Close details">
-                <mat-icon>close</mat-icon>
+                <mat-icon svgIcon="close"></mat-icon>
             </button>
         </div>
 
@@ -368,7 +368,7 @@
                 <div class="section-head-inline">
                     <div class="section-title">Recent Traffic</div>
                     <button mat-stroked-button (click)="openLogs(selectedRow)">
-                        <mat-icon>terminal</mat-icon>
+                        <mat-icon svgIcon="terminal"></mat-icon>
                         Open terminal view
                     </button>
                 </div>
@@ -403,31 +403,31 @@
                 <div class="section-title">Operator Actions</div>
                 <div class="action-row stack-on-small">
                     <button mat-stroked-button (click)="refreshMachine(selectedRow)">
-                        <mat-icon>refresh</mat-icon>
+                        <mat-icon svgIcon="refresh"></mat-icon>
                         Refresh machine
                     </button>
                     <button mat-stroked-button (click)="startRuntime(selectedRow)">
-                        <mat-icon>play_arrow</mat-icon>
+                        <mat-icon svgIcon="play_arrow"></mat-icon>
                         Start runtime
                     </button>
                     <button mat-stroked-button (click)="stopRuntime(selectedRow)">
-                        <mat-icon>stop</mat-icon>
+                        <mat-icon svgIcon="stop"></mat-icon>
                         Stop runtime
                     </button>
                     <button mat-stroked-button (click)="restartRuntime(selectedRow)">
-                        <mat-icon>restart_alt</mat-icon>
+                        <mat-icon svgIcon="restart_alt"></mat-icon>
                         Restart runtime
                     </button>
                     <button mat-stroked-button (click)="startSimulation(selectedRow)">
-                        <mat-icon>smart_toy</mat-icon>
+                        <mat-icon svgIcon="smart_toy"></mat-icon>
                         Start simulation
                     </button>
                     <button mat-stroked-button (click)="stopSimulation(selectedRow)">
-                        <mat-icon>stop_circle</mat-icon>
+                        <mat-icon svgIcon="stop_circle"></mat-icon>
                         Stop simulation
                     </button>
                     <button mat-flat-button color="warn" (click)="clearLogs(selectedRow)">
-                        <mat-icon>delete_sweep</mat-icon>
+                        <mat-icon svgIcon="delete_sweep"></mat-icon>
                         Clear logs
                     </button>
                 </div>

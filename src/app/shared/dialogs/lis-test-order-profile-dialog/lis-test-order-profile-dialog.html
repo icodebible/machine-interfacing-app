@@ -33,7 +33,7 @@
       <article class="summary-card accent-warn" [class.status-enabled]="form.enabled === 1" [class.status-disabled]="form.enabled !== 1">
         <div class="summary-label">Profile status</div>
         <div class="summary-value status-summary-value">
-          <mat-icon>{{ form.enabled === 1 ? 'verified' : 'pause_circle' }}</mat-icon>
+          <mat-icon [svgIcon]="form.enabled === 1 ? 'verified' : 'pause_circle'"></mat-icon>
           {{ form.enabled === 1 ? 'Enabled' : 'Disabled' }}
         </div>
         <div class="summary-sub">{{ form.enabled === 1 ? 'Used during preview/rebuild' : 'Kept for reference only' }}</div>
@@ -95,13 +95,13 @@
           <div class="section-sub">Expected analyzer codes for this exact LIS test order. Mark required values that must appear before delivery.</div>
         </div>
         <button mat-stroked-button type="button" (click)="addParameter()">
-          <mat-icon>add</mat-icon>
+          <mat-icon svgIcon="add"></mat-icon>
           Add parameter
         </button>
       </div>
 
       <div class="profile-guidance">
-        <mat-icon>tips_and_updates</mat-icon>
+        <mat-icon svgIcon="tips_and_updates"></mat-icon>
         <span>
           The profile validates completeness only. Existing mappings still translate analyzer codes, coded answers, allocations, instrument, tested-by, duplicate, repeat, and correction behavior.
         </span>
@@ -170,7 +170,7 @@
 
             <div class="remove-cell">
               <button mat-icon-button color="warn" type="button" matTooltip="Remove parameter" (click)="removeParameter(i)">
-                <mat-icon>delete_outline</mat-icon>
+                <mat-icon svgIcon="delete_outline"></mat-icon>
               </button>
             </div>
           </div>
@@ -186,7 +186,7 @@
   <mat-dialog-actions class="dialog-actions" align="end">
     <button mat-stroked-button type="button" (click)="close()">Close</button>
     <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="!canSave()">
-      <mat-icon>save</mat-icon>
+      <mat-icon svgIcon="save"></mat-icon>
       Save profile
     </button>
   </mat-dialog-actions>

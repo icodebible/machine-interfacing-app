@@ -49,6 +49,22 @@ type QueuePreviewLike = {
     summary?: any;
 };
 
+type OutboundDeliveryActionResult = {
+    ok: true;
+    queueId: string;
+    targetId: string;
+    operation: 'SEND_NOW' | 'RETRY_WORKER';
+    deliveryStatus: 'DELIVERED';
+    httpStatus: number;
+    durationMs: number;
+    retryCount: number;
+    nextRetryAt: null;
+    lastError: null;
+    correlationId: string | null;
+    auditId: string;
+    message: string;
+};
+
 export class OutboundQueueService {
     private readonly preview = new TargetTransformPreviewService();
     private readonly secrets = new TargetSecretsService();
@@ -297,7 +313,7 @@ export class OutboundQueueService {
         return this.sendNow(queueId, 'RETRY_WORKER');
     }
 
-    async sendNow(queueId: string, operation: 'SEND_NOW' | 'RETRY_WORKER' = 'SEND_NOW') {
+    async sendNow(queueId: string, operation: 'SEND_NOW' | 'RETRY_WORKER' = 'SEND_NOW'): Promise<OutboundDeliveryActionResult> {
         const db = getDb();
         const actor = getCurrentActorStamp();
         const queueRow = db
@@ -305,6 +321,9 @@ export class OutboundQueueService {
             .get(queueId) as QueueRow | undefined;
 
         if (!queueRow) throw new Error('Queue item not found');
+        if (queueRow.delivery_status === 'SENDING') {
+            throw new Error('Delivery is already in progress for this queue item. Refresh the queue or open the detailed view for status.');
+        }
 
         const target = db
             .prepare(`SELECT * FROM targets WHERE id = ? LIMIT 1`)
@@ -324,10 +343,12 @@ export class OutboundQueueService {
 
         const secret = this.secrets.get(queueRow.target_id);
         const adapter = this.adapters.get(target);
+        const correlationId = randomUUID();
         const headers = {
             ...buildAuthHeaders(secret),
-            'X-Correlation-Id': randomUUID(),
+            'X-Correlation-Id': correlationId,
         };
+        const requestTimeoutMs = this.resolveRequestTimeoutMs(target);
 
         const startAt = Date.now();
         const startedAuditId = this.insertAudit({
@@ -337,7 +358,7 @@ export class OutboundQueueService {
             status: 'STARTED',
             attempt_no: Number(queueRow.retry_count ?? 0) + 1,
             http_status: null,
-            correlation_id: headers['X-Correlation-Id'] as string,
+            correlation_id: correlationId,
             duration_ms: null,
             error_message: null,
             actor,
@@ -362,12 +383,20 @@ export class OutboundQueueService {
                 updated_at: nowIso(),
             };
 
-            const result = await adapter.send({
-                target,
-                queueItem: sendableQueueItem,
-                headers,
-                allowInsecureTls: !!secret?.allowInsecureTls,
-            });
+            const result = await this.withTimeout(
+                adapter.send({
+                    target,
+                    queueItem: sendableQueueItem,
+                    headers,
+                    allowInsecureTls: !!secret?.allowInsecureTls,
+                    requestTimeoutMs,
+                }),
+                requestTimeoutMs + 5_000,
+                `Delivery request timed out after ${this.formatDurationMs(requestTimeoutMs)} while contacting ${target.name ?? target.type ?? 'target'}.`,
+            );
+
+            const durationMs = Date.now() - startAt;
+            const httpStatus = Number(result?.status ?? 200);
 
             db.prepare(
                 `
@@ -384,8 +413,8 @@ export class OutboundQueueService {
 
             this.finishAudit(startedAuditId, {
                 status: 'DELIVERED',
-                http_status: Number(result?.status ?? 200),
-                duration_ms: Date.now() - startAt,
+                http_status: httpStatus,
+                duration_ms: durationMs,
                 error_message: null,
             });
             auditService.record({
@@ -396,14 +425,30 @@ export class OutboundQueueService {
                 entityType: 'outbound_queue',
                 entityId: queueRow.id,
                 summary: `Outbound delivery ${operation} succeeded`,
-                details: { targetId: queueRow.target_id, httpStatus: Number(result?.status ?? 200), durationMs: Date.now() - startAt },
+                details: { targetId: queueRow.target_id, httpStatus, durationMs, correlationId, requestTimeoutMs },
                 actor,
             });
 
-            return true;
+            return {
+                ok: true,
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                operation,
+                deliveryStatus: 'DELIVERED',
+                httpStatus,
+                durationMs,
+                retryCount: Number(queueRow.retry_count ?? 0),
+                nextRetryAt: null,
+                lastError: null,
+                correlationId,
+                auditId: startedAuditId,
+                message: `Delivery completed successfully${httpStatus ? ` (HTTP ${httpStatus})` : ''}.`,
+            };
         } catch (error: any) {
+            const durationMs = Date.now() - startAt;
             const nextRetryCount = Number(queueRow.retry_count ?? 0) + 1;
             const nextRetryAt = this.computeNextRetryAt(target, nextRetryCount);
+            const errorMessage = this.normalizeDeliveryError(error);
 
             db.prepare(
                 `
@@ -420,7 +465,7 @@ export class OutboundQueueService {
             ).run(
                 nextRetryCount,
                 nextRetryAt,
-                error?.message ?? 'Delivery failed',
+                errorMessage,
                 nowIso(),
                 actor.userId,
                 actor.username,
@@ -429,9 +474,9 @@ export class OutboundQueueService {
 
             this.finishAudit(startedAuditId, {
                 status: 'FAILED',
-                http_status: null,
-                duration_ms: Date.now() - startAt,
-                error_message: error?.message ?? 'Delivery failed',
+                http_status: Number.isFinite(Number(error?.status)) ? Number(error.status) : null,
+                duration_ms: durationMs,
+                error_message: errorMessage,
             });
             auditService.record({
                 source: 'OUTBOUND',
@@ -442,12 +487,43 @@ export class OutboundQueueService {
                 entityType: 'outbound_queue',
                 entityId: queueRow.id,
                 summary: `Outbound delivery ${operation} failed`,
-                details: { targetId: queueRow.target_id, error: error?.message ?? 'Delivery failed', durationMs: Date.now() - startAt },
+                details: { targetId: queueRow.target_id, error: errorMessage, durationMs, correlationId, nextRetryAt, requestTimeoutMs },
                 actor,
             });
 
-            throw error;
+            throw new Error(errorMessage);
         }
+    }
+
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+        let timeout: NodeJS.Timeout | null = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((_resolve, reject) => {
+                    timeout = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timeout) clearTimeout(timeout);
+        }
+    }
+
+    private resolveRequestTimeoutMs(target: any): number {
+        const raw = Number(target?.request_timeout_ms ?? 15_000);
+        if (!Number.isFinite(raw) || raw <= 0) return 15_000;
+        return Math.min(Math.max(raw, 1_000), 300_000);
+    }
+
+    private formatDurationMs(ms: number): string {
+        if (ms < 1000) return `${ms}ms`;
+        const seconds = Math.round(ms / 1000);
+        return `${seconds}s`;
+    }
+
+    private normalizeDeliveryError(error: any): string {
+        const message = String(error?.message ?? error ?? 'Delivery failed').trim();
+        return message || 'Delivery failed';
     }
 
     private validatePreviewForDelivery(preview: QueuePreviewLike): DeliveryValidationResult {

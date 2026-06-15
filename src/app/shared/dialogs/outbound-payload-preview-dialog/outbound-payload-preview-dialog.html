@@ -23,7 +23,7 @@
   <mat-dialog-content class="dialog-content">
     @if (workingMessage()) {
     <div class="working-note">
-      <mat-icon>hourglass_top</mat-icon>
+      <mat-icon svgIcon="hourglass_top"></mat-icon>
       {{ workingMessage() }}
     </div>
     }
@@ -65,7 +65,7 @@
       <div class="message-list">
         @for (message of messageList(); track $index) {
         <div class="message-row" [class.bad]="message.kind === 'bad'" [class.warn]="message.kind === 'warn'" [class.info]="message.kind === 'info'">
-          <mat-icon>{{ message.kind === 'bad' ? 'error' : message.kind === 'warn' ? 'warning' : 'info' }}</mat-icon>
+          <mat-icon [svgIcon]="message.kind === 'bad' ? 'error' : message.kind === 'warn' ? 'warning' : 'info'"></mat-icon>
           <span>{{ message.text }}</span>
         </div>
         }
@@ -153,7 +153,7 @@
         </div>
 
         <button mat-stroked-button (click)="copyPayload()" [disabled]="loading() || actionLoading()">
-          <mat-icon>content_copy</mat-icon>
+          <mat-icon svgIcon="content_copy"></mat-icon>
           Copy payload
         </button>
       </div>
@@ -179,12 +179,12 @@
     <button mat-stroked-button (click)="close()">Close</button>
 
     <button mat-stroked-button (click)="rebuildPayload()" [disabled]="!canRebuild()" matTooltip="Regenerate the payload using latest mappings">
-      <mat-icon>restart_alt</mat-icon>
+      <mat-icon svgIcon="restart_alt"></mat-icon>
       Rebuild payload
     </button>
 
     <button mat-flat-button color="primary" (click)="sendOrRetry()" [disabled]="!canSend()" matTooltip="Send the latest valid queued payload to LIS">
-      <mat-icon>{{ currentStatus() === 'FAILED' ? 'refresh' : 'send' }}</mat-icon>
+      <mat-icon [svgIcon]="currentStatus() === 'FAILED' ? 'refresh' : 'send'"></mat-icon>
       {{ actionLabel() }}
     </button>
   </mat-dialog-actions>
@@ -209,7 +209,7 @@
   <section class="dialog-content">
     @if (error()) {
       <div class="alert bad">
-        <mat-icon>error</mat-icon>
+        <mat-icon svgIcon="error"></mat-icon>
         <span>{{ error() }}</span>
       </div>
     }
@@ -259,7 +259,7 @@
             <div class="list-block delivery-list">
               @for (message of deliveryValidationMessages(); track message) {
                 <div class="alert" [ngClass]="deliveryValidationClass()">
-                  <mat-icon>{{ deliveryValidationClass() === 'bad' ? 'error' : deliveryValidationClass() === 'warn' ? 'warning' : 'check_circle' }}</mat-icon>
+                  <mat-icon [svgIcon]="deliveryValidationClass() === 'bad' ? 'error' : deliveryValidationClass() === 'warn' ? 'warning' : 'check_circle'"></mat-icon>
                   <span>{{ message }}</span>
                 </div>
               }
@@ -271,7 +271,7 @@
         @if (warnings().length) {
           <div class="list-block">
             @for (warning of warnings(); track warning) {
-              <div class="alert warn"><mat-icon>warning</mat-icon><span>{{ warning }}</span></div>
+              <div class="alert warn"><mat-icon svgIcon="warning"></mat-icon><span>{{ warning }}</span></div>
             }
           </div>
         } @else {
@@ -282,7 +282,7 @@
         @if (errors().length) {
           <div class="list-block">
             @for (err of errors(); track err) {
-              <div class="alert bad"><mat-icon>error</mat-icon><span>{{ err }}</span></div>
+              <div class="alert bad"><mat-icon svgIcon="error"></mat-icon><span>{{ err }}</span></div>
             }
           </div>
         } @else {
@@ -301,15 +301,15 @@
   <footer class="dialog-actions">
     <button mat-button type="button" (click)="close(true)">Close</button>
     <button mat-stroked-button type="button" (click)="copyPayload()">
-      <mat-icon>content_copy</mat-icon>
+      <mat-icon svgIcon="content_copy"></mat-icon>
       Copy payload
     </button>
     <button mat-stroked-button type="button" (click)="loadPreview()" [disabled]="loading() || rebuilding()">
-      <mat-icon>refresh</mat-icon>
+      <mat-icon svgIcon="refresh"></mat-icon>
       Refresh preview
     </button>
     <button mat-flat-button color="primary" type="button" (click)="rebuildPayload()" [disabled]="loading() || rebuilding()">
-      <mat-icon>sync</mat-icon>
+      <mat-icon svgIcon="sync"></mat-icon>
       Rebuild payload
     </button>
   </footer>

@@ -40,7 +40,7 @@
     <div class="settings-page">
       <div class="page-head">
         <div class="page-head__icon">
-          <mat-icon>shield_lock</mat-icon>
+          <mat-icon svgIcon="shield_lock"></mat-icon>
         </div>
 
         <div class="page-head__copy">
@@ -60,28 +60,28 @@
         </div>
 
         <div class="page-head__badge" [class.warn]="isForced()">
-          <mat-icon>{{ isForced() ? 'warning' : 'verified_user' }}</mat-icon>
+          <mat-icon [svgIcon]="isForced() ? 'warning' : 'verified_user'"></mat-icon>
           <span>{{ isForced() ? 'Action required' : 'Secure session' }}</span>
         </div>
       </div>
 
       @if (error()) {
         <div class="banner banner--error" role="alert">
-          <mat-icon>error</mat-icon>
+          <mat-icon svgIcon="error"></mat-icon>
           <span>{{ error() }}</span>
         </div>
       }
 
       @if (success()) {
         <div class="banner banner--success" role="status">
-          <mat-icon>check_circle</mat-icon>
+          <mat-icon svgIcon="check_circle"></mat-icon>
           <span>{{ success() }}</span>
         </div>
       }
 
       @if (capsLockOn()) {
         <div class="banner banner--warn">
-          <mat-icon>keyboard_capslock</mat-icon>
+          <mat-icon svgIcon="keyboard_capslock"></mat-icon>
           <span>Caps Lock is on.</span>
         </div>
       }
@@ -111,7 +111,7 @@
                 required
               />
               <button mat-icon-button matSuffix type="button" (click)="showNew.set(!showNew())">
-                <mat-icon>{{ showNew() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                <mat-icon [svgIcon]="showNew() ? 'visibility_off' : 'visibility'"></mat-icon>
               </button>
               <mat-hint>Minimum 8 characters. 12+ is recommended.</mat-hint>
             </mat-form-field>
@@ -147,7 +147,7 @@
                 type="button"
                 (click)="showConfirm.set(!showConfirm())"
               >
-                <mat-icon>{{ showConfirm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                <mat-icon [svgIcon]="showConfirm() ? 'visibility_off' : 'visibility'"></mat-icon>
               </button>
             </mat-form-field>
 
@@ -183,7 +183,7 @@
           <div class="guidance-list">
             @for (item of guidance; track item) {
               <div class="guidance-item">
-                <mat-icon>info</mat-icon>
+                <mat-icon svgIcon="info"></mat-icon>
                 <span>{{ item }}</span>
               </div>
             }

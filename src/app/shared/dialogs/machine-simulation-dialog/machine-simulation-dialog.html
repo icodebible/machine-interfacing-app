@@ -9,7 +9,7 @@
       </p>
     </div>
     <button mat-icon-button type="button" (click)="close()" aria-label="Close">
-      <mat-icon>close</mat-icon>
+      <mat-icon svgIcon="close"></mat-icon>
     </button>
   </header>
 
@@ -26,7 +26,7 @@
             <div class="micro-copy">Reusable dummy messages per test order, protocol, and message type.</div>
           </div>
           <button mat-icon-button type="button" (click)="newUseCase()" matTooltip="New use case">
-            <mat-icon>add</mat-icon>
+            <mat-icon svgIcon="add"></mat-icon>
           </button>
         </div>
 
@@ -59,7 +59,7 @@
                     <div class="section-sub">{{ useCase.description || 'Run this use case through the live parser and normalization pipeline.' }}</div>
                   </div>
                   <button mat-flat-button color="primary" type="button" (click)="runSelected()" [disabled]="running()">
-                    <mat-icon>play_arrow</mat-icon>
+                    <mat-icon svgIcon="play_arrow"></mat-icon>
                     Run simulation
                   </button>
                 </div>
@@ -82,7 +82,7 @@
 
                 <mat-form-field appearance="outline" class="full">
                   <mat-label>Run variables / overrides</mat-label>
-                  <textarea matInput rows="8" [ngModel]="runVariablesText()" (ngModelChange)="runVariablesText.set($event)" placeholder='{ "sampleId": "NPHL/22/0000027" }'></textarea>
+                  <textarea matInput rows="8" [ngModel]="runVariablesText()" (ngModelChange)="runVariablesText.set($event)" placeholder='{ "sampleId": "NPHL/22/0000099" }'></textarea>
                   <mat-hint>These values replace placeholders like {{'{{sampleId}}'}} inside the saved message.</mat-hint>
                 </mat-form-field>
 
@@ -172,11 +172,11 @@
               </div>
               <div class="editor-actions">
                 <button mat-stroked-button type="button" color="warn" (click)="deleteUseCase()" [disabled]="!selectedUseCase()">
-                  <mat-icon>delete</mat-icon>
+                  <mat-icon svgIcon="delete"></mat-icon>
                   Delete
                 </button>
                 <button mat-flat-button color="primary" type="button" (click)="saveUseCase()" [disabled]="saving()">
-                  <mat-icon>save</mat-icon>
+                  <mat-icon svgIcon="save"></mat-icon>
                   Save use case
                 </button>
               </div>

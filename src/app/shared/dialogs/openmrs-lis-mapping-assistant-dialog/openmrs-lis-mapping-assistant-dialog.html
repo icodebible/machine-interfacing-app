@@ -9,7 +9,7 @@
     </div>
 
     <button mat-stroked-button type="button" (click)="close()">
-      <mat-icon>close</mat-icon>
+      <mat-icon svgIcon="close"></mat-icon>
       Close
     </button>
   </div>
@@ -33,7 +33,7 @@
           matInput
           [ngModel]="sampleId()"
           (ngModelChange)="sampleId.set($event)"
-          placeholder="NPHL/22/0000027"
+          placeholder="NPHL/22/0000099"
         />
       </mat-form-field>
 
@@ -45,14 +45,14 @@
         (click)="discover()"
         [disabled]="metadataLoading() || !selectedTargetId()"
       >
-        <mat-icon>cloud_sync</mat-icon>
+        <mat-icon svgIcon="cloud_sync"></mat-icon>
         {{ metadataLoading() ? 'Fetching...' : 'Fetch metadata' }}
       </button>
     </div>
 
     @if (selectedTarget()) {
       <div class="target-note">
-        <mat-icon>dns</mat-icon>
+        <mat-icon svgIcon="dns"></mat-icon>
         <div>
           <strong>{{ selectedTarget()?.name }}</strong>
           <span>{{ selectedTarget()?.base_url }}</span>
@@ -95,7 +95,7 @@
     @if (metadata()?.warnings?.length) {
       <div class="warning-list">
         @for (warning of metadata()?.warnings; track warning) {
-          <div><mat-icon>warning</mat-icon>{{ warning }}</div>
+          <div><mat-icon svgIcon="warning"></mat-icon>{{ warning }}</div>
         }
       </div>
     }
@@ -129,7 +129,7 @@
                 (click)="stopUserSearchPanelEvent($event)"
                 (keydown)="stopUserSearchPanelEvent($event)"
               >
-                <mat-icon>search</mat-icon>
+                <mat-icon svgIcon="search"></mat-icon>
                 <input
                   matInput
                   type="text"
@@ -146,7 +146,7 @@
                     aria-label="Clear user search"
                     (click)="clearUserSearch($event)"
                   >
-                    <mat-icon>close</mat-icon>
+                    <mat-icon svgIcon="close"></mat-icon>
                   </button>
                 }
               </div>
@@ -183,7 +183,7 @@
 
       @if (selectedTestedByUser()) {
         <div class="selected-user-note">
-          <mat-icon>person_check</mat-icon>
+          <mat-icon svgIcon="person_check"></mat-icon>
           Tested-by will be saved as
           <strong>{{ selectedTestedByUser()?.display }}</strong>
           <span class="mono">{{ selectedTestedByUser()?.uuid }}</span>
@@ -293,7 +293,7 @@
 
                 @if (draft.answerOptions.length) {
                   <button mat-stroked-button type="button" (click)="addAnswer(i)">
-                    <mat-icon>add</mat-icon>
+                    <mat-icon svgIcon="add"></mat-icon>
                     Add value
                   </button>
                 }
@@ -313,7 +313,7 @@
                         />
                       </mat-form-field>
 
-                      <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                      <mat-icon class="arrow-icon" svgIcon="arrow_forward"></mat-icon>
 
                       <mat-form-field appearance="outline">
                         <mat-label>OpenMRS coded answer</mat-label>
@@ -328,7 +328,7 @@
                       </mat-form-field>
 
                       <button mat-icon-button type="button" matTooltip="Remove this coded value" (click)="removeAnswer(i, ai)">
-                        <mat-icon>delete_outline</mat-icon>
+                        <mat-icon svgIcon="delete_outline"></mat-icon>
                       </button>
 
                       <div class="answer-explanation">
@@ -339,7 +339,7 @@
                 </div>
               } @else {
                 <div class="empty-answer-note">
-                  <mat-icon>info</mat-icon>
+                  <mat-icon svgIcon="info"></mat-icon>
                   No coded answers were detected for this parameter. Numeric and text values will be sent directly when datatype supports it.
                 </div>
               }
@@ -350,7 +350,7 @@
     </section>
   } @else {
     <div class="empty-state">
-      <mat-icon>hub</mat-icon>
+      <mat-icon svgIcon="hub"></mat-icon>
       <div>
         <strong>Start by fetching OpenMRS LIS metadata.</strong>
         <span>Select the LIS/OpenMRS target and sample label so the assistant can discover allocations, parameters, instruments, coded answers, and tested-by users.</span>
@@ -369,7 +369,7 @@
       (click)="seedMappings()"
       [disabled]="seeding() || !metadata() || selectedParameters().length === 0"
     >
-      <mat-icon>playlist_add_check</mat-icon>
+      <mat-icon svgIcon="playlist_add_check"></mat-icon>
       {{ seeding() ? 'Creating mappings...' : 'Create/update LIS mappings' }}
     </button>
   </div>
@@ -387,7 +387,7 @@
     </div>
 
     <button mat-stroked-button type="button" (click)="close()">
-      <mat-icon>close</mat-icon>
+      <mat-icon svgIcon="close"></mat-icon>
       Close
     </button>
   </div>
@@ -411,7 +411,7 @@
           matInput
           [ngModel]="sampleId()"
           (ngModelChange)="sampleId.set($event)"
-          placeholder="NPHL/22/0000027"
+          placeholder="NPHL/22/0000099"
         />
       </mat-form-field>
 
@@ -423,14 +423,14 @@
         (click)="discover()"
         [disabled]="metadataLoading() || !selectedTargetId()"
       >
-        <mat-icon>cloud_sync</mat-icon>
+        <mat-icon svgIcon="cloud_sync"></mat-icon>
         {{ metadataLoading() ? 'Fetching...' : 'Fetch metadata' }}
       </button>
     </div>
 
     @if (selectedTarget()) {
       <div class="target-note">
-        <mat-icon>dns</mat-icon>
+        <mat-icon svgIcon="dns"></mat-icon>
         <div>
           <strong>{{ selectedTarget()?.name }}</strong>
           <span>{{ selectedTarget()?.base_url }}</span>
@@ -473,7 +473,7 @@
     @if (metadata()?.warnings?.length) {
       <div class="warning-list">
         @for (warning of metadata()?.warnings; track warning) {
-          <div><mat-icon>warning</mat-icon>{{ warning }}</div>
+          <div><mat-icon svgIcon="warning"></mat-icon>{{ warning }}</div>
         }
       </div>
     }
@@ -507,7 +507,7 @@
                 (click)="stopUserSearchPanelEvent($event)"
                 (keydown)="stopUserSearchPanelEvent($event)"
               >
-                <mat-icon>search</mat-icon>
+                <mat-icon svgIcon="search"></mat-icon>
                 <input
                   matInput
                   type="text"
@@ -524,7 +524,7 @@
                     aria-label="Clear user search"
                     (click)="clearUserSearch($event)"
                   >
-                    <mat-icon>close</mat-icon>
+                    <mat-icon svgIcon="close"></mat-icon>
                   </button>
                 }
               </div>
@@ -561,7 +561,7 @@
 
       @if (selectedTestedByUser()) {
         <div class="selected-user-note">
-          <mat-icon>person_check</mat-icon>
+          <mat-icon svgIcon="person_check"></mat-icon>
           Tested-by will be saved as
           <strong>{{ selectedTestedByUser()?.display }}</strong>
           <span class="mono">{{ selectedTestedByUser()?.uuid }}</span>
@@ -667,7 +667,7 @@
 
                 @if (draft.answerOptions.length) {
                   <button mat-stroked-button type="button" (click)="addAnswer(i)">
-                    <mat-icon>add</mat-icon>
+                    <mat-icon svgIcon="add"></mat-icon>
                     Add value
                   </button>
                 }
@@ -687,7 +687,7 @@
                         />
                       </mat-form-field>
 
-                      <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                      <mat-icon class="arrow-icon" svgIcon="arrow_forward"></mat-icon>
 
                       <mat-form-field appearance="outline">
                         <mat-label>OpenMRS coded answer</mat-label>
@@ -702,7 +702,7 @@
                       </mat-form-field>
 
                       <button mat-icon-button type="button" matTooltip="Remove this coded value" (click)="removeAnswer(i, ai)">
-                        <mat-icon>delete_outline</mat-icon>
+                        <mat-icon svgIcon="delete_outline"></mat-icon>
                       </button>
 
                       <div class="answer-explanation">
@@ -713,7 +713,7 @@
                 </div>
               } @else {
                 <div class="empty-answer-note">
-                  <mat-icon>info</mat-icon>
+                  <mat-icon svgIcon="info"></mat-icon>
                   No coded answers were detected for this parameter. Numeric and text values will be sent directly when datatype supports it.
                 </div>
               }
@@ -724,7 +724,7 @@
     </section>
   } @else {
     <div class="empty-state">
-      <mat-icon>hub</mat-icon>
+      <mat-icon svgIcon="hub"></mat-icon>
       <div>
         <strong>Start by fetching OpenMRS LIS metadata.</strong>
         <span>Select the LIS/OpenMRS target and sample label so the assistant can discover allocations, parameters, instruments, coded answers, and tested-by users.</span>
@@ -743,7 +743,7 @@
       (click)="seedMappings()"
       [disabled]="seeding() || !metadata() || selectedParameters().length === 0"
     >
-      <mat-icon>playlist_add_check</mat-icon>
+      <mat-icon svgIcon="playlist_add_check"></mat-icon>
       {{ seeding() ? 'Creating mappings...' : 'Create/update LIS mappings' }}
     </button>
   </div>
