@@ -29,6 +29,7 @@ on:
         options:
           - "false"
           - "true"
+
   push:
     branches:
       - "main"
@@ -43,13 +44,17 @@ jobs:
     name: Build ${{ matrix.name }} (${{ github.event_name == 'workflow_dispatch' && inputs.build_mode || 'auto' }})
     runs-on: ${{ matrix.os }}
 
-    # IMPORTANT:
-    # In a GitHub Actions `if:` field, the value is already treated as an expression.
-    # Do not wrap this block with `${{ ... }}`.
+    # GitHub Actions `if:` is already an expression context.
+    # Keep this without an outer `${{ ... }}` wrapper.
     if: >
       github.event_name == 'workflow_dispatch' ||
       startsWith(github.ref, 'refs/tags/v') ||
       contains(github.event.head_commit.message, '[release]')
+
+    env:
+      GYP_MSVS_VERSION: "2022"
+      npm_config_msvs_version: "2022"
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
     strategy:
       fail-fast: false
@@ -59,7 +64,8 @@ jobs:
             os: ubuntu-latest
             command: npx electron-builder --linux AppImage deb --x64
           - name: windows
-            os: windows-latest
+            # Pin Windows to the Visual Studio 2022 runner instead of the moving `windows-latest` label.
+            os: windows-2022
             command: npx electron-builder --win nsis --x64
           - name: macos
             os: macos-latest
@@ -103,6 +109,44 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libarchive-tools rpm
+
+      - name: Setup Windows MSBuild
+        if: >
+          runner.os == 'Windows' &&
+          (github.event_name != 'workflow_dispatch' ||
+          inputs.platform == 'all' ||
+          inputs.platform == matrix.name)
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Activate Windows MSVC toolchain
+        if: >
+          runner.os == 'Windows' &&
+          (github.event_name != 'workflow_dispatch' ||
+          inputs.platform == 'all' ||
+          inputs.platform == matrix.name)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Verify Windows native build tools
+        if: >
+          runner.os == 'Windows' &&
+          (github.event_name != 'workflow_dispatch' ||
+          inputs.platform == 'all' ||
+          inputs.platform == matrix.name)
+        shell: pwsh
+        run: |
+          Write-Host "Node version:"
+          node --version
+          Write-Host "npm version:"
+          npm --version
+          Write-Host "MSVC compiler:"
+          where.exe cl
+          Write-Host "MSBuild:"
+          where.exe msbuild
+          Write-Host "Python:"
+          where.exe python
+          python --version
 
       - name: Resolve build settings
         id: settings
@@ -174,7 +218,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           set -euo pipefail
           ${{ matrix.command }} --publish "${{ steps.settings.outputs.publish_mode }}"
