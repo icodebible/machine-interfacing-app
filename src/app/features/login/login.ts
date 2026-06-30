@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -36,7 +37,11 @@ export class Login {
   showPassword = false;
   capsLockOn = false;
 
-  readonly environmentLabel = 'Local secure workstation';
+  readonly deploymentBanner = environment.deploymentBanner;
+  readonly showDeploymentBanner = environment.deploymentBanner.enabled;
+  readonly environmentLabel = this.showDeploymentBanner
+    ? this.deploymentBanner.caption
+    : 'Local secure workstation';
 
   readonly highlights = [
     'Machine connectivity and simulation',

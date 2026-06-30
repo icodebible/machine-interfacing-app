@@ -24,36 +24,36 @@ export function buildAppMenu() {
             : []) as any),
 
         // ✅ Standard desktop editing (big UX win)
-        {
-            label: 'Edit',
-            submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
-                { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
-                { role: 'selectAll' },
-            ],
-        },
+        // {
+        //     label: 'Edit',
+        //     submenu: [
+        //         { role: 'undo' },
+        //         { role: 'redo' },
+        //         { type: 'separator' },
+        //         { role: 'cut' },
+        //         { role: 'copy' },
+        //         { role: 'paste' },
+        //         { role: 'selectAll' },
+        //     ],
+        // },
 
         // ✅ View controls (devtools only in dev)
-        {
-            label: 'View',
-            submenu: app.isPackaged
-                ? [{ role: 'reload' }, { role: 'togglefullscreen' }]
-                : [
-                    { role: 'reload' },
-                    { role: 'forcereload' },
-                    { role: 'toggledevtools' },
-                    { role: 'togglefullscreen' },
-                ],
-        },
+        // {
+        //     label: 'View',
+        //     submenu: app.isPackaged
+        //         ? [{ role: 'reload' }, { role: 'togglefullscreen' }]
+        //         : [
+        //             { role: 'reload' },
+        //             { role: 'forcereload' },
+        //             { role: 'toggledevtools' },
+        //             { role: 'togglefullscreen' },
+        //         ],
+        // },
 
-        {
-            label: 'File',
-            submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
-        },
+        // {
+        //     label: 'File',
+        //     submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
+        // },
 
         {
             label: 'Help',
@@ -62,12 +62,12 @@ export function buildAppMenu() {
                 ...(isMac ? [] : [{ label: 'About', click: () => showAboutDialog() }]),
                 ...(isMac ? [] : [{ type: 'separator' }]),
 
-                {
-                    label: 'Documentation',
-                    click: async () => {
-                        await shell.openExternal('https://github.com/<your-org>/<your-repo>');
-                    },
-                },
+                // {
+                //     label: 'Documentation',
+                //     click: async () => {
+                //         await shell.openExternal('https://github.com/<your-org>/<your-repo>');
+                //     },
+                // },
 
                 { type: 'separator' },
 

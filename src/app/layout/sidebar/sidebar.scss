@@ -456,7 +456,7 @@
   align-items: center;
   gap: 10px;
   margin-top: 10px;
-  padding: 10px 12px;
+  padding: 0px 0px;
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.04);
 }
@@ -488,5 +488,156 @@
 @media (max-width: 899px) {
   .sidebar {
     padding: 12px;
+  }
+}
+
+.demo-environment-card {
+  flex: 0 0 auto;
+  margin: 0 0 14px;
+  padding: 13px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(185, 28, 28, 0.24);
+  background:
+    linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(255, 241, 242, 0.94));
+  box-shadow:
+    0 14px 26px rgba(127, 29, 29, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  color: #7f1d1d;
+}
+
+.demo-environment-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.demo-environment-card__pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.16);
+}
+
+.demo-environment-card__message {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  line-height: 1.38;
+  font-weight: 750;
+  color: #991b1b;
+}
+
+/* Footer actual lift
+   The footer is a flex item after .sidebar__scroll. Adding bottom padding to
+   .sidebar alone does not visibly lift the footer. This margin-bottom reserves
+   real space below .footer-card, forcing the whole footer block upward while
+   preserving the existing order: Settings, Logout, Signed in as. */
+:host {
+  --sidebar-footer-lift: 22px;
+}
+
+.footer-card {
+  flex: 0 0 auto;
+  margin-top: 12px;
+  margin-bottom: var(--sidebar-footer-lift);
+  padding-top: 12px;
+}
+
+.sidebar__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Keep the signed-in section compact while preserving its current position. */
+.user-card {
+  margin-top: 8px;
+  padding: 8px 10px;
+  min-height: 42px;
+}
+
+.user-card__avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+.user-card__copy {
+  min-width: 0;
+}
+
+.user-card__label {
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+.user-card__name {
+  font-size: 0.84rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-height: 820px) {
+  :host {
+    --sidebar-footer-lift: 64px;
+  }
+
+  .brand-card {
+    margin-bottom: 10px;
+    padding: 12px;
+  }
+
+  .brand-ribbon {
+    margin: 10px 0 8px;
+  }
+
+  .demo-environment-card {
+    margin-bottom: 10px;
+    padding: 11px 12px;
+  }
+
+  .section + .section {
+    margin-top: 10px;
+  }
+
+  ::ng-deep .nav .mdc-list-item {
+    min-height: 42px !important;
+  }
+
+  .footer-card {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .settings,
+  .logout {
+    min-height: 38px;
+  }
+
+  .settings {
+    margin-bottom: 7px;
+  }
+}
+
+@media (max-height: 700px) {
+  :host {
+    --sidebar-footer-lift: 70px;
+  }
+
+  .brand-meta {
+    display: none;
+  }
+
+  .demo-environment-card__message {
+    display: none;
+  }
+
+  .demo-environment-card {
+    padding-block: 10px;
   }
 }

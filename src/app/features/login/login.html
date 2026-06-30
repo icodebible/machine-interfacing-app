@@ -2,6 +2,18 @@
   <section class="login-hero" aria-hidden="true">
     <div class="hero-mark">MI</div>
 
+
+    @if (showDeploymentBanner) {
+      <div
+        class="login-demo-badge login-demo-badge--hero"
+        role="note"
+        [attr.aria-label]="deploymentBanner.label + ': ' + deploymentBanner.message"
+      >
+        <span class="login-demo-badge__dot" aria-hidden="true"></span>
+        <span class="login-demo-badge__label">{{ deploymentBanner.label }}</span>
+      </div>
+    }
+
     <div class="hero-copy">
       <div class="hero-eyebrow">Machine Interfacing Platform</div>
       <h1>MOH | NPHL</h1>
@@ -29,6 +41,16 @@
 
   <section class="login-panel">
     <mat-card class="login-card">
+      @if (showDeploymentBanner) {
+        <div class="login-demo-alert" role="note">
+          <div class="login-demo-alert__header">
+            <span class="login-demo-alert__pulse" aria-hidden="true"></span>
+            <span>{{ deploymentBanner.label }}</span>
+          </div>
+          <div class="login-demo-alert__message">{{ deploymentBanner.message }}</div>
+        </div>
+      }
+
       <div class="login-card__head">
         <div class="brand-row">
           <div class="brand-row__mark">MI</div>
@@ -36,11 +58,6 @@
             <div class="brand-row__title">Welcome back</div>
             <div class="brand-row__subtitle">Sign in to continue</div>
           </div>
-        </div>
-
-        <div class="context-badge">
-          <span class="context-badge__dot"></span>
-          <span>{{ environmentLabel }}</span>
         </div>
       </div>
 

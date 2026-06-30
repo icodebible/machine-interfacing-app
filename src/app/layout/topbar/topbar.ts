@@ -10,6 +10,7 @@ import { filter } from 'rxjs/operators';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { PlatformApiService } from '../../core/platform/platform-api.service';
+import { environment } from '../../../environments/environment';
 
 type RouteMeta = {
   title: string;
@@ -38,6 +39,9 @@ export class Topbar {
   readonly roleSummary = signal('');
   readonly appVersion = signal('');
   readonly appMode = signal('');
+  readonly deploymentBanner = environment.deploymentBanner;
+  readonly showDeploymentBanner = environment.deploymentBanner.enabled;
+
 
   private readonly routeMeta: Record<string, RouteMeta> = {
     '/dashboard': {
@@ -262,4 +266,3 @@ export class Topbar {
     }
   }
 }
-

@@ -1,0 +1,9 @@
+@if (enabled) {
+<div class="environment-watermark" aria-hidden="true">
+    @for (_ of tiles; track $index) {
+    <div class="environment-watermark__tile">
+        <span>{{ watermarkText }}</span>
+    </div>
+    }
+</div>
+}

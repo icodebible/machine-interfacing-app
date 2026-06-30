@@ -1,0 +1,83 @@
+:host {
+    pointer-events: none;
+}
+
+.environment-watermark {
+    position: fixed;
+    inset: -16vh -14vw;
+    z-index: 2147483000;
+    pointer-events: none;
+    user-select: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(280px, 1fr));
+    grid-auto-rows: minmax(84px, auto);
+    gap: 68px 56px;
+    align-content: center;
+    justify-content: center;
+    overflow: hidden;
+    transform: rotate(-24deg);
+
+    /*
+   * Keep the overlay itself visually transparent.
+   * Opacity is applied to the text color only so the full page is not tinted.
+   */
+    opacity: 1;
+    mix-blend-mode: normal;
+}
+
+.environment-watermark__tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 280px;
+    min-height: 64px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.environment-watermark__tile span {
+    font-size: clamp(0.86rem, 1.1vw, 1.05rem);
+    font-weight: 950;
+    letter-spacing: 0.18em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+    color: rgba(153, 27, 27, 0.06);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1199px) {
+    .environment-watermark {
+        grid-template-columns: repeat(3, minmax(260px, 1fr));
+        gap: 62px 46px;
+    }
+
+    .environment-watermark__tile span {
+        color: rgba(153, 27, 27, 0.2);
+    }
+}
+
+@media (max-width: 759px) {
+    .environment-watermark {
+        inset: -18vh -32vw;
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
+        gap: 56px 36px;
+    }
+
+    .environment-watermark__tile {
+        min-width: 240px;
+    }
+
+    .environment-watermark__tile span {
+        color: rgba(153, 27, 27, 0.18);
+    }
+}
+
+@media print {
+    .environment-watermark__tile span {
+        color: rgba(153, 27, 27, 0.28);
+    }
+}

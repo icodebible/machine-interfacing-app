@@ -24,46 +24,46 @@ function buildAppMenu() {
             ]
             : []),
         // ✅ Standard desktop editing (big UX win)
-        {
-            label: 'Edit',
-            submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
-                { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
-                { role: 'selectAll' },
-            ],
-        },
+        // {
+        //     label: 'Edit',
+        //     submenu: [
+        //         { role: 'undo' },
+        //         { role: 'redo' },
+        //         { type: 'separator' },
+        //         { role: 'cut' },
+        //         { role: 'copy' },
+        //         { role: 'paste' },
+        //         { role: 'selectAll' },
+        //     ],
+        // },
         // ✅ View controls (devtools only in dev)
-        {
-            label: 'View',
-            submenu: electron_1.app.isPackaged
-                ? [{ role: 'reload' }, { role: 'togglefullscreen' }]
-                : [
-                    { role: 'reload' },
-                    { role: 'forcereload' },
-                    { role: 'toggledevtools' },
-                    { role: 'togglefullscreen' },
-                ],
-        },
-        {
-            label: 'File',
-            submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
-        },
+        // {
+        //     label: 'View',
+        //     submenu: app.isPackaged
+        //         ? [{ role: 'reload' }, { role: 'togglefullscreen' }]
+        //         : [
+        //             { role: 'reload' },
+        //             { role: 'forcereload' },
+        //             { role: 'toggledevtools' },
+        //             { role: 'togglefullscreen' },
+        //         ],
+        // },
+        // {
+        //     label: 'File',
+        //     submenu: [{ label: isMac ? 'Close' : 'Exit', role: isMac ? 'close' : 'quit' }],
+        // },
         {
             label: 'Help',
             submenu: [
                 // On macOS, About is usually in the app menu only
                 ...(isMac ? [] : [{ label: 'About', click: () => (0, about_window_1.showAboutDialog)() }]),
                 ...(isMac ? [] : [{ type: 'separator' }]),
-                {
-                    label: 'Documentation',
-                    click: async () => {
-                        await electron_1.shell.openExternal('https://github.com/<your-org>/<your-repo>');
-                    },
-                },
+                // {
+                //     label: 'Documentation',
+                //     click: async () => {
+                //         await shell.openExternal('https://github.com/<your-org>/<your-repo>');
+                //     },
+                // },
                 { type: 'separator' },
                 {
                     label: 'Check for updates…',

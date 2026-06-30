@@ -121,11 +121,11 @@ export class MachineFormDialog {
 
   connectionTypes: { value: ConnectionType; label: string; hint: string }[] = [
     { value: 'TCP', label: 'TCP/IP', hint: 'ASTM over TCP, RAW TCP, custom socket protocols' },
-    { value: 'HL7_MLLP', label: 'HL7 MLLP', hint: 'HL7 over TCP using MLLP framing' },
+    // { value: 'HL7_MLLP', label: 'HL7 MLLP', hint: 'HL7 over TCP using MLLP framing' },
     { value: 'SERIAL', label: 'Serial (RS232)', hint: 'COM/tty serial connection' },
     { value: 'FTP', label: 'FTP File Drop', hint: 'Poll remote FTP folder for result files' },
-    { value: 'SFTP', label: 'SFTP File Drop', hint: 'Poll remote SFTP folder for result files' },
-    { value: 'FILE_WATCHER', label: 'Folder Watcher', hint: 'Watch a local folder for new files' },
+    // { value: 'SFTP', label: 'SFTP File Drop', hint: 'Poll remote SFTP folder for result files' },
+    // { value: 'FILE_WATCHER', label: 'Folder Watcher', hint: 'Watch a local folder for new files' },
   ];
 
   protocols: { value: ProtocolType; label: string; hint: string }[] = [

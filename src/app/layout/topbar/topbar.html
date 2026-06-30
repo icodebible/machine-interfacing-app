@@ -28,6 +28,18 @@
   </div>
 
   <div class="topbar-shell__right">
+    @if (showDeploymentBanner) {
+      <div
+        class="environment-pill environment-pill--demo"
+        role="note"
+        [attr.aria-label]="deploymentBanner.label + ': ' + deploymentBanner.message"
+        [title]="deploymentBanner.message"
+      >
+        <span class="environment-pill__status" aria-hidden="true"></span>
+        <span class="environment-pill__label">{{ deploymentBanner.shortLabel }}</span>
+        <span class="environment-pill__caption">{{ deploymentBanner.caption }}</span>
+      </div>
+    }
     @if (appVersion()) {
       <div class="topbar-version" [title]="appMode() || 'Application version'">
         {{ appVersion() }}
@@ -67,6 +79,20 @@
   </div>
 
   <mat-divider></mat-divider>
+
+  @if (showDeploymentBanner) {
+    <div class="user-menu-panel__section user-menu-panel__section--environment">
+      <div class="environment-menu-note environment-menu-note--demo">
+        <div class="environment-menu-note__header">
+          <span class="environment-menu-note__mark" aria-hidden="true"></span>
+          <span>{{ deploymentBanner.label }}</span>
+        </div>
+        <div class="environment-menu-note__message">{{ deploymentBanner.message }}</div>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+  }
 
   <div class="user-menu-panel__section user-menu-panel__section--page">
     <div class="user-menu-panel__label">Current page</div>

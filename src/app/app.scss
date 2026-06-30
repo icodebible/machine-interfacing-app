@@ -12,3 +12,9 @@
 .html, body {
   background: #fff !important;
 }
+
+
+:host {
+  display: block;
+  min-height: 100dvh;
+}
