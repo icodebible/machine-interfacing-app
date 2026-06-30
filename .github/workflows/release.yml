@@ -64,7 +64,7 @@ jobs:
             os: ubuntu-latest
             command: npx electron-builder --linux AppImage deb --x64
           - name: windows
-            # Pin Windows to the Visual Studio 2022 runner instead of the moving `windows-latest` label.
+            # Pin Windows to Visual Studio 2022 runner for native Electron module rebuilds.
             os: windows-2022
             command: npx electron-builder --win nsis --x64
           - name: macos
@@ -87,14 +87,14 @@ jobs:
           github.event_name != 'workflow_dispatch' ||
           inputs.platform == 'all' ||
           inputs.platform == matrix.name
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Use Node.js 22.12
         if: >
           github.event_name != 'workflow_dispatch' ||
           inputs.platform == 'all' ||
           inputs.platform == matrix.name
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22.12.0"
           cache: "npm"
@@ -110,23 +110,68 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libarchive-tools rpm
 
-      - name: Setup Windows MSBuild
+      - name: Setup Windows MSVC environment
         if: >
           runner.os == 'Windows' &&
           (github.event_name != 'workflow_dispatch' ||
           inputs.platform == 'all' ||
           inputs.platform == matrix.name)
-        uses: microsoft/setup-msbuild@v2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-      - name: Activate Windows MSVC toolchain
-        if: >
-          runner.os == 'Windows' &&
-          (github.event_name != 'workflow_dispatch' ||
-          inputs.platform == 'all' ||
-          inputs.platform == matrix.name)
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found on this Windows runner."
+          }
+
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsPath) {
+            throw "Visual Studio 2022 with C++ build tools was not found."
+          }
+
+          $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
+          if (-not (Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat was not found at $vsDevCmd."
+          }
+
+          Write-Host "Using Visual Studio environment from: $vsDevCmd"
+
+          $envLines = cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && set"
+
+          $persistEnvNames = @(
+            'INCLUDE',
+            'LIB',
+            'LIBPATH',
+            'UCRTVersion',
+            'UniversalCRTSdkDir',
+            'VCINSTALLDIR',
+            'VCToolsInstallDir',
+            'VCToolsVersion',
+            'VSINSTALLDIR',
+            'WindowsLibPath',
+            'WindowsSDKLibVersion',
+            'WindowsSDKVersion',
+            'WindowsSdkDir'
+          )
+
+          foreach ($line in $envLines) {
+            if ($line -match '^Path=(.*)$') {
+              $matches[1].Split(';') |
+                Where-Object { $_ -and (Test-Path $_) } |
+                ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
+            } elseif ($line -match '^([^=]+)=(.*)$') {
+              $name = $matches[1]
+              $value = $matches[2]
+
+              if ($persistEnvNames -contains $name) {
+                Add-Content -Path $env:GITHUB_ENV -Value "$name=$value"
+              }
+            }
+          }
+
+          Add-Content -Path $env:GITHUB_ENV -Value "GYP_MSVS_VERSION=2022"
+          Add-Content -Path $env:GITHUB_ENV -Value "npm_config_msvs_version=2022"
 
       - name: Verify Windows native build tools
         if: >
@@ -142,6 +187,7 @@ jobs:
           npm --version
           Write-Host "MSVC compiler:"
           where.exe cl
+          cl 2>&1 | Select-Object -First 1
           Write-Host "MSBuild:"
           where.exe msbuild
           Write-Host "Python:"
@@ -234,7 +280,7 @@ jobs:
           github.event_name != 'workflow_dispatch' ||
           inputs.platform == 'all' ||
           inputs.platform == matrix.name
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: machine-interfacing-app-${{ matrix.name }}-${{ steps.settings.outputs.build_mode }}
           path: |
