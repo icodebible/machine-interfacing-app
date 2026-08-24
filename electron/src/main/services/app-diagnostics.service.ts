@@ -1,7 +1,8 @@
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { getBackupDir, getDb, getDbPath, getAppDataDir } from '../db/db';
+import { getBackupDir, getDb, getDbPath, getAppDataDir, getDbStorageInfo } from '../db/db';
+import { getMissingRequiredTables, getSchemaTables, REQUIRED_SCHEMA_TABLES } from '../db/migrations';
 
 const nowIso = () => new Date().toISOString();
 
@@ -81,6 +82,22 @@ function latestBackup(backupsPath: string) {
     }
 }
 
+function safeSchemaTables() {
+    try {
+        return getSchemaTables(getDb());
+    } catch {
+        return [] as Array<{ name: string }>;
+    }
+}
+
+function safeMissingRequiredTables() {
+    try {
+        return getMissingRequiredTables(getDb());
+    } catch {
+        return [...REQUIRED_SCHEMA_TABLES];
+    }
+}
+
 export class AppDiagnosticsService {
     getDiagnostics() {
         const pkg = findPackageJson() ?? {};
@@ -132,6 +149,11 @@ export class AppDiagnosticsService {
                 walSizeBytes: safeStatSize(`${dbPath}-wal`),
                 shmSizeBytes: safeStatSize(`${dbPath}-shm`),
                 latestBackup: latest,
+                storage: getDbStorageInfo(),
+                tableCount: safeSchemaTables().length,
+                tableNames: safeSchemaTables().map((row) => row.name),
+                requiredTableCount: REQUIRED_SCHEMA_TABLES.length,
+                missingRequiredTables: safeMissingRequiredTables(),
             },
             package: {
                 appId: buildConfig.appId ?? null,

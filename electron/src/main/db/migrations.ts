@@ -1,9 +1,59 @@
-import { getDb } from './db';
+import { getDb, getDbPath } from './db';
+import { logger } from '../../logging/logger';
+
+export const REQUIRED_SCHEMA_TABLES = [
+    'meta',
+    'users',
+    'roles',
+    'role_authorities',
+    'user_roles',
+    'labs',
+    'machines',
+    'targets',
+    'logs',
+    'audit_events',
+    'machine_traffic_logs',
+    'machine_runtime_sessions',
+    'approval_policies',
+    'approval_policy_steps',
+    'approval_policy_targets',
+    'routing_rules',
+    'result_workflow_status',
+    'result_approvals',
+    'outbound_queue',
+    'target_secrets',
+    'delivery_audit_logs',
+    'target_mappings',
+    'target_mapping_value_translations',
+    'lis_test_order_profiles',
+    'lis_test_order_profile_parameters',
+] as const;
+
+let migrationPromise: Promise<void> | null = null;
 
 export async function runMigrations() {
-    const db = getDb();
+    if (migrationPromise) return migrationPromise;
 
-    db.exec(`
+    migrationPromise = Promise.resolve()
+        .then(() => runMigrationsUnsafe())
+        .catch((error) => {
+            migrationPromise = null;
+            throw error;
+        });
+
+    return migrationPromise;
+}
+
+function runMigrationsUnsafe() {
+    const db = getDb();
+    const startedAt = Date.now();
+
+    logger.info('[DB] Running database migrations', {
+        databasePath: getDbPath(),
+    });
+
+    try {
+        db.exec(`
         PRAGMA foreign_keys = ON;
 
         CREATE TABLE IF NOT EXISTS meta (
@@ -566,6 +616,54 @@ export async function runMigrations() {
     ensureColumn(db, 'audit_events', 'correlation_id', 'TEXT');
     ensureColumn(db, 'audit_events', 'actor_user_id', 'TEXT');
     ensureColumn(db, 'audit_events', 'actor_username', 'TEXT');
+        db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run(
+            'schema_version',
+            '1',
+        );
+        db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run(
+            'schema_migrated_at',
+            new Date().toISOString(),
+        );
+
+        assertRequiredTables(db);
+
+        const tables = getSchemaTables(db);
+
+        logger.info('[DB] Database migrations completed', {
+            databasePath: getDbPath(),
+            tableCount: tables.length,
+            requiredTableCount: REQUIRED_SCHEMA_TABLES.length,
+            durationMs: Date.now() - startedAt,
+        });
+    } catch (error) {
+        logger.error('[DB] Database migrations failed', {
+            databasePath: getDbPath(),
+            error,
+        });
+        throw error;
+    }
+}
+
+export function getSchemaTables(db = getDb()) {
+    return db
+        .prepare(
+            `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+        )
+        .all() as Array<{ name: string }>;
+}
+
+export function getMissingRequiredTables(db = getDb()) {
+    const existing = new Set(getSchemaTables(db).map((row) => row.name));
+    return REQUIRED_SCHEMA_TABLES.filter((table) => !existing.has(table));
+}
+
+export function assertRequiredTables(db = getDb()) {
+    const missing = getMissingRequiredTables(db);
+    if (missing.length > 0) {
+        throw new Error(
+            `Database schema is incomplete. Missing required tables: ${missing.join(', ')}. Database: ${getDbPath()}`,
+        );
+    }
 }
 
 function backfillApprovalPolicyTargets(db: ReturnType<typeof getDb>) {

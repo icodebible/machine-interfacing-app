@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/db';
+import { assertRequiredTables, runMigrations } from '../db/migrations';
 
 // Use argon2 if installed, otherwise fallback to bcryptjs
 let argon2: any = null;
@@ -88,18 +89,27 @@ function nowIso() {
 // TODO: END: DEPRECATED APPROACH
 
 export async function hashPasswordValue(pw: string) {
+    if (!bcrypt?.hash) {
+        throw new Error('Password hashing is unavailable because bcryptjs was not loaded.');
+    }
     return bcrypt.hash(pw, 10);
 }
 
 async function verifyPassword(hash: string, pw: string) {
+    if (!bcrypt?.compare) {
+        throw new Error('Password verification is unavailable because bcryptjs was not loaded.');
+    }
     return bcrypt.compare(pw, hash);
 }
 
 export class AuthService {
     async ensureBootstrapAdmin() {
+        await runMigrations();
+        assertRequiredTables();
+
         const db = getDb();
 
-        // Always make sure schema exists first (you already do migrations)
+        // Always make sure schema exists first, even in packaged Windows first-run.
         const getRole: any = db.prepare(`SELECT id FROM roles WHERE name = ?`);
         const getUser: any = db.prepare(`SELECT id FROM users WHERE username = ?`);
 
@@ -153,6 +163,9 @@ export class AuthService {
     }
 
     async login(username: string, password: string): Promise<{ user: SessionUser }> {
+        await runMigrations();
+        assertRequiredTables();
+
         const db = getDb();
         const u: any = db
             .prepare(
@@ -207,6 +220,12 @@ export class AuthService {
     }
 
     currentUser(): SessionUser | null {
+        try {
+            assertRequiredTables();
+        } catch {
+            return null;
+        }
+
         const db = getDb();
         const row = db
             .prepare(`SELECT value FROM meta WHERE key = ? LIMIT 1`)
@@ -220,12 +239,18 @@ export class AuthService {
     }
 
     async logout() {
+        await runMigrations();
+        assertRequiredTables();
+
         const db = getDb();
         db.prepare(`DELETE FROM meta WHERE key = ?`).run('current_session_user');
         return true;
     }
 
     async changePassword(userId: string, newPassword: string) {
+        await runMigrations();
+        assertRequiredTables();
+
         const db = getDb();
         const hash = await hashPasswordValue(newPassword);
 
