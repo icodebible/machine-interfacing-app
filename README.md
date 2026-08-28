@@ -827,10 +827,9 @@ feature/<short-description>
 fix/<short-description>
 release/<version>
 ```
-
 ---
 
-## License
+## License 
 
 Private / Proprietary.
 
