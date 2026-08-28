@@ -829,7 +829,7 @@ release/<version>
 ```
 ---
 
-## License 
+## License
 
 Private / Proprietary.
 
