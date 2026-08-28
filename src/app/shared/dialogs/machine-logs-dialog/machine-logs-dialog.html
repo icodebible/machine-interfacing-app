@@ -1,65 +1,113 @@
-<h2 mat-dialog-title class="dlg-header">
-    <div class="dlg-header__text">
-        <div class="dlg-header__title">Machine Logs Console</div>
-        <div class="dlg-header__subtitle">
-            {{ data.machine?.name }} · Terminal-style traffic and runtime history for operational review.
+<div class="dlg-header">
+    <div class="dlg-header__top">
+        <div class="dlg-header__text">
+            <h2 mat-dialog-title class="dlg-header__title">Machine Logs Console</h2>
+            <div class="dlg-header__subtitle" aria-label="Machine and connection context">
+                <span class="dlg-header__machine-name">{{ data.machine?.name || 'Machine' }}</span>
+                <span class="dlg-header__separator" aria-hidden="true">·</span>
+                <span>{{ data.machine?.protocol || '—' }} over {{ data.machine?.connection_type || '—' }}</span>
+                <span class="dlg-header__separator" aria-hidden="true">·</span>
+                <span>Machine ID</span>
+                <span class="mono dlg-header__machine-id" [title]="data.machine?.id || '—'">{{ data.machine?.id || '—' }}</span>
+                <span class="dlg-header__separator" aria-hidden="true">·</span>
+                <span>Terminal-style traffic and runtime history for operational review.</span>
+            </div>
+        </div>
+
+        <div class="dlg-header__meta">
+            @if (lastRefreshed()) {
+            <span class="status-badge status-badge--neutral">
+                Refreshed {{ formatDateTime(lastRefreshed()) }}
+            </span>
+            }
+
+            @if (hostLogInfo()) {
+            <span class="status-badge status-badge--success">Host text logging enabled</span>
+            } @else if (hostLogLoading()) {
+            <span class="status-badge status-badge--neutral">Resolving host log path</span>
+            } @else {
+            <span class="status-badge status-badge--warning">Host text log unavailable</span>
+            }
+            <span class="status-badge status-badge--neutral">{{ filteredLogs().length }} visible</span>
         </div>
     </div>
 
-    <div class="dlg-header__meta">
-        @if (lastRefreshed()) {
-        <span class="status-badge status-badge--neutral">
-            Refreshed {{ formatDateTime(lastRefreshed()) }}
-        </span>
-        }
-
-        <span class="status-badge status-badge--neutral"> {{ filteredLogs().length }} visible </span>
-
-        <button mat-icon-button aria-label="Close machine logs dialog" (click)="close()">
-            <mat-icon svgIcon="close"></mat-icon>
-        </button>
-    </div>
-</h2>
-
-<div mat-dialog-content class="dialog-shell">
-    <div class="dialog-section context-section">
-        <div class="dialog-section__title">Machine Context</div>
-
-        <div class="context-grid">
-            <div class="kv">
-                <div class="k">Machine</div>
-                <div class="v">{{ data.machine?.name || '—' }}</div>
-            </div>
-
-            <div class="kv">
-                <div class="k">Protocol</div>
-                <div class="v">
-                    <span class="status-badge status-badge--info">
-                        {{ data.machine?.protocol || '—' }}
-                    </span>
+    <div class="dlg-header__log-sources">
+        <div class="header-log-source">
+            <div class="header-log-source__content">
+                <div class="header-log-source__label">General diagnostic log</div>
+                <div class="v mono header-log-source__path" [title]="generalHostLogPath()">
+                    @if (hostLogLoading()) {
+                    Resolving host log path…
+                    } @else {
+                    {{ generalHostLogPath() }}
+                    }
+                </div>
+                <div class="header-log-source__note">
+                    Runtime traffic, processing, workflow, queue, transformed payloads, retries, and delivery outcomes are appended to UTF-8 diagnostic logs on the host. Clearing database traffic logs does not delete these files.
                 </div>
             </div>
 
-            <div class="kv">
-                <div class="k">Connection Type</div>
-                <div class="v">{{ data.machine?.connection_type || '—' }}</div>
+            <div class="header-log-source__actions" aria-label="General diagnostic log actions">
+                <button mat-icon-button type="button" class="source-action-button"
+                    (click)="copy(generalHostLogPath())"
+                    [disabled]="generalHostLogPath() === '—'"
+                    matTooltip="Copy diagnostic log path" matTooltipShowDelay="350"
+                    aria-label="Copy general diagnostic log path">
+                    <mat-icon svgIcon="content_copy"></mat-icon>
+                </button>
+                <button mat-icon-button type="button" class="source-action-button"
+                    (click)="openHostLogFolder()"
+                    matTooltip="Open diagnostic log folder" matTooltipShowDelay="350"
+                    aria-label="Open general diagnostic log folder">
+                    <mat-icon svgIcon="folder"></mat-icon>
+                </button>
+            </div>
+        </div>
+
+        <div class="header-log-source header-log-source--raw">
+            <div class="header-log-source__content">
+                <div class="header-log-source__label">Raw machine traffic log</div>
+                <div class="v mono header-log-source__path" [title]="rawHostLogPath()">
+                    @if (hostLogLoading()) {
+                    Resolving raw machine log path…
+                    } @else {
+                    {{ rawHostLogPath() }}
+                    }
+                </div>
+                <div class="header-log-source__note">
+                    LIVE machine-originated traffic is stored separately from application processing. HL7/ASTM/raw analyzer messages are not mixed with normalized records, transformed LIS payloads, queue entries, or delivery outcomes.
+                </div>
             </div>
 
-            <div class="kv">
-                <div class="k">Machine ID</div>
-                <div class="v mono">{{ data.machine?.id || '—' }}</div>
+            <div class="header-log-source__actions" aria-label="Raw machine traffic log actions">
+                <button mat-icon-button type="button" class="source-action-button"
+                    (click)="copy(rawHostLogPath())"
+                    [disabled]="rawHostLogPath() === '—'"
+                    matTooltip="Copy raw machine log path" matTooltipShowDelay="350"
+                    aria-label="Copy raw machine traffic log path">
+                    <mat-icon svgIcon="content_copy"></mat-icon>
+                </button>
+                <button mat-icon-button type="button" class="source-action-button"
+                    (click)="openRawHostLogFolder()"
+                    matTooltip="Open raw machine log folder" matTooltipShowDelay="350"
+                    aria-label="Open raw machine traffic log folder">
+                    <mat-icon svgIcon="folder"></mat-icon>
+                </button>
             </div>
         </div>
     </div>
+</div>
 
+<div mat-dialog-content class="dialog-shell">
     <div class="terminal-toolbar card-frame">
-        <mat-form-field appearance="outline" class="search-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
             <mat-label>Search log stream</mat-label>
             <input matInput [value]="search()" (input)="search.set($any($event.target).value)"
                 placeholder="Payload preview, protocol, direction, or event" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="toolbar-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="toolbar-field">
             <mat-label>Direction</mat-label>
             <mat-select [value]="directionFilter()" (selectionChange)="directionFilter.set($event.value)">
                 <mat-option value="ALL">All</mat-option>
@@ -69,7 +117,7 @@
             </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="toolbar-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="toolbar-field">
             <mat-label>Event</mat-label>
             <mat-select [value]="eventFilter()" (selectionChange)="eventFilter.set($event.value)">
                 <mat-option value="ALL">All</mat-option>
@@ -84,7 +132,7 @@
             </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="toolbar-field narrow">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="toolbar-field narrow">
             <mat-label>Limit</mat-label>
             <mat-select [value]="limit()" (selectionChange)="setLimit($event.value)">
                 <mat-option [value]="30">30</mat-option>
@@ -188,7 +236,8 @@
             </div>
 
             @if (selectedLog(); as selected) {
-            <div class="inspector-meta">
+            <div class="inspector-scroll" tabindex="0" aria-label="Selected log entry details and payload">
+                <div class="inspector-meta">
                 <span class="status-badge status-badge--neutral">{{ selected.direction }}</span>
                 <span class="status-badge status-badge--info">{{ selected.transport }}</span>
                 <span class="status-badge status-badge--info">{{ selected.protocol }}</span>
@@ -225,7 +274,8 @@
                 <div class="span-2"><b>Processing:</b> {{ selected.processing_message || selected.processing_status || '—' }}</div>
             </div>
 
-            <div class="payload-shell mono">{{ payloadText(selected) }}</div>
+            <pre class="payload-shell mono">{{ displayPayloadText(selected) }}</pre>
+            </div>
             } @else {
             <div class="terminal-state">Select a log entry from the stream to inspect it here.</div>
             }

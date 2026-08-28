@@ -6,6 +6,7 @@ import { buildAuthHeaders } from '../security/delivery-auth.util';
 import { TargetTransformPreviewService } from '../transformers/target-transform-preview.service';
 import { getCurrentActorStamp } from './actor-context.service';
 import { auditService } from './audit.service';
+import { machineHostLogService } from '../runtime/machine-host-log.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -174,7 +175,12 @@ export class OutboundQueueService {
         const validation = this.validatePreviewForDelivery(preview);
         const previewWithValidation = this.withDeliveryValidation(preview, validation);
         if (validation.status === 'BLOCKED' && !options.allowInvalidPreview) {
-            throw new Error(this.deliveryValidationMessage(validation));
+            const message = this.deliveryValidationMessage(validation);
+            this.writeDeliveryHostLog(normalizedResultId, 'OUTBOUND_BLOCKED', 'WARN', message, {
+                targetId,
+                validation,
+            });
+            throw new Error(message);
         }
 
         const id = randomUUID();
@@ -237,6 +243,14 @@ export class OutboundQueueService {
             details: { normalizedResultId, targetId, validation },
             actor,
         });
+        this.writeDeliveryHostLog(
+            normalizedResultId,
+            'OUTBOUND_QUEUE_CREATED',
+            deliveryStatus === 'BLOCKED' ? 'WARN' : 'INFO',
+            `Outbound queue item ${id} created with status ${deliveryStatus}`,
+            { queueId: id, targetId, deliveryStatus, validation },
+            JSON.stringify(previewWithValidation.payload ?? null, null, 2),
+        );
 
         return true;
     }
@@ -270,6 +284,13 @@ export class OutboundQueueService {
             details: { targetId: queueRow.target_id, normalizedResultId: queueRow.normalized_result_id, validation },
             actor,
         });
+        this.writeDeliveryHostLog(
+            queueRow.normalized_result_id,
+            'OUTBOUND_QUEUE_REQUEUED',
+            validation.status === 'BLOCKED' ? 'WARN' : 'INFO',
+            `Queue item ${queueId} requeued with validation status ${validation.status}`,
+            { queueId, targetId: queueRow.target_id, validation },
+        );
 
         if (validation.status === 'BLOCKED') {
             throw new Error(this.deliveryValidationMessage(validation));
@@ -306,6 +327,13 @@ export class OutboundQueueService {
             details: { targetId: queueRow.target_id, normalizedResultId: queueRow.normalized_result_id, validation },
             actor,
         });
+        this.writeDeliveryHostLog(
+            queueRow.normalized_result_id,
+            'OUTBOUND_PAYLOAD_REBUILT',
+            validation.status === 'BLOCKED' ? 'WARN' : 'INFO',
+            `Queue item ${queueId} payload rebuilt with validation status ${validation.status}`,
+            { queueId, targetId: queueRow.target_id, validation },
+        );
         return previewWithValidation;
     }
 
@@ -322,27 +350,84 @@ export class OutboundQueueService {
 
         if (!queueRow) throw new Error('Queue item not found');
         if (queueRow.delivery_status === 'SENDING') {
-            throw new Error('Delivery is already in progress for this queue item. Refresh the queue or open the detailed view for status.');
+            const message = 'Delivery is already in progress for this queue item. Refresh the queue or open the detailed view for status.';
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_BLOCKED', 'WARN', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                deliveryStatus: queueRow.delivery_status,
+            });
+            throw new Error(message);
         }
 
         const target = db
             .prepare(`SELECT * FROM targets WHERE id = ? LIMIT 1`)
             .get(queueRow.target_id) as any;
-        if (!target) throw new Error('Target not found');
-        if (target.enabled !== 1) throw new Error('Target is disabled');
+        if (!target) {
+            const message = 'Target not found';
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_FAILED', 'ERROR', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+            });
+            throw new Error(message);
+        }
+        if (target.enabled !== 1) {
+            const message = 'Target is disabled';
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_BLOCKED', 'WARN', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                targetName: target.name ?? null,
+            });
+            throw new Error(message);
+        }
 
-        const storedPreview = this.preview.previewFromQueue(queueRow.id);
+        let storedPreview: any;
+        try {
+            storedPreview = this.preview.previewFromQueue(queueRow.id);
+        } catch (error: any) {
+            const message = this.normalizeDeliveryError(error);
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_FAILED', 'ERROR', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                step: 'PREVIEW_FROM_QUEUE',
+            });
+            throw error;
+        }
         const storedValidation = this.validatePreviewForDelivery(storedPreview);
         if (queueRow.delivery_status === 'BLOCKED' || storedValidation.status === 'BLOCKED') {
             this.persistPreview(queueRow.id, this.withDeliveryValidation(storedPreview, storedValidation), storedValidation, 'BLOCKED', actor);
-            throw new Error(this.deliveryValidationMessage(storedValidation));
+            const message = this.deliveryValidationMessage(storedValidation);
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_BLOCKED', 'WARN', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                validation: storedValidation,
+            });
+            throw new Error(message);
         }
 
         const payload = this.tryParseJson(queueRow.payload_json);
-        if (!payload || typeof payload !== 'object') throw new Error('Queued payload is invalid');
+        if (!payload || typeof payload !== 'object') {
+            const message = 'Queued payload is invalid';
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_FAILED', 'ERROR', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                step: 'PARSE_QUEUED_PAYLOAD',
+            }, queueRow.payload_json);
+            throw new Error(message);
+        }
 
         const secret = this.secrets.get(queueRow.target_id);
-        const adapter = this.adapters.get(target);
+        let adapter: ReturnType<DeliveryAdapterRegistry['get']>;
+        try {
+            adapter = this.adapters.get(target);
+        } catch (error: any) {
+            const message = this.normalizeDeliveryError(error);
+            this.writeDeliveryHostLog(queueRow.normalized_result_id, 'DELIVERY_PREFLIGHT_FAILED', 'ERROR', message, {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                step: 'RESOLVE_ADAPTER',
+            });
+            throw error;
+        }
         const correlationId = randomUUID();
         const headers = {
             ...buildAuthHeaders(secret),
@@ -374,6 +459,22 @@ export class OutboundQueueService {
                 WHERE id = ?
             `,
         ).run(nowIso(), actor.userId, actor.username, queueRow.id);
+        this.writeDeliveryHostLog(
+            queueRow.normalized_result_id,
+            'DELIVERY_STARTED',
+            'INFO',
+            `${operation} started for queue item ${queueRow.id}`,
+            {
+                queueId: queueRow.id,
+                targetId: queueRow.target_id,
+                targetName: target.name ?? null,
+                targetType: target.type ?? null,
+                correlationId,
+                attemptNo: Number(queueRow.retry_count ?? 0) + 1,
+                requestTimeoutMs,
+            },
+            queueRow.payload_json,
+        );
 
         try {
             const sendableQueueItem = {
@@ -428,6 +529,22 @@ export class OutboundQueueService {
                 details: { targetId: queueRow.target_id, httpStatus, durationMs, correlationId, requestTimeoutMs },
                 actor,
             });
+            this.writeDeliveryHostLog(
+                queueRow.normalized_result_id,
+                'DELIVERY_DELIVERED',
+                'INFO',
+                `Delivery completed successfully${httpStatus ? ` (HTTP ${httpStatus})` : ''}`,
+                {
+                    queueId: queueRow.id,
+                    targetId: queueRow.target_id,
+                    targetName: target.name ?? null,
+                    targetType: target.type ?? null,
+                    httpStatus,
+                    durationMs,
+                    correlationId,
+                    auditId: startedAuditId,
+                },
+            );
 
             return {
                 ok: true,
@@ -490,6 +607,24 @@ export class OutboundQueueService {
                 details: { targetId: queueRow.target_id, error: errorMessage, durationMs, correlationId, nextRetryAt, requestTimeoutMs },
                 actor,
             });
+            this.writeDeliveryHostLog(
+                queueRow.normalized_result_id,
+                'DELIVERY_FAILED',
+                'ERROR',
+                errorMessage,
+                {
+                    queueId: queueRow.id,
+                    targetId: queueRow.target_id,
+                    targetName: target.name ?? null,
+                    targetType: target.type ?? null,
+                    durationMs,
+                    correlationId,
+                    nextRetryAt,
+                    retryCount: nextRetryCount,
+                    requestTimeoutMs,
+                    auditId: startedAuditId,
+                },
+            );
 
             throw new Error(errorMessage);
         }
@@ -869,4 +1004,38 @@ export class OutboundQueueService {
         ).run(nextRetryAt ?? null, error ?? null, nowIso(), id);
         return true;
     }
+
+    private writeDeliveryHostLog(
+        normalizedResultId: string,
+        event: string,
+        level: 'INFO' | 'WARN' | 'ERROR',
+        message: string,
+        meta: Record<string, unknown>,
+        payload?: string | null,
+    ) {
+        const context = getDb()
+            .prepare(
+                `
+                    SELECT nr.machine_id AS machine_id, m.name AS machine_name
+                    FROM normalized_lab_results nr
+                    LEFT JOIN machines m ON m.id = nr.machine_id
+                    WHERE nr.id = ?
+                    LIMIT 1
+                `,
+            )
+            .get(normalizedResultId) as { machine_id?: string; machine_name?: string | null } | undefined;
+
+        if (!context?.machine_id) return;
+        machineHostLogService.appendEvent({
+            machineId: context.machine_id,
+            machineName: context.machine_name ?? null,
+            category: 'DELIVERY',
+            event,
+            level,
+            message,
+            meta: { normalizedResultId, ...meta },
+            payload: payload ?? null,
+        });
+    }
+
 }

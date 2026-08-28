@@ -765,6 +765,32 @@ Electron Builder should rebuild native modules during packaging when configured 
 
 ---
 
+## Machine host logs
+
+Machine logging is intentionally split into two host-side UTF-8 streams under Electron's platform-specific `app.getPath('userData')` directory. This separation prevents original analyzer evidence from being mixed with application processing or transformed LIS payloads.
+
+### 1. General diagnostic logs
+
+```text
+<userData>/machine-logs/machine-<machine-id>/
+```
+
+The general diagnostic log is an operational trace. It correlates runtime/session changes, inbound traffic, parsing and normalization, workflow transitions, outbound queue creation, transformed outbound payloads, delivery attempts, correlation IDs, retries, and delivery outcomes. Events that occur without an active live session can fall back to a per-machine daily diagnostic file.
+
+### 2. Raw machine traffic logs
+
+```text
+<userData>/machine-raw-logs/machine-<machine-id>/
+```
+
+A dedicated raw file is created only for a **LIVE physical-machine runtime session**. It contains machine-originated inbound messages exactly as received, surrounded only by capture context such as timestamp, machine/session identifier, transport, protocol, and event type. Parsed records, normalized results, transformed payloads, workflow metadata, outbound queue data, and LIS delivery payloads are never written to the raw file. Simulation and replay sessions are deliberately excluded so synthetic traffic cannot be mistaken for analyzer evidence.
+
+The **Machine Logs** dialog displays both paths as separate cards and provides independent **Copy path** and **Open folder** actions. Clearing the SQLite traffic view intentionally does not delete either host log stream. Writes are serialized per file to preserve event order and pending writes are flushed during a normal application shutdown.
+
+These files can contain laboratory or patient/result data. Protect the host account and application data directory, and establish a deployment-specific retention/archive policy before production use.
+
+---
+
 ## Security considerations
 
 This application processes laboratory and patient-adjacent operational data. Production deployments should apply the following controls:

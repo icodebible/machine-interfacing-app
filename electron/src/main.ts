@@ -32,6 +32,8 @@ import { registerRoutingRulesIpc } from './main/ipc/routing-rules.ipc';
 import { registerLisTestOrderProfilesIpc } from './main/ipc/lis-test-order-profiles.ipc';
 import { registerAuditReadinessIpc } from './main/ipc/audit-readiness.ipc';
 import { registerAppDiagnosticsIpc } from './main/ipc/app-diagnostics.ipc';
+import { machineHostLogService } from './main/runtime/machine-host-log.service';
+import { SessionRecorderService } from './main/runtime/session-recorder.service';
 
 process.on('uncaughtException', (err) => logger.error('uncaughtException', err));
 process.on('unhandledRejection', (err) => logger.error('unhandledRejection', err as any));
@@ -173,9 +175,21 @@ function registerWindowDiagnostics(win: BrowserWindow) {
 }
 
 function registerLifecycleHandlers(cleanupMachineIpc: (() => void) | undefined, retryWorker: RetryWorkerService) {
-  app.on('before-quit', () => {
+  let hostLogsFlushed = false;
+  app.on('before-quit', (event) => {
     cleanupMachineIpc?.();
     retryWorker.stop();
+
+    if (!hostLogsFlushed) {
+      hostLogsFlushed = true;
+      event.preventDefault();
+      try {
+        new SessionRecorderService().endAllStarted('Application shutting down');
+      } catch (error) {
+        logger.warn('Failed to close runtime sessions before shutdown', error as any);
+      }
+      void machineHostLogService.flush().finally(() => app.quit());
+    }
   });
 
   app.on('activate', () => {

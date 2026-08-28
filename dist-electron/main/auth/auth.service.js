@@ -4,6 +4,7 @@ exports.AuthService = exports.ALL_AUTHORITIES = void 0;
 exports.hashPasswordValue = hashPasswordValue;
 const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
+const migrations_1 = require("../db/migrations");
 // Use argon2 if installed, otherwise fallback to bcryptjs
 let argon2 = null;
 let bcrypt = null;
@@ -55,15 +56,23 @@ function nowIso() {
 // }
 // TODO: END: DEPRECATED APPROACH
 async function hashPasswordValue(pw) {
+    if (!bcrypt?.hash) {
+        throw new Error('Password hashing is unavailable because bcryptjs was not loaded.');
+    }
     return bcrypt.hash(pw, 10);
 }
 async function verifyPassword(hash, pw) {
+    if (!bcrypt?.compare) {
+        throw new Error('Password verification is unavailable because bcryptjs was not loaded.');
+    }
     return bcrypt.compare(pw, hash);
 }
 class AuthService {
     async ensureBootstrapAdmin() {
+        await (0, migrations_1.runMigrations)();
+        (0, migrations_1.assertRequiredTables)();
         const db = (0, db_1.getDb)();
-        // Always make sure schema exists first (you already do migrations)
+        // Always make sure schema exists first, even in packaged Windows first-run.
         const getRole = db.prepare(`SELECT id FROM roles WHERE name = ?`);
         const getUser = db.prepare(`SELECT id FROM users WHERE username = ?`);
         // 1) Ensure SUPER_ADMIN role exists
@@ -99,6 +108,8 @@ class AuthService {
         db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run('bootstrap_done', '1');
     }
     async login(username, password) {
+        await (0, migrations_1.runMigrations)();
+        (0, migrations_1.assertRequiredTables)();
         const db = (0, db_1.getDb)();
         const u = db
             .prepare(`SELECT id, username, password_hash, must_change_password, is_active
@@ -135,6 +146,12 @@ class AuthService {
         return { user: snapshot };
     }
     currentUser() {
+        try {
+            (0, migrations_1.assertRequiredTables)();
+        }
+        catch {
+            return null;
+        }
         const db = (0, db_1.getDb)();
         const row = db
             .prepare(`SELECT value FROM meta WHERE key = ? LIMIT 1`)
@@ -149,11 +166,15 @@ class AuthService {
         }
     }
     async logout() {
+        await (0, migrations_1.runMigrations)();
+        (0, migrations_1.assertRequiredTables)();
         const db = (0, db_1.getDb)();
         db.prepare(`DELETE FROM meta WHERE key = ?`).run('current_session_user');
         return true;
     }
     async changePassword(userId, newPassword) {
+        await (0, migrations_1.runMigrations)();
+        (0, migrations_1.assertRequiredTables)();
         const db = (0, db_1.getDb)();
         const hash = await hashPasswordValue(newPassword);
         const res = db

@@ -168,6 +168,18 @@ export class PlatformApiService {
         return this.api.machinesLogsReplay(logId, mode);
     }
 
+    machinesLogsHostInfo(machineId: string) {
+        return this.api.machinesLogsHostInfo(machineId);
+    }
+
+    machinesLogsOpenFolder(machineId: string) {
+        return this.api.machinesLogsOpenFolder(machineId);
+    }
+
+    machinesLogsOpenRawFolder(machineId: string) {
+        return this.api.machinesLogsOpenRawFolder(machineId);
+    }
+
     machinesRuntimeSessionsList(machineId: string, limit = 25) {
         return this.api.machinesRuntimeSessionsList(machineId, limit);
     }

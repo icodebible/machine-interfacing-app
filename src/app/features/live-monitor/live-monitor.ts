@@ -368,8 +368,10 @@ export class LiveMonitor {
 
   openLogs(row: LiveMonitorRow) {
     this.dialog.open(MachineLogsDialog, {
-      width: 'min(1180px, 96vw)',
-      maxWidth: '96vw',
+      width: '90vw',
+      maxWidth: '90vw',
+      height: 'calc(100vh - 16px)',
+      maxHeight: 'calc(100vh - 16px)',
       autoFocus: false,
       restoreFocus: true,
       disableClose: false,

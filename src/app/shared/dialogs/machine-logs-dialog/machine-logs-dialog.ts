@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { PlatformApiService } from '../../../core/platform/platform-api.service';
 
 type LogRow = {
@@ -28,6 +29,18 @@ type LogRow = {
   replay_of_log_id?: string | null;
   replay_mode?: string | null;
   created_at: string;
+};
+
+
+type MachineHostLogInfo = {
+  rootDirectory: string;
+  machineDirectory: string;
+  activeFile: string | null;
+  recentFiles: string[];
+  rawRootDirectory: string;
+  rawMachineDirectory: string;
+  rawActiveFile: string | null;
+  rawRecentFiles: string[];
 };
 
 type DialogData = {
@@ -59,6 +72,7 @@ type EventFilter =
     MatSnackBarModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatTooltipModule,
   ],
   templateUrl: './machine-logs-dialog.html',
   styleUrl: './machine-logs-dialog.scss',
@@ -78,6 +92,8 @@ export class MachineLogsDialog {
   eventFilter = signal<EventFilter>('ALL');
   selectedLogId = signal<string | null>(null);
   replaying = signal(false);
+  hostLogInfo = signal<MachineHostLogInfo | null>(null);
+  hostLogLoading = signal(false);
 
   filteredLogs = computed(() => {
     const search = this.search().trim().toLowerCase();
@@ -156,8 +172,9 @@ export class MachineLogsDialog {
 
   async refresh() {
     if (!this.data.machine?.id) return;
+    this.loading.set(true);
+    const hostInfoPromise = this.refreshHostLogInfo();
     try {
-      this.loading.set(true);
       const rows = await this.api.machinesLogsList(this.data.machine.id, this.limit());
       this.logs.set(rows ?? []);
       this.lastRefreshed.set(new Date().toISOString());
@@ -170,19 +187,20 @@ export class MachineLogsDialog {
         duration: 3500,
       });
     } finally {
+      await hostInfoPromise;
       this.loading.set(false);
     }
   }
 
   async clear() {
     if (!this.data.machine?.id) return;
-    if (!confirm(`Clear traffic logs for "${this.data.machine?.name}"?`)) return;
+    if (!confirm(`Clear database traffic logs for "${this.data.machine?.name}"? Host text logs will be retained for diagnostics.`)) return;
 
     try {
       await this.api.machinesLogsClear(this.data.machine.id);
       this.logs.set([]);
       this.selectedLogId.set(null);
-      this.snack.open('Traffic logs cleared', 'Close', { duration: 1800 });
+      this.snack.open('Database traffic logs cleared. Host text logs were retained for diagnostics.', 'Close', { duration: 3200 });
     } catch (e: any) {
       this.snack.open(e?.message ?? 'Failed to clear logs', 'Close', {
         duration: 3500,
@@ -218,6 +236,10 @@ export class MachineLogsDialog {
     return log?.payload ?? log?.payload_preview ?? '—';
   }
 
+  displayPayloadText(log: LogRow | null) {
+    return this.payloadText(log).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  }
+
   canReplay(log: LogRow | null) {
     return !!log?.payload && log.direction !== 'outbound';
   }
@@ -228,6 +250,51 @@ export class MachineLogsDialog {
     if (value.includes('EMPTY') || value.includes('WARN')) return 'status-badge--warning';
     if (value.includes('NORMALIZED') || value.includes('PARSED')) return 'status-badge--success';
     return 'status-badge--neutral';
+  }
+
+  async refreshHostLogInfo() {
+    if (!this.data.machine?.id) return;
+    try {
+      this.hostLogLoading.set(true);
+      const info = await this.api.machinesLogsHostInfo(this.data.machine.id);
+      this.hostLogInfo.set(info ?? null);
+    } catch {
+      this.hostLogInfo.set(null);
+    } finally {
+      this.hostLogLoading.set(false);
+    }
+  }
+
+  generalHostLogPath() {
+    const info = this.hostLogInfo();
+    return info?.activeFile || info?.recentFiles?.[0] || info?.machineDirectory || '—';
+  }
+
+  rawHostLogPath() {
+    const info = this.hostLogInfo();
+    return info?.rawActiveFile || info?.rawRecentFiles?.[0] || info?.rawMachineDirectory || '—';
+  }
+
+  rawLogActive() {
+    return !!this.hostLogInfo()?.rawActiveFile;
+  }
+
+  async openHostLogFolder() {
+    if (!this.data.machine?.id) return;
+    try {
+      await this.api.machinesLogsOpenFolder(this.data.machine.id);
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Failed to open diagnostic log folder', 'Close', { duration: 3000 });
+    }
+  }
+
+  async openRawHostLogFolder() {
+    if (!this.data.machine?.id) return;
+    try {
+      await this.api.machinesLogsOpenRawFolder(this.data.machine.id);
+    } catch (e: any) {
+      this.snack.open(e?.message ?? 'Failed to open raw machine log folder', 'Close', { duration: 3000 });
+    }
   }
 
   async replaySelected(mode: 'PARSE_ONLY' | 'PARSE_AND_NORMALIZE' | 'FULL_WORKFLOW') {

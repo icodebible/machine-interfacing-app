@@ -82,6 +82,7 @@ const parsed_message_service_1 = require("../protocols/parsed-message.service");
 const normalizer_registry_1 = require("../normalizers/normalizer-registry");
 const normalized_result_service_1 = require("../normalizers/normalized-result.service");
 const session_recorder_service_1 = require("./session-recorder.service");
+const machine_host_log_service_1 = require("./machine-host-log.service");
 const nowIso = () => new Date().toISOString();
 function ensureColumn(db, table, column, definitionSql) {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all();
@@ -170,6 +171,39 @@ class MachineTrafficLogService {
         if (input.session_id) {
             this.sessions.touchSession(input.session_id, input.processing_message ?? payloadPreview ?? input.event_type);
         }
+        if (input.direction === 'inbound' && input.payload !== undefined && input.payload !== null) {
+            machine_host_log_service_1.machineHostLogService.appendRawMachineMessage({
+                machineId: input.machine_id,
+                sessionId: input.session_id ?? null,
+                transport: input.transport,
+                protocol: input.protocol,
+                eventType: input.event_type,
+                payload: String(input.payload),
+            });
+        }
+        machine_host_log_service_1.machineHostLogService.appendEvent({
+            machineId: input.machine_id,
+            sessionId: input.session_id ?? null,
+            category: 'TRAFFIC',
+            event: String(input.event_type ?? 'event').toUpperCase(),
+            level: String(input.event_type ?? '').toLowerCase().includes('error') ? 'ERROR' : 'INFO',
+            message: input.processing_message ?? null,
+            payload: input.payload ?? null,
+            meta: {
+                logId: id,
+                direction: input.direction,
+                transport: input.transport,
+                protocol: input.protocol,
+                processingStatus: input.processing_status ?? null,
+                payloadPreview,
+                parsedMessageId: input.parsed_message_id ?? null,
+                normalizedResultId: input.normalized_result_id ?? null,
+                replayOfLogId: input.replay_of_log_id ?? null,
+                replayMode: input.replay_mode ?? null,
+                sourceMeta: input.meta_json ?? null,
+                actor: { userId: actor.userId, username: actor.username },
+            },
+        });
         return { id };
     }
     updateProcessing(logId, patch) {
@@ -185,6 +219,25 @@ class MachineTrafficLogService {
                     WHERE id = ?
                 `)
             .run(patch.parsed_message_id ?? null, patch.normalized_result_id ?? null, patch.processing_status ?? null, patch.processing_message ?? null, patch.meta_json ?? null, logId);
+        const updated = this.get(logId);
+        if (updated) {
+            const status = String(updated.processing_status ?? 'UPDATED');
+            machine_host_log_service_1.machineHostLogService.appendEvent({
+                machineId: updated.machine_id,
+                sessionId: updated.session_id ?? null,
+                category: 'PROCESSING',
+                event: status,
+                level: status.includes('ERROR') || status.includes('FAILED') ? 'ERROR' : status.includes('EMPTY') || status.includes('WARN') ? 'WARN' : 'INFO',
+                message: updated.processing_message ?? null,
+                meta: {
+                    logId,
+                    parsedMessageId: updated.parsed_message_id ?? null,
+                    normalizedResultId: updated.normalized_result_id ?? null,
+                    protocol: updated.protocol ?? null,
+                    transport: updated.transport ?? null,
+                },
+            });
+        }
         return true;
     }
     get(id) {

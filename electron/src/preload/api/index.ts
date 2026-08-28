@@ -93,6 +93,15 @@ export const api: AppAPI = {
     machinesLogsReplay: (logId, mode) =>
         ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_REPLAY, logId, mode),
 
+    machinesLogsHostInfo: (machineId) =>
+        ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_HOST_INFO, machineId),
+
+    machinesLogsOpenFolder: (machineId) =>
+        ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_OPEN_FOLDER, machineId),
+
+    machinesLogsOpenRawFolder: (machineId) =>
+        ipcRenderer.invoke(IPC_CHANNELS.MACHINES_LOGS_OPEN_RAW_FOLDER, machineId),
+
     machinesRuntimeSessionsList: (machineId, limit) =>
         ipcRenderer.invoke(IPC_CHANNELS.MACHINES_SESSIONS_LIST, machineId, limit),
 

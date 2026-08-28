@@ -58,6 +58,7 @@
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/db';
 import { getCurrentActorStamp } from '../services/actor-context.service';
+import { machineHostLogService } from './machine-host-log.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -164,6 +165,16 @@ export class SessionRecorderService {
         const ts = nowIso();
 
         if (input.closeExisting !== false) {
+            const existingSessions = db
+                .prepare(
+                    `
+                        SELECT *
+                        FROM machine_runtime_sessions
+                        WHERE machine_id = ? AND status = 'STARTED'
+                    `,
+                )
+                .all(input.machineId) as MachineRuntimeSessionRow[];
+
             db.prepare(
                 `
                     UPDATE machine_runtime_sessions
@@ -173,6 +184,20 @@ export class SessionRecorderService {
                     WHERE machine_id = ? AND status = 'STARTED'
                 `,
             ).run(ts, ts, actor.userId, actor.username, input.machineId);
+
+            for (const existing of existingSessions) {
+                machineHostLogService.endSession({
+                    machineId: existing.machine_id,
+                    machineName: existing.machine_name ?? null,
+                    sessionId: existing.id,
+                    mode: existing.mode,
+                    startedAt: existing.started_at,
+                    status: 'STOPPED',
+                    stoppedAt: ts,
+                    message: 'Replaced by a new runtime session',
+                    error: existing.error_message ?? null,
+                });
+            }
         }
 
         const id = randomUUID();
@@ -200,6 +225,18 @@ export class SessionRecorderService {
             actor.userId,
             actor.username,
         );
+
+        machineHostLogService.startSession({
+            machineId: input.machineId,
+            machineName: input.machineName ?? null,
+            sessionId: id,
+            mode: input.mode,
+            transport: input.transport ?? null,
+            protocol: input.protocol ?? null,
+            startedAt: ts,
+            message: input.message ?? null,
+            meta: input.meta ?? null,
+        });
 
         return this.get(id)!;
     }
@@ -255,6 +292,7 @@ export class SessionRecorderService {
         this.ensureTable();
         const actor = getCurrentActorStamp();
         const ts = nowIso();
+        const session = this.get(sessionId);
         getDb()
             .prepare(
                 `
@@ -266,7 +304,32 @@ export class SessionRecorderService {
                 `,
             )
             .run(status, ts, ts, message ?? null, error ?? null, actor.userId, actor.username, sessionId);
+
+        if (session) {
+            machineHostLogService.endSession({
+                machineId: session.machine_id,
+                machineName: session.machine_name ?? null,
+                sessionId,
+                mode: session.mode,
+                startedAt: session.started_at,
+                status,
+                stoppedAt: ts,
+                message: message ?? session.message ?? null,
+                error: error ?? session.error_message ?? null,
+            });
+        }
         return true;
+    }
+
+    endAllStarted(message = 'Application shutting down') {
+        this.ensureTable();
+        const rows = getDb()
+            .prepare(`SELECT * FROM machine_runtime_sessions WHERE status = 'STARTED' ORDER BY started_at ASC`)
+            .all() as MachineRuntimeSessionRow[];
+        for (const row of rows) {
+            this.endSession(row.id, 'STOPPED', message, null);
+        }
+        return rows.length;
     }
 
     get(id: string): MachineRuntimeSessionRow | null {

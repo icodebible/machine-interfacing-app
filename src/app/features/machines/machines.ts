@@ -1260,11 +1260,14 @@ Type ${keyword} to continue.`);
 
   openLogs(row: any) {
     this.dialog.open(MachineLogsDialog, {
-      width: 'min(960px, 96vw)',
-      maxWidth: '96vw',
+      width: '90vw',
+      maxWidth: '90vw',
+      height: 'calc(100vh - 16px)',
+      maxHeight: 'calc(100vh - 16px)',
       disableClose: true,
       autoFocus: false,
       restoreFocus: true,
+      panelClass: 'machine-logs-terminal-dialog',
       data: { machine: row },
     });
   }

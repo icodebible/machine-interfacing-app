@@ -3,6 +3,7 @@
 // import { OutboundQueueService } from './outbound-queue.service';
 // import { RoutingRuleService } from './routing-rule.service';
 // import { getCurrentActorStamp } from './actor-context.service';
+// import { machineHostLogService } from '../runtime/machine-host-log.service';
 
 // const nowIso = () => new Date().toISOString();
 
@@ -476,6 +477,7 @@
 // import { OutboundQueueService } from './outbound-queue.service';
 // import { RoutingRuleService } from './routing-rule.service';
 // import { getCurrentActorStamp } from './actor-context.service';
+// import { machineHostLogService } from '../runtime/machine-host-log.service';
 
 // const nowIso = () => new Date().toISOString();
 
@@ -801,6 +803,7 @@ import { ApprovalPolicyService } from './approval-policy.service';
 import { OutboundQueueService } from './outbound-queue.service';
 import { RoutingRuleService } from './routing-rule.service';
 import { getCurrentActorStamp } from './actor-context.service';
+import { machineHostLogService } from '../runtime/machine-host-log.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -1235,6 +1238,7 @@ export class ResultFlowService {
           WHERE normalized_result_id = @normalized_result_id
         `,
       ).run({ normalized_result_id: normalizedResultId, ...patch });
+      this.writeWorkflowHostLog(normalizedResultId, patch);
       return;
     }
 
@@ -1285,7 +1289,43 @@ export class ResultFlowService {
       created_at: (patch as any).created_at ?? (patch as any).updated_at ?? nowIso(),
       ...patch,
     });
+    this.writeWorkflowHostLog(normalizedResultId, patch);
+  }
+
+  private writeWorkflowHostLog(normalizedResultId: string, patch: Record<string, unknown>) {
+    const db = getDb();
+    const context = db
+      .prepare(
+        `
+          SELECT nr.machine_id AS machine_id, m.name AS machine_name
+          FROM normalized_lab_results nr
+          LEFT JOIN machines m ON m.id = nr.machine_id
+          WHERE nr.id = ?
+          LIMIT 1
+        `,
+      )
+      .get(normalizedResultId) as { machine_id?: string; machine_name?: string | null } | undefined;
+
+    if (!context?.machine_id) return;
+    const status = String((patch as any).status ?? 'UPDATED');
+    const lastError = (patch as any).last_error ?? null;
+    machineHostLogService.appendEvent({
+      machineId: context.machine_id,
+      machineName: context.machine_name ?? null,
+      category: 'WORKFLOW',
+      event: status,
+      level: lastError || status.includes('FAILED') ? 'WARN' : 'INFO',
+      message: lastError ? String(lastError) : `Result workflow status changed to ${status}`,
+      meta: {
+        normalizedResultId,
+        approvalPolicyId: (patch as any).approval_policy_id ?? null,
+        approvalRequired: (patch as any).approval_required ?? null,
+        approvalCountRequired: (patch as any).approval_count_required ?? null,
+        approvalCountReceived: (patch as any).approval_count_received ?? null,
+        queuedAt: (patch as any).queued_at ?? null,
+        routedAt: (patch as any).routed_at ?? null,
+        failedAt: (patch as any).failed_at ?? null,
+      },
+    });
   }
 }
-
-

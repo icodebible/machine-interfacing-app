@@ -49,6 +49,7 @@ exports.SessionRecorderService = void 0;
 const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
 const actor_context_service_1 = require("../services/actor-context.service");
+const machine_host_log_service_1 = require("./machine-host-log.service");
 const nowIso = () => new Date().toISOString();
 function ensureColumn(db, table, column, definitionSql) {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all();
@@ -117,6 +118,13 @@ class SessionRecorderService {
         const actor = (0, actor_context_service_1.getCurrentActorStamp)();
         const ts = nowIso();
         if (input.closeExisting !== false) {
+            const existingSessions = db
+                .prepare(`
+                        SELECT *
+                        FROM machine_runtime_sessions
+                        WHERE machine_id = ? AND status = 'STARTED'
+                    `)
+                .all(input.machineId);
             db.prepare(`
                     UPDATE machine_runtime_sessions
                     SET status = 'STOPPED', stopped_at = COALESCE(stopped_at, ?),
@@ -124,6 +132,19 @@ class SessionRecorderService {
                         updated_by_user_id = ?, updated_by_username = ?
                     WHERE machine_id = ? AND status = 'STARTED'
                 `).run(ts, ts, actor.userId, actor.username, input.machineId);
+            for (const existing of existingSessions) {
+                machine_host_log_service_1.machineHostLogService.endSession({
+                    machineId: existing.machine_id,
+                    machineName: existing.machine_name ?? null,
+                    sessionId: existing.id,
+                    mode: existing.mode,
+                    startedAt: existing.started_at,
+                    status: 'STOPPED',
+                    stoppedAt: ts,
+                    message: 'Replaced by a new runtime session',
+                    error: existing.error_message ?? null,
+                });
+            }
         }
         const id = (0, crypto_1.randomUUID)();
         db.prepare(`
@@ -133,6 +154,17 @@ class SessionRecorderService {
                     created_by_user_id, created_by_username, updated_by_user_id, updated_by_username
                 ) VALUES (?, ?, ?, ?, ?, ?, 'STARTED', ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(id, input.machineId, input.machineName ?? null, input.mode, input.transport ?? null, input.protocol ?? null, ts, ts, input.message ?? null, safeJson(input.meta ?? null), actor.userId, actor.username, actor.userId, actor.username);
+        machine_host_log_service_1.machineHostLogService.startSession({
+            machineId: input.machineId,
+            machineName: input.machineName ?? null,
+            sessionId: id,
+            mode: input.mode,
+            transport: input.transport ?? null,
+            protocol: input.protocol ?? null,
+            startedAt: ts,
+            message: input.message ?? null,
+            meta: input.meta ?? null,
+        });
         return this.get(id);
     }
     currentSession(machineId, mode) {
@@ -178,6 +210,7 @@ class SessionRecorderService {
         this.ensureTable();
         const actor = (0, actor_context_service_1.getCurrentActorStamp)();
         const ts = nowIso();
+        const session = this.get(sessionId);
         (0, db_1.getDb)()
             .prepare(`
                     UPDATE machine_runtime_sessions
@@ -187,7 +220,30 @@ class SessionRecorderService {
                     WHERE id = ?
                 `)
             .run(status, ts, ts, message ?? null, error ?? null, actor.userId, actor.username, sessionId);
+        if (session) {
+            machine_host_log_service_1.machineHostLogService.endSession({
+                machineId: session.machine_id,
+                machineName: session.machine_name ?? null,
+                sessionId,
+                mode: session.mode,
+                startedAt: session.started_at,
+                status,
+                stoppedAt: ts,
+                message: message ?? session.message ?? null,
+                error: error ?? session.error_message ?? null,
+            });
+        }
         return true;
+    }
+    endAllStarted(message = 'Application shutting down') {
+        this.ensureTable();
+        const rows = (0, db_1.getDb)()
+            .prepare(`SELECT * FROM machine_runtime_sessions WHERE status = 'STARTED' ORDER BY started_at ASC`)
+            .all();
+        for (const row of rows) {
+            this.endSession(row.id, 'STOPPED', message, null);
+        }
+        return rows.length;
     }
     get(id) {
         this.ensureTable();

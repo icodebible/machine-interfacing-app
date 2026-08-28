@@ -90,6 +90,7 @@ import { ParsedMessageService } from '../protocols/parsed-message.service';
 import { NormalizerRegistry } from '../normalizers/normalizer-registry';
 import { NormalizedResultService } from '../normalizers/normalized-result.service';
 import { SessionRecorderService } from './session-recorder.service';
+import { machineHostLogService } from './machine-host-log.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -228,6 +229,41 @@ export class MachineTrafficLogService {
             this.sessions.touchSession(input.session_id, input.processing_message ?? payloadPreview ?? input.event_type);
         }
 
+        if (input.direction === 'inbound' && input.payload !== undefined && input.payload !== null) {
+            machineHostLogService.appendRawMachineMessage({
+                machineId: input.machine_id,
+                sessionId: input.session_id ?? null,
+                transport: input.transport,
+                protocol: input.protocol,
+                eventType: input.event_type,
+                payload: String(input.payload),
+            });
+        }
+
+        machineHostLogService.appendEvent({
+            machineId: input.machine_id,
+            sessionId: input.session_id ?? null,
+            category: 'TRAFFIC',
+            event: String(input.event_type ?? 'event').toUpperCase(),
+            level: String(input.event_type ?? '').toLowerCase().includes('error') ? 'ERROR' : 'INFO',
+            message: input.processing_message ?? null,
+            payload: input.payload ?? null,
+            meta: {
+                logId: id,
+                direction: input.direction,
+                transport: input.transport,
+                protocol: input.protocol,
+                processingStatus: input.processing_status ?? null,
+                payloadPreview,
+                parsedMessageId: input.parsed_message_id ?? null,
+                normalizedResultId: input.normalized_result_id ?? null,
+                replayOfLogId: input.replay_of_log_id ?? null,
+                replayMode: input.replay_mode ?? null,
+                sourceMeta: input.meta_json ?? null,
+                actor: { userId: actor.userId, username: actor.username },
+            },
+        });
+
         return { id };
     }
 
@@ -259,6 +295,26 @@ export class MachineTrafficLogService {
                 patch.meta_json ?? null,
                 logId,
             );
+
+        const updated: any = this.get(logId);
+        if (updated) {
+            const status = String(updated.processing_status ?? 'UPDATED');
+            machineHostLogService.appendEvent({
+                machineId: updated.machine_id,
+                sessionId: updated.session_id ?? null,
+                category: 'PROCESSING',
+                event: status,
+                level: status.includes('ERROR') || status.includes('FAILED') ? 'ERROR' : status.includes('EMPTY') || status.includes('WARN') ? 'WARN' : 'INFO',
+                message: updated.processing_message ?? null,
+                meta: {
+                    logId,
+                    parsedMessageId: updated.parsed_message_id ?? null,
+                    normalizedResultId: updated.normalized_result_id ?? null,
+                    protocol: updated.protocol ?? null,
+                    transport: updated.transport ?? null,
+                },
+            });
+        }
         return true;
     }
 

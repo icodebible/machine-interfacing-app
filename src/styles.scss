@@ -266,3 +266,9 @@ mat-icon:not([svgicon]):not([svgIcon]) {
 }
 /* End Machine Interfacing Embedded Material Icons block */
 
+
+/* Machine Logs dialog: stable HRHIS-style workspace surface. */
+.machine-logs-terminal-dialog .mat-mdc-dialog-surface {
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}

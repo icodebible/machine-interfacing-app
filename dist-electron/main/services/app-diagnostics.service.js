@@ -8,6 +8,7 @@ const electron_1 = require("electron");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = require("../db/db");
+const migrations_1 = require("../db/migrations");
 const nowIso = () => new Date().toISOString();
 function safeStatSize(filePath) {
     try {
@@ -77,6 +78,22 @@ function latestBackup(backupsPath) {
         return null;
     }
 }
+function safeSchemaTables() {
+    try {
+        return (0, migrations_1.getSchemaTables)((0, db_1.getDb)());
+    }
+    catch {
+        return [];
+    }
+}
+function safeMissingRequiredTables() {
+    try {
+        return (0, migrations_1.getMissingRequiredTables)((0, db_1.getDb)());
+    }
+    catch {
+        return [...migrations_1.REQUIRED_SCHEMA_TABLES];
+    }
+}
 class AppDiagnosticsService {
     getDiagnostics() {
         const pkg = findPackageJson() ?? {};
@@ -127,6 +144,11 @@ class AppDiagnosticsService {
                 walSizeBytes: safeStatSize(`${dbPath}-wal`),
                 shmSizeBytes: safeStatSize(`${dbPath}-shm`),
                 latestBackup: latest,
+                storage: (0, db_1.getDbStorageInfo)(),
+                tableCount: safeSchemaTables().length,
+                tableNames: safeSchemaTables().map((row) => row.name),
+                requiredTableCount: migrations_1.REQUIRED_SCHEMA_TABLES.length,
+                missingRequiredTables: safeMissingRequiredTables(),
             },
             package: {
                 appId: buildConfig.appId ?? null,

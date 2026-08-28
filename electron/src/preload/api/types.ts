@@ -240,6 +240,17 @@ export type WorkflowStatusRow = {
 
 export type MachineTrafficReplayMode = 'PARSE_ONLY' | 'PARSE_AND_NORMALIZE' | 'FULL_WORKFLOW';
 
+export type MachineHostLogInfo = {
+    rootDirectory: string;
+    machineDirectory: string;
+    activeFile: string | null;
+    recentFiles: string[];
+    rawRootDirectory: string;
+    rawMachineDirectory: string;
+    rawActiveFile: string | null;
+    rawRecentFiles: string[];
+};
+
 export type MachineRuntimeSessionRow = {
     id: string;
     machine_id: string;
@@ -1018,6 +1029,9 @@ export type AppAPI = {
     machinesLogsList: (machineId: string, limit?: number) => Promise<MachineTrafficLog[]>;
     machinesLogsClear: (machineId: string) => Promise<boolean>;
     machinesLogsReplay: (logId: string, mode?: MachineTrafficReplayMode) => Promise<MachineTrafficReplayResult>;
+    machinesLogsHostInfo: (machineId: string) => Promise<MachineHostLogInfo>;
+    machinesLogsOpenFolder: (machineId: string) => Promise<boolean>;
+    machinesLogsOpenRawFolder: (machineId: string) => Promise<boolean>;
     machinesRuntimeSessionsList: (machineId: string, limit?: number) => Promise<MachineRuntimeSessionRow[]>;
     machinesSimStart: (
         machineId: string,

@@ -1,10 +1,59 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.REQUIRED_SCHEMA_TABLES = void 0;
 exports.runMigrations = runMigrations;
+exports.getSchemaTables = getSchemaTables;
+exports.getMissingRequiredTables = getMissingRequiredTables;
+exports.assertRequiredTables = assertRequiredTables;
 const db_1 = require("./db");
+const logger_1 = require("../../logging/logger");
+exports.REQUIRED_SCHEMA_TABLES = [
+    'meta',
+    'users',
+    'roles',
+    'role_authorities',
+    'user_roles',
+    'labs',
+    'machines',
+    'targets',
+    'logs',
+    'audit_events',
+    'machine_traffic_logs',
+    'machine_runtime_sessions',
+    'approval_policies',
+    'approval_policy_steps',
+    'approval_policy_targets',
+    'routing_rules',
+    'result_workflow_status',
+    'result_approvals',
+    'outbound_queue',
+    'target_secrets',
+    'delivery_audit_logs',
+    'target_mappings',
+    'target_mapping_value_translations',
+    'lis_test_order_profiles',
+    'lis_test_order_profile_parameters',
+];
+let migrationPromise = null;
 async function runMigrations() {
+    if (migrationPromise)
+        return migrationPromise;
+    migrationPromise = Promise.resolve()
+        .then(() => runMigrationsUnsafe())
+        .catch((error) => {
+        migrationPromise = null;
+        throw error;
+    });
+    return migrationPromise;
+}
+function runMigrationsUnsafe() {
     const db = (0, db_1.getDb)();
-    db.exec(`
+    const startedAt = Date.now();
+    logger_1.logger.info('[DB] Running database migrations', {
+        databasePath: (0, db_1.getDbPath)(),
+    });
+    try {
+        db.exec(`
         PRAGMA foreign_keys = ON;
 
         CREATE TABLE IF NOT EXISTS meta (
@@ -486,78 +535,111 @@ async function runMigrations() {
         CREATE UNIQUE INDEX IF NOT EXISTS idx_target_mapping_value_translations_rule_source
         ON target_mapping_value_translations(mapping_rule_id, source_value);
     `);
-    ensureColumn(db, 'roles', 'updated_at', 'TEXT');
-    db.prepare(`UPDATE roles SET updated_at = COALESCE(updated_at, created_at)`).run();
-    ensureColumn(db, 'targets', 'auto_retry_enabled', 'INTEGER NOT NULL DEFAULT 1');
-    ensureColumn(db, 'targets', 'max_retry_attempts', 'INTEGER NOT NULL DEFAULT 4');
-    ensureColumn(db, 'targets', 'retry_backoff_strategy', "TEXT NOT NULL DEFAULT 'EXPONENTIAL'");
-    ensureColumn(db, 'targets', 'initial_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 60000');
-    ensureColumn(db, 'targets', 'max_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 3600000');
-    ensureColumn(db, 'targets', 'request_timeout_ms', 'INTEGER NOT NULL DEFAULT 15000');
-    ensureColumn(db, 'target_mappings', 'value_mapping_enabled', 'INTEGER NOT NULL DEFAULT 0');
-    ensureColumn(db, 'target_mappings', 'unmapped_behavior', "TEXT NOT NULL DEFAULT 'PASSTHROUGH'");
-    ensureColumn(db, 'target_mappings', 'default_destination_value', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'preview_name', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'source_snapshot_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
-    ensureColumn(db, 'targets', 'auto_retry_enabled', 'INTEGER NOT NULL DEFAULT 1');
-    ensureColumn(db, 'targets', 'max_retry_attempts', 'INTEGER NOT NULL DEFAULT 4');
-    ensureColumn(db, 'targets', 'retry_backoff_strategy', "TEXT NOT NULL DEFAULT 'EXPONENTIAL'");
-    ensureColumn(db, 'targets', 'initial_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 60000');
-    ensureColumn(db, 'targets', 'max_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 3600000');
-    ensureColumn(db, 'targets', 'request_timeout_ms', 'INTEGER NOT NULL DEFAULT 15000');
-    ensureColumn(db, 'result_approvals', 'created_by_user_id', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'created_by_username', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'updated_by_user_id', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'updated_by_username', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'approver_display_name', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'approver_username', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'approver_roles_json', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'snapshot_result_json', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'snapshot_policy_json', 'TEXT');
-    ensureColumn(db, 'result_approvals', 'snapshot_route_targets_json', 'TEXT');
-    backfillApprovalPolicyTargets(db);
-    ensureActorColumns(db, 'labs');
-    ensureColumn(db, 'machines', 'tcp_mode', "TEXT NOT NULL DEFAULT 'SERVER'");
-    ensureActorColumns(db, 'machines');
-    ensureActorColumns(db, 'targets');
-    ensureActorColumns(db, 'approval_policies');
-    ensureActorColumns(db, 'approval_policy_targets');
-    ensureActorColumns(db, 'routing_rules');
-    ensureActorColumns(db, 'result_workflow_status');
-    ensureColumn(db, 'routing_rules', 'description', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'enabled', 'INTEGER NOT NULL DEFAULT 1');
-    ensureColumn(db, 'routing_rules', 'priority', 'INTEGER NOT NULL DEFAULT 100');
-    ensureColumn(db, 'routing_rules', 'match_type', "TEXT NOT NULL DEFAULT 'ANY'");
-    ensureColumn(db, 'routing_rules', 'match_value', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'lab_id', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'machine_id', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'protocol', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'test_code', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'order_id', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'sample_id_pattern', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'source_message_type', 'TEXT');
-    ensureColumn(db, 'routing_rules', 'stop_on_match', 'INTEGER NOT NULL DEFAULT 0');
-    ensureActorColumns(db, 'result_approvals');
-    ensureActorColumns(db, 'outbound_queue');
-    ensureActorColumns(db, 'machine_traffic_logs', false);
-    ensureActorColumns(db, 'delivery_audit_logs');
-    ensureActorColumns(db, 'target_mappings');
-    ensureActorColumns(db, 'target_mapping_value_translations');
-    ensureColumn(db, 'outbound_queue', 'preview_name', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'source_snapshot_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
-    ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
-    ensureColumn(db, 'audit_events', 'entity_label', 'TEXT');
-    ensureColumn(db, 'audit_events', 'details_json', 'TEXT');
-    ensureColumn(db, 'audit_events', 'before_json', 'TEXT');
-    ensureColumn(db, 'audit_events', 'after_json', 'TEXT');
-    ensureColumn(db, 'audit_events', 'correlation_id', 'TEXT');
-    ensureColumn(db, 'audit_events', 'actor_user_id', 'TEXT');
-    ensureColumn(db, 'audit_events', 'actor_username', 'TEXT');
+        ensureColumn(db, 'roles', 'updated_at', 'TEXT');
+        db.prepare(`UPDATE roles SET updated_at = COALESCE(updated_at, created_at)`).run();
+        ensureColumn(db, 'targets', 'auto_retry_enabled', 'INTEGER NOT NULL DEFAULT 1');
+        ensureColumn(db, 'targets', 'max_retry_attempts', 'INTEGER NOT NULL DEFAULT 4');
+        ensureColumn(db, 'targets', 'retry_backoff_strategy', "TEXT NOT NULL DEFAULT 'EXPONENTIAL'");
+        ensureColumn(db, 'targets', 'initial_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 60000');
+        ensureColumn(db, 'targets', 'max_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 3600000');
+        ensureColumn(db, 'targets', 'request_timeout_ms', 'INTEGER NOT NULL DEFAULT 15000');
+        ensureColumn(db, 'target_mappings', 'value_mapping_enabled', 'INTEGER NOT NULL DEFAULT 0');
+        ensureColumn(db, 'target_mappings', 'unmapped_behavior', "TEXT NOT NULL DEFAULT 'PASSTHROUGH'");
+        ensureColumn(db, 'target_mappings', 'default_destination_value', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'preview_name', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'source_snapshot_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
+        ensureColumn(db, 'targets', 'auto_retry_enabled', 'INTEGER NOT NULL DEFAULT 1');
+        ensureColumn(db, 'targets', 'max_retry_attempts', 'INTEGER NOT NULL DEFAULT 4');
+        ensureColumn(db, 'targets', 'retry_backoff_strategy', "TEXT NOT NULL DEFAULT 'EXPONENTIAL'");
+        ensureColumn(db, 'targets', 'initial_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 60000');
+        ensureColumn(db, 'targets', 'max_retry_delay_ms', 'INTEGER NOT NULL DEFAULT 3600000');
+        ensureColumn(db, 'targets', 'request_timeout_ms', 'INTEGER NOT NULL DEFAULT 15000');
+        ensureColumn(db, 'result_approvals', 'created_by_user_id', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'created_by_username', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'updated_by_user_id', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'updated_by_username', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'approver_display_name', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'approver_username', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'approver_roles_json', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'snapshot_result_json', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'snapshot_policy_json', 'TEXT');
+        ensureColumn(db, 'result_approvals', 'snapshot_route_targets_json', 'TEXT');
+        backfillApprovalPolicyTargets(db);
+        ensureActorColumns(db, 'labs');
+        ensureColumn(db, 'machines', 'tcp_mode', "TEXT NOT NULL DEFAULT 'SERVER'");
+        ensureActorColumns(db, 'machines');
+        ensureActorColumns(db, 'targets');
+        ensureActorColumns(db, 'approval_policies');
+        ensureActorColumns(db, 'approval_policy_targets');
+        ensureActorColumns(db, 'routing_rules');
+        ensureActorColumns(db, 'result_workflow_status');
+        ensureColumn(db, 'routing_rules', 'description', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'enabled', 'INTEGER NOT NULL DEFAULT 1');
+        ensureColumn(db, 'routing_rules', 'priority', 'INTEGER NOT NULL DEFAULT 100');
+        ensureColumn(db, 'routing_rules', 'match_type', "TEXT NOT NULL DEFAULT 'ANY'");
+        ensureColumn(db, 'routing_rules', 'match_value', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'lab_id', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'machine_id', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'protocol', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'test_code', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'order_id', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'sample_id_pattern', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'source_message_type', 'TEXT');
+        ensureColumn(db, 'routing_rules', 'stop_on_match', 'INTEGER NOT NULL DEFAULT 0');
+        ensureActorColumns(db, 'result_approvals');
+        ensureActorColumns(db, 'outbound_queue');
+        ensureActorColumns(db, 'machine_traffic_logs', false);
+        ensureActorColumns(db, 'delivery_audit_logs');
+        ensureActorColumns(db, 'target_mappings');
+        ensureActorColumns(db, 'target_mapping_value_translations');
+        ensureColumn(db, 'outbound_queue', 'preview_name', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'source_snapshot_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
+        ensureColumn(db, 'audit_events', 'entity_label', 'TEXT');
+        ensureColumn(db, 'audit_events', 'details_json', 'TEXT');
+        ensureColumn(db, 'audit_events', 'before_json', 'TEXT');
+        ensureColumn(db, 'audit_events', 'after_json', 'TEXT');
+        ensureColumn(db, 'audit_events', 'correlation_id', 'TEXT');
+        ensureColumn(db, 'audit_events', 'actor_user_id', 'TEXT');
+        ensureColumn(db, 'audit_events', 'actor_username', 'TEXT');
+        db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run('schema_version', '1');
+        db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`).run('schema_migrated_at', new Date().toISOString());
+        assertRequiredTables(db);
+        const tables = getSchemaTables(db);
+        logger_1.logger.info('[DB] Database migrations completed', {
+            databasePath: (0, db_1.getDbPath)(),
+            tableCount: tables.length,
+            requiredTableCount: exports.REQUIRED_SCHEMA_TABLES.length,
+            durationMs: Date.now() - startedAt,
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('[DB] Database migrations failed', {
+            databasePath: (0, db_1.getDbPath)(),
+            error,
+        });
+        throw error;
+    }
+}
+function getSchemaTables(db = (0, db_1.getDb)()) {
+    return db
+        .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+        .all();
+}
+function getMissingRequiredTables(db = (0, db_1.getDb)()) {
+    const existing = new Set(getSchemaTables(db).map((row) => row.name));
+    return exports.REQUIRED_SCHEMA_TABLES.filter((table) => !existing.has(table));
+}
+function assertRequiredTables(db = (0, db_1.getDb)()) {
+    const missing = getMissingRequiredTables(db);
+    if (missing.length > 0) {
+        throw new Error(`Database schema is incomplete. Missing required tables: ${missing.join(', ')}. Database: ${(0, db_1.getDbPath)()}`);
+    }
 }
 function backfillApprovalPolicyTargets(db) {
     if (!tableExists(db, 'approval_policies') || !tableExists(db, 'approval_policy_targets'))

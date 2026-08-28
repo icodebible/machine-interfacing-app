@@ -4,6 +4,7 @@
 // import { OutboundQueueService } from './outbound-queue.service';
 // import { RoutingRuleService } from './routing-rule.service';
 // import { getCurrentActorStamp } from './actor-context.service';
+// import { machineHostLogService } from '../runtime/machine-host-log.service';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResultFlowService = void 0;
 // const nowIso = () => new Date().toISOString();
@@ -436,6 +437,7 @@ exports.ResultFlowService = void 0;
 // import { OutboundQueueService } from './outbound-queue.service';
 // import { RoutingRuleService } from './routing-rule.service';
 // import { getCurrentActorStamp } from './actor-context.service';
+// import { machineHostLogService } from '../runtime/machine-host-log.service';
 // const nowIso = () => new Date().toISOString();
 // export class ResultFlowService {
 //   private readonly approvals = new ApprovalPolicyService();
@@ -735,6 +737,7 @@ const approval_policy_service_1 = require("./approval-policy.service");
 const outbound_queue_service_1 = require("./outbound-queue.service");
 const routing_rule_service_1 = require("./routing-rule.service");
 const actor_context_service_1 = require("./actor-context.service");
+const machine_host_log_service_1 = require("../runtime/machine-host-log.service");
 const nowIso = () => new Date().toISOString();
 class ResultFlowService {
     approvals = new approval_policy_service_1.ApprovalPolicyService();
@@ -1088,6 +1091,7 @@ class ResultFlowService {
             updated_by_username = COALESCE(@updated_by_username, updated_by_username)
           WHERE normalized_result_id = @normalized_result_id
         `).run({ normalized_result_id: normalizedResultId, ...patch });
+            this.writeWorkflowHostLog(normalizedResultId, patch);
             return;
         }
         const id = `${normalizedResultId}-workflow`;
@@ -1134,6 +1138,41 @@ class ResultFlowService {
             normalized_result_id: normalizedResultId,
             created_at: patch.created_at ?? patch.updated_at ?? nowIso(),
             ...patch,
+        });
+        this.writeWorkflowHostLog(normalizedResultId, patch);
+    }
+    writeWorkflowHostLog(normalizedResultId, patch) {
+        const db = (0, db_1.getDb)();
+        const context = db
+            .prepare(`
+          SELECT nr.machine_id AS machine_id, m.name AS machine_name
+          FROM normalized_lab_results nr
+          LEFT JOIN machines m ON m.id = nr.machine_id
+          WHERE nr.id = ?
+          LIMIT 1
+        `)
+            .get(normalizedResultId);
+        if (!context?.machine_id)
+            return;
+        const status = String(patch.status ?? 'UPDATED');
+        const lastError = patch.last_error ?? null;
+        machine_host_log_service_1.machineHostLogService.appendEvent({
+            machineId: context.machine_id,
+            machineName: context.machine_name ?? null,
+            category: 'WORKFLOW',
+            event: status,
+            level: lastError || status.includes('FAILED') ? 'WARN' : 'INFO',
+            message: lastError ? String(lastError) : `Result workflow status changed to ${status}`,
+            meta: {
+                normalizedResultId,
+                approvalPolicyId: patch.approval_policy_id ?? null,
+                approvalRequired: patch.approval_required ?? null,
+                approvalCountRequired: patch.approval_count_required ?? null,
+                approvalCountReceived: patch.approval_count_received ?? null,
+                queuedAt: patch.queued_at ?? null,
+                routedAt: patch.routed_at ?? null,
+                failedAt: patch.failed_at ?? null,
+            },
         });
     }
 }
