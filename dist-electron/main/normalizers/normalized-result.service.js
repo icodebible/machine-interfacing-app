@@ -37,7 +37,8 @@ class NormalizedResultService {
                 data_json TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 created_by_user_id TEXT,
-                created_by_username TEXT
+                created_by_username TEXT,
+                source_fingerprint TEXT
             );
 
             CREATE INDEX IF NOT EXISTS idx_normalized_lab_results_machine_id
@@ -48,10 +49,18 @@ class NormalizedResultService {
             `);
         ensureColumn(db, 'normalized_lab_results', 'created_by_user_id', 'TEXT');
         ensureColumn(db, 'normalized_lab_results', 'created_by_username', 'TEXT');
+        ensureColumn(db, 'normalized_lab_results', 'source_fingerprint', 'TEXT');
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_normalized_lab_results_fingerprint ON normalized_lab_results(machine_id, source_fingerprint);`);
     }
     create(result) {
         const db = (0, db_1.getDb)();
         const actor = (0, actor_context_service_1.getCurrentActorStamp)();
+        const fingerprint = this.fingerprint(result);
+        const existing = db
+            .prepare(`SELECT id FROM normalized_lab_results WHERE machine_id = ? AND source_fingerprint = ? LIMIT 1`)
+            .get(result.machineId, fingerprint);
+        if (existing?.id)
+            return { id: existing.id, duplicate: true, fingerprint };
         const id = (0, crypto_1.randomUUID)();
         db.prepare(`
                 INSERT INTO normalized_lab_results (
@@ -74,12 +83,39 @@ class NormalizedResultService {
                 data_json,
                 created_at,
                 created_by_user_id,
-                created_by_username
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(id, result.machineId, result.protocol, result.sampleId ?? null, result.patientId ?? null, result.patientName ?? null, result.orderId ?? null, result.testCode ?? null, result.testName ?? null, result.value ?? null, result.units ?? null, result.referenceRange ?? null, result.abnormalFlag ?? null, result.observedAt ?? null, result.sourceMessageType ?? null, result.summary ?? null, JSON.stringify(result.data ?? {}), nowIso(), actor.userId, actor.username);
+                created_by_username,
+                source_fingerprint
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(id, result.machineId, result.protocol, result.sampleId ?? null, result.patientId ?? null, result.patientName ?? null, result.orderId ?? null, result.testCode ?? null, result.testName ?? null, result.value ?? null, result.units ?? null, result.referenceRange ?? null, result.abnormalFlag ?? null, result.observedAt ?? null, result.sourceMessageType ?? null, result.summary ?? null, JSON.stringify(result.data ?? {}), nowIso(), actor.userId, actor.username, fingerprint);
         // Advance the workflow exactly once using the inserted normalized result id.
         this.flow.advanceAfterNormalization(id);
-        return { id };
+        return { id, duplicate: false, fingerprint };
+    }
+    fingerprint(result) {
+        const data = result.data ?? {};
+        const observations = Array.isArray(data.normalizedResults)
+            ? data.normalizedResults
+            : Array.isArray(data.observations)
+                ? data.observations
+                : [];
+        const canonicalResults = observations
+            .map((row) => ({
+            code: String(row?.code ?? row?.sourceCode ?? '').trim().toUpperCase(),
+            value: String(row?.value ?? row?.rawValue ?? '').trim().toUpperCase(),
+            observedAt: String(row?.observedAt ?? result.observedAt ?? '').trim(),
+            status: String(row?.resultStatus ?? '').trim().toUpperCase(),
+        }))
+            .filter((row) => row.code && row.value)
+            .sort((a, b) => `${a.code}|${a.value}`.localeCompare(`${b.code}|${b.value}`));
+        const basis = {
+            machineId: result.machineId,
+            protocol: result.protocol,
+            sampleId: String(result.sampleId ?? '').trim(),
+            testCode: String(result.testCode ?? '').trim().toUpperCase(),
+            observedAt: String(result.observedAt ?? '').trim(),
+            results: canonicalResults,
+        };
+        return (0, crypto_1.createHash)('sha256').update(JSON.stringify(basis)).digest('hex');
     }
     listByMachine(machineId, limit = 50) {
         const db = (0, db_1.getDb)();

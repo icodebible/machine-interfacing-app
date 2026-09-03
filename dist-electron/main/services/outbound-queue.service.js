@@ -356,11 +356,12 @@ class OutboundQueueService {
                 SET delivery_status = 'DELIVERED',
                     next_retry_at = NULL,
                     last_error = NULL,
+                    delivered_payload_json = ?,
                     updated_at = ?,
                     updated_by_user_id = ?,
                     updated_by_username = ?
                 WHERE id = ?
-                `).run(nowIso(), actor.userId, actor.username, queueRow.id);
+                `).run(JSON.stringify(result?.resolvedPayload ?? payload ?? null), nowIso(), actor.userId, actor.username, queueRow.id);
             this.finishAudit(startedAuditId, {
                 status: 'DELIVERED',
                 http_status: httpStatus,
@@ -387,7 +388,8 @@ class OutboundQueueService {
                 durationMs,
                 correlationId,
                 auditId: startedAuditId,
-            });
+                adapterDiagnostics: Array.isArray(result?.diagnostics) ? result.diagnostics : [],
+            }, JSON.stringify(result?.resolvedPayload ?? payload, null, 2));
             return {
                 ok: true,
                 queueId: queueRow.id,
@@ -402,6 +404,7 @@ class OutboundQueueService {
                 correlationId,
                 auditId: startedAuditId,
                 message: `Delivery completed successfully${httpStatus ? ` (HTTP ${httpStatus})` : ''}.`,
+                diagnostics: Array.isArray(result?.diagnostics) ? result.diagnostics : [],
             };
         }
         catch (error) {

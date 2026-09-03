@@ -635,7 +635,6 @@ export type OpenMrsLisMappingSeedInput = {
     parameters: Array<{
         analyzerCode: string;
         conceptUuid?: string | null;
-        allocationUuid?: string | null;
         datatype?: string | null;
         codedAnswers?: Array<{ sourceValue: string; destinationUuid: string; note?: string | null }>;
     }>;

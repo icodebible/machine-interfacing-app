@@ -731,20 +731,17 @@ export class Dashboard {
     const targetEnabled = Number(target?.enabled ?? 0) === 1;
     const messages: string[] = [];
     const conceptRules = rules.filter((rule) => this.isConceptDestination(rule.destination_field));
-    const allocationRules = rules.filter((rule) => this.isAllocationDestination(rule.destination_field));
     const codedAnswerRules = rules.filter((rule) => this.isCodedAnswerDestination(rule.destination_field));
-    const instrumentReady = this.hasConstantDestination(rules, ['lis.instrument.uuid', 'instrument.uuid']);
-    const testedByReady = this.hasConstantDestination(rules, ['lis.testedby', 'lis.testedby.uuid', 'testedby']);
+    const instrumentReady = this.hasConstantDestination(rules, ['lis.instrument.uuid', 'lis.defaults.instrumentuuid', 'lis.default.instrumentuuid', 'instrument.uuid']);
+    const testedByReady = this.hasConstantDestination(rules, ['lis.testedby', 'lis.testedby.uuid', 'lis.defaults.testedby', 'lis.default.testedby', 'testedby']);
 
     const missingRequiredCodeCount = parameters.filter((parameter) => Number(parameter.required ?? 0) === 1 && !this.clean(parameter.analyzer_code)).length;
     const missingConceptCount = parameters.filter((parameter) => {
       if (this.clean(parameter.concept_uuid)) return false;
       return !this.hasTranslationForParameter(parameter, conceptRules, translationsByRule, 'code');
     }).length;
-    const missingAllocationCount = parameters.filter((parameter) => {
-      if (this.clean(parameter.allocation_uuid)) return false;
-      return !this.hasTranslationForParameter(parameter, allocationRules, translationsByRule, 'code');
-    }).length;
+    // Allocation UUIDs are intentionally resolved per sample at delivery time.
+    const missingAllocationCount = 0;
     const codedParameters = parameters.filter((parameter) => this.isCodedParameter(parameter));
     const missingCodedAnswerCount = codedParameters.filter(
       (parameter) => !this.hasTranslationForParameter(parameter, codedAnswerRules, translationsByRule, 'result'),
@@ -757,15 +754,12 @@ export class Dashboard {
     if (missingCodedAnswerCount) messages.push(`${missingCodedAnswerCount} coded parameter(s) need analyzer value → OpenMRS coded answer mappings.`);
     if (!instrumentReady) messages.push('Default LIS instrument UUID mapping is not configured.');
     if (!testedByReady) messages.push('Default tested-by mapping is not configured.');
-    if (missingAllocationCount) messages.push(`${missingAllocationCount} allocation mapping warning(s); runtime sample allocation fallback may be required.`);
     if (!targetEnabled) messages.push('Target is disabled, so this coverage is not currently actionable for delivery.');
 
     let status: MappingCoverageStatus = 'READY';
     if (!enabled) status = 'DISABLED';
     else if (!targetEnabled || !profile.order_concept_uuid || !parameters.length || missingRequiredCodeCount || missingConceptCount || missingCodedAnswerCount || !instrumentReady || !testedByReady) {
       status = 'BLOCKED';
-    } else if (missingAllocationCount) {
-      status = 'WARNING';
     }
 
     return {

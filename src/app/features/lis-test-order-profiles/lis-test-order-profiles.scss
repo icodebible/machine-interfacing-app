@@ -623,7 +623,7 @@
 .parameter-header,
 .parameter-line {
   display: grid;
-  grid-template-columns: minmax(190px, 1.25fr) minmax(120px, 0.75fr) minmax(220px, 1.1fr) minmax(220px, 1.1fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr);
+  grid-template-columns: minmax(190px, 1.25fr) minmax(120px, 0.75fr) minmax(220px, 1.1fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr);
   gap: 12px;
   align-items: center;
   min-width: 0;
@@ -658,12 +658,7 @@
 @media (max-width: 1180px) {
   .parameter-header,
   .parameter-line {
-    grid-template-columns: minmax(180px, 1.2fr) minmax(120px, 0.8fr) minmax(180px, 1fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr);
-  }
-
-  .parameter-header > div:nth-child(4),
-  .parameter-line > div:nth-child(4) {
-    display: none;
+    grid-template-columns: minmax(170px, 1.2fr) minmax(110px, 0.8fr) minmax(170px, 1fr) minmax(105px, 0.7fr) minmax(110px, 0.7fr);
   }
 }
 

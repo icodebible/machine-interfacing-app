@@ -36,7 +36,6 @@ export type ProfileParameter = {
   analyzer_code: string;
   display_name?: string | null;
   concept_uuid?: string | null;
-  allocation_uuid?: string | null;
   datatype?: string | null;
   value_type: ProfileValueType;
   required: number;
@@ -404,7 +403,6 @@ export class LisTestOrderProfiles {
           analyzer_code: String(param.analyzer_code ?? '').trim(),
           display_name: String(param.display_name ?? param.analyzer_code ?? '').trim(),
           concept_uuid: String(param.concept_uuid ?? '').trim() || null,
-          allocation_uuid: String(param.allocation_uuid ?? '').trim() || null,
           datatype: String(param.datatype ?? '').trim() || null,
           value_type: this.normalizeValueType(param.value_type),
           required: Number(param.required ?? 1),
@@ -806,7 +804,6 @@ Type ${keyword} to continue.`);
       analyzer_code: analyzerCode || `PARAM_${index + 1}`,
       display_name: this.firstText(concept?.['display'], concept?.['name'], obj?.['display'], obj?.['name'], obj?.['label'], analyzerCode),
       concept_uuid: this.firstText(concept?.['uuid'], obj?.['conceptUuid'], obj?.['parameterUuid'], obj?.['uuid'], obj?.['concept_uuid']),
-      allocation_uuid: this.firstText(obj?.['allocationUuid'], obj?.['allocation_uuid'], this.readPath(this.asRecord(obj?.['testAllocation']), 'uuid'), this.readPath(this.asRecord(obj?.['allocation']), 'uuid')),
       datatype,
       value_type: this.valueTypeFromDatatype(datatype),
       required: 1,
@@ -885,13 +882,6 @@ Type ${keyword} to continue.`);
           analyzer_code: analyzerCode || `PARAM_${index + 1}`,
           display_name: this.firstText(concept?.['display'], concept?.['name'], obj?.['display'], obj?.['label'], analyzerCode),
           concept_uuid: this.firstText(concept?.['uuid'], obj?.['conceptUuid'], obj?.['parameterUuid'], obj?.['concept_uuid']),
-          allocation_uuid: this.firstText(
-            obj?.['allocationUuid'],
-            obj?.['allocation_uuid'],
-            this.readPath(this.asRecord(obj?.['testAllocation']), 'uuid'),
-            this.readPath(this.asRecord(obj?.['allocation']), 'uuid'),
-            obj?.['uuid'],
-          ),
           datatype,
           value_type: this.valueTypeFromDatatype(datatype),
           required: 1,
@@ -910,7 +900,6 @@ Type ${keyword} to continue.`);
         analyzer_code: this.firstText(obj?.['analyzer_code'], obj?.['analyzerCode'], obj?.['display'], obj?.['conceptUuid'], obj?.['concept_uuid']),
         display_name: this.firstText(obj?.['display_name'], obj?.['displayName'], obj?.['display'], obj?.['analyzerCode']),
         concept_uuid: this.firstText(obj?.['concept_uuid'], obj?.['conceptUuid']),
-        allocation_uuid: this.firstText(obj?.['allocation_uuid'], obj?.['allocationUuid']),
         datatype,
         value_type: this.valueTypeFromDatatype(datatype),
         required: 1,
@@ -936,7 +925,6 @@ Type ${keyword} to continue.`);
         analyzer_code: item.analyzer_code || existing.analyzer_code,
         display_name: item.display_name || existing.display_name,
         concept_uuid: item.concept_uuid || existing.concept_uuid,
-        allocation_uuid: item.allocation_uuid || existing.allocation_uuid,
         datatype: item.datatype || existing.datatype,
         value_type: item.value_type || existing.value_type,
         aliases: this.stringList([existing.aliases, item.aliases]),
@@ -973,12 +961,6 @@ Type ${keyword} to continue.`);
       param?.conceptUUID,
     );
 
-    const allocationUuid = this.firstText(
-      param?.allocation_uuid,
-      param?.allocationUuid,
-      param?.testAllocationUuid,
-    );
-
     const datatype = this.firstText(
       param?.datatype,
       param?.dataType,
@@ -989,7 +971,6 @@ Type ${keyword} to continue.`);
       analyzer_code: analyzerCode || `PARAM_${index + 1}`,
       display_name: displayName || analyzerCode || `Parameter ${index + 1}`,
       concept_uuid: conceptUuid || null,
-      allocation_uuid: allocationUuid || null,
       datatype: datatype || null,
       value_type: this.normalizeValueType(
         param?.value_type ?? param?.valueType ?? this.valueTypeFromDatatype(datatype),

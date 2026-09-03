@@ -1,10 +1,4 @@
 "use strict";
-// // import {
-// //     NormalizedResultRecord,
-// //     TargetRecord,
-// //     TargetTransformer,
-// //     TransformPreviewResult,
-// // } from './target-transformer.interface';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LisTransformer = void 0;
 class LisTransformer {
@@ -37,7 +31,7 @@ class LisTransformer {
                     body: lisBody,
                     context: {
                         instrument: rawData?.lis?.instrument ?? rawData?.instrument ?? null,
-                        testedBy: rawData?.lis?.defaults?.testedBy ?? rawData?.lis?.testedBy ?? rawData?.testedBy ?? null,
+                        testedBy: rawData?.lis?.testedBy ?? rawData?.lis?.defaults?.testedBy ?? rawData?.testedBy ?? null,
                     },
                 }
                 : {
@@ -65,8 +59,8 @@ class LisTransformer {
     }
     enrichRows(rows, rawData, result) {
         const lis = rawData?.lis ?? {};
-        const instrumentUuid = this.firstText(lis?.defaults?.instrumentUuid, lis?.instrument?.uuid, rawData?.instrument?.uuid, rawData?.instrumentUuid, rawData?.instrument_uuid);
-        const testedBy = this.firstText(lis?.defaults?.testedBy, lis?.testedBy, rawData?.testedBy, rawData?.tested_by);
+        const instrumentUuid = this.firstText(lis?.instrument?.uuid, lis?.defaults?.instrumentUuid, rawData?.instrument?.uuid, rawData?.instrumentUuid, rawData?.instrument_uuid);
+        const testedBy = this.firstText(lis?.testedBy, lis?.defaults?.testedBy, rawData?.testedBy, rawData?.tested_by);
         const testedDate = this.firstText(lis?.defaults?.testedDate, lis?.testedDate, rawData?.testedDate, result.observed_at, result.created_at);
         return rows.map((row) => ({
             ...row,

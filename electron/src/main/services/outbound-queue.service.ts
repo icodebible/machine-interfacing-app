@@ -20,6 +20,7 @@ type QueueRow = {
     transform_warnings_json?: string | null;
     transform_errors_json?: string | null;
     transform_summary_json?: string | null;
+    delivered_payload_json?: string | null;
     delivery_status: 'PENDING' | 'SENDING' | 'DELIVERED' | 'FAILED' | 'BLOCKED';
     retry_count: number;
     next_retry_at?: string | null;
@@ -64,6 +65,7 @@ type OutboundDeliveryActionResult = {
     correlationId: string | null;
     auditId: string;
     message: string;
+    diagnostics?: string[];
 };
 
 export class OutboundQueueService {
@@ -505,12 +507,19 @@ export class OutboundQueueService {
                 SET delivery_status = 'DELIVERED',
                     next_retry_at = NULL,
                     last_error = NULL,
+                    delivered_payload_json = ?,
                     updated_at = ?,
                     updated_by_user_id = ?,
                     updated_by_username = ?
                 WHERE id = ?
                 `,
-            ).run(nowIso(), actor.userId, actor.username, queueRow.id);
+            ).run(
+                JSON.stringify(result?.resolvedPayload ?? payload ?? null),
+                nowIso(),
+                actor.userId,
+                actor.username,
+                queueRow.id,
+            );
 
             this.finishAudit(startedAuditId, {
                 status: 'DELIVERED',
@@ -543,7 +552,9 @@ export class OutboundQueueService {
                     durationMs,
                     correlationId,
                     auditId: startedAuditId,
+                    adapterDiagnostics: Array.isArray(result?.diagnostics) ? result.diagnostics : [],
                 },
+                JSON.stringify(result?.resolvedPayload ?? payload, null, 2),
             );
 
             return {
@@ -560,6 +571,7 @@ export class OutboundQueueService {
                 correlationId,
                 auditId: startedAuditId,
                 message: `Delivery completed successfully${httpStatus ? ` (HTTP ${httpStatus})` : ''}.`,
+                diagnostics: Array.isArray(result?.diagnostics) ? result.diagnostics : [],
             };
         } catch (error: any) {
             const durationMs = Date.now() - startAt;

@@ -1,5 +1,4 @@
 "use strict";
-// import { MachineMessage, ParsedMessage, ProtocolParser } from './parser.interface';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HL7Parser = void 0;
 const cleanHl7Envelope = (raw) => String(raw ?? '')
@@ -19,7 +18,7 @@ const splitSegments = (raw) => {
     const normalized = raw
         .replace(/\\r/g, '\r')
         .replace(/\\n/g, '\n')
-        .replace(/\\(?=(MSH|PID|PV1|ORC|OBR|OBX|SPM|TQ1|NTE)\|)/g, '\r');
+        .replace(/\\(?=(MSH|PID|PV1|ORC|OBR|OBX|SPM|SAC|TCD|INV|TQ1|NTE)\|)/g, '\r');
     return normalized
         .split(/\r?\n|\r/)
         .map((segment) => segment.trim())
@@ -67,12 +66,14 @@ class HL7Parser {
                 code: code.identifier,
                 name: code.text ?? code.identifier,
                 codingSystem: code.codingSystem,
+                subId: field(fields, 4),
                 rawValue: field(fields, 5),
                 value: value.identifier ?? field(fields, 5),
                 valueText: value.text,
                 valueCodingSystem: value.codingSystem,
                 units: field(fields, 6),
                 referenceRange: field(fields, 7),
+                interpretation: field(fields, 8),
                 abnormalFlag: field(fields, 8),
                 resultStatus: field(fields, 11),
                 responsibleObserver: field(fields, 16),
@@ -107,6 +108,7 @@ class HL7Parser {
                     text: specimen.text,
                     raw: field(spmFields, 2),
                     type: component(field(spmFields, 4)),
+                    role: field(spmFields, 11),
                     collectedAt: field(spmFields, 17) ?? field(spmFields, 26),
                 },
                 order: {

@@ -1,79 +1,6 @@
 "use strict";
-// import { randomUUID } from 'crypto';
-// import { getDb } from '../db/db';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MachineTrafficLogService = void 0;
-// const nowIso = () => new Date().toISOString();
-// export type MachineTrafficLogDto = {
-//     machine_id: string;
-//     direction: 'inbound' | 'outbound' | 'system';
-//     transport: 'TCP' | 'HL7_MLLP' | 'SERIAL' | 'FTP' | 'SFTP' | 'FILE_WATCHER';
-//     protocol: 'ASTM' | 'HL7' | 'RAW';
-//     event_type:
-//     | 'connected'
-//     | 'disconnected'
-//     | 'payload'
-//     | 'parse_success'
-//     | 'parse_error'
-//     | 'test'
-//     | 'error';
-//     payload?: string | null;
-//     payload_preview?: string | null;
-// };
-// export type MachineTrafficLogQuery = {
-//     machineId: string;
-//     limit?: number;
-// };
-// export class MachineTrafficLogService {
-//     create(dto: MachineTrafficLogDto) {
-//         const db = getDb();
-//         db.prepare(
-//             `
-//                 INSERT INTO machine_traffic_logs (
-//                     id,
-//                     machine_id,
-//                     direction,
-//                     transport,
-//                     protocol,
-//                     event_type,
-//                     payload,
-//                     payload_preview,
-//                     created_at
-//                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-//             `,
-//         ).run(
-//             randomUUID(),
-//             dto.machine_id,
-//             dto.direction,
-//             dto.transport,
-//             dto.protocol,
-//             dto.event_type,
-//             dto.payload ?? null,
-//             dto.payload_preview ?? null,
-//             nowIso(),
-//         );
-//         return true;
-//     }
-//     listByMachine(machineId: string, limit = 50) {
-//         const db = getDb();
-//         return db
-//             .prepare(
-//                 `
-//                     SELECT *
-//                     FROM machine_traffic_logs
-//                     WHERE machine_id = ?
-//                     ORDER BY created_at DESC
-//                     LIMIT ?
-//                 `,
-//             )
-//             .all(machineId, limit);
-//     }
-//     clearMachineLogs(machineId: string) {
-//         const db = getDb();
-//         db.prepare(`DELETE FROM machine_traffic_logs WHERE machine_id = ?`).run(machineId);
-//         return true;
-//     }
-// }
 const crypto_1 = require("crypto");
 const db_1 = require("../db/db");
 const actor_context_service_1 = require("../services/actor-context.service");
@@ -81,6 +8,7 @@ const parser_registry_1 = require("../protocols/parser-registry");
 const parsed_message_service_1 = require("../protocols/parsed-message.service");
 const normalizer_registry_1 = require("../normalizers/normalizer-registry");
 const normalized_result_service_1 = require("../normalizers/normalized-result.service");
+const hl7_result_classifier_1 = require("../protocols/hl7-result-classifier");
 const session_recorder_service_1 = require("./session-recorder.service");
 const machine_host_log_service_1 = require("./machine-host-log.service");
 const nowIso = () => new Date().toISOString();
@@ -171,7 +99,7 @@ class MachineTrafficLogService {
         if (input.session_id) {
             this.sessions.touchSession(input.session_id, input.processing_message ?? payloadPreview ?? input.event_type);
         }
-        if (input.direction === 'inbound' && input.payload !== undefined && input.payload !== null) {
+        if (input.write_raw_host_log !== false && input.direction === 'inbound' && input.payload !== undefined && input.payload !== null) {
             machine_host_log_service_1.machineHostLogService.appendRawMachineMessage({
                 machineId: input.machine_id,
                 sessionId: input.session_id ?? null,
@@ -316,9 +244,20 @@ class MachineTrafficLogService {
                 this.sessions.endSession(session.id, 'STOPPED', 'Replay completed without parsed output');
                 return { ok: false, status: 'PARSE_EMPTY', logId: replayLog.id, sessionId: session.id, logs };
             }
+            const classification = parsed.protocol === 'HL7' ? (0, hl7_result_classifier_1.classifyHl7Result)(parsed) : null;
+            addLog('info', `Parsed as ${parsed.messageType}`);
+            if (classification && !classification.reportable) {
+                this.updateProcessing(replayLog.id, {
+                    processing_status: 'IGNORED_NO_RESULT',
+                    processing_message: classification.reason,
+                    meta_json: safeJson({ replayOfLogId: logId, mode, resultClassification: classification }),
+                });
+                addLog('info', classification.reason);
+                this.sessions.endSession(session.id, 'STOPPED', 'Replay ignored: no reportable result');
+                return { ok: true, status: 'IGNORED_NO_RESULT', logId: replayLog.id, sessionId: session.id, logs };
+            }
             const parsedRow = this.parsedMessages.create(parsed);
             const parsedId = typeof parsedRow === 'object' ? parsedRow.id ?? null : null;
-            addLog('info', `Parsed as ${parsed.messageType}`);
             if (mode === 'PARSE_ONLY') {
                 this.updateProcessing(replayLog.id, {
                     parsed_message_id: parsedId,

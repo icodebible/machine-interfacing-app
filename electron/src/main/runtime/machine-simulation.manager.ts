@@ -1,3 +1,5 @@
+import { COBAS_HPV_SIMULATION_SAMPLE_ID, renderCobasHpvActualResult } from '../protocols/cobas-hpv.fixture';
+
 export type MachineSimulationScenario =
     | 'ASTM_BASIC'
     | 'HL7_ORU'
@@ -31,6 +33,7 @@ type EmitPayload = {
 type EmitFn = (payload: EmitPayload) => void;
 
 const nowIso = () => new Date().toISOString();
+const hl7Ts = () => new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
 
 function protocolForMachine(machine: SimulationMachine, scenario: MachineSimulationScenario): 'ASTM' | 'HL7' | 'RAW' {
     if (scenario.startsWith('HL7')) return 'HL7';
@@ -44,12 +47,20 @@ function transportForMachine(machine: SimulationMachine) {
     return String(machine.connection_type ?? 'SIMULATION');
 }
 
+export function cobasHpvActualResultPayload(sampleId = COBAS_HPV_SIMULATION_SAMPLE_ID, timestamp = hl7Ts()) {
+    return renderCobasHpvActualResult({
+        sampleId,
+        messageDateTime: timestamp,
+        observedAt: timestamp,
+        messageControlId: `HPV-SIM-${Date.now()}`,
+    });
+}
+
 function scenarioPayload(machine: SimulationMachine, scenario: MachineSimulationScenario) {
-    const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-    const sampleId = 'NPHL/22/0000099';
+    const ts = hl7Ts();
     switch (scenario) {
         case 'HL7_COBAS_HPV_FINAL_RESULT':
-            return `MSH|^~\\&|COBAS6800/8800||LIS||${ts}||OUL^R22^OUL_R22|HPV-SIM-${Date.now()}|P|2.5||||||ASCII|||ROC-06^ROCHE\nPID|1||NPHL123^^^NPHL||KISILI^SEIF||19850101|M\nSPM|1|${sampleId}||RCCM^RocheCellCollectionMedia^99ROC|||||||P||||||||||||||||\nOBR|1|${sampleId}||71432-9^HPV-GT^LN|||||||A||||||||||||||F\nOBX|1|CE|HPV16^HPV16^99LIS||POS^Positive^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}\nOBX|2|CE|HPV18^HPV18^99LIS||NEG^Negative^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}\nOBX|3|CE|HRHPV^Hr-HPV^99LIS||INVALID^Invalid.^99LIS||||||F|||||AUTO||C6800/8800^Roche^^~ID_000000000012076380^IM300-001794^^|${ts}`;
+            return cobasHpvActualResultPayload(COBAS_HPV_SIMULATION_SAMPLE_ID, ts);
         case 'HL7_ORU':
             return `MSH|^~\\&|SIMULATOR||LIS||${ts}||ORU^R01|ORU-SIM-${Date.now()}|P|2.5\nPID|1||PAT001^^^SIM||TEST^PATIENT||19850101|M\nOBR|1|SAMPLE-001||GLU^Glucose^99LIS|||||||||||||||||||F\nOBX|1|NM|GLU^Glucose^99LIS||5.6|mmol/L|3.9-6.1|N|||F||||||${ts}`;
         case 'ASTM_COBAS_HPV_FINAL_RESULT':

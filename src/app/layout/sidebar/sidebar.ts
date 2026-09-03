@@ -101,8 +101,8 @@ export class Sidebar {
   ];
 
   navAdmin: NavItem[] = [
-    // { label: 'Users', icon: 'group', route: '/app/users', requires: 'USERS_WRITE' },
-    // { label: 'Roles', icon: 'admin_panel_settings', route: '/app/roles', requires: 'ROLES_WRITE' },
+    { label: 'Users', icon: 'group', route: '/app/users', requires: 'USERS_WRITE' },
+    { label: 'Roles', icon: 'admin_panel_settings', route: '/app/roles', requires: 'ROLES_WRITE' },
     {
       label: 'Approval Policies',
       icon: 'fact_check',

@@ -1,7 +1,7 @@
 "use strict";
-// import { NormalizedLabResult, ResultNormalizer } from './normalizer.interface';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HL7Normalizer = void 0;
+const hl7_result_classifier_1 = require("../protocols/hl7-result-classifier");
 const normalizeCode = (value) => String(value ?? '')
     .trim()
     .toUpperCase()
@@ -18,38 +18,56 @@ class HL7Normalizer {
     normalize(parsed) {
         const d = parsed.data ?? {};
         const observations = Array.isArray(d.observations) ? d.observations : [];
+        const classification = (0, hl7_result_classifier_1.classifyHl7Result)(parsed);
+        if (!classification.reportable)
+            return null;
         const patientId = d.patient?.id ?? null;
         const patientName = d.patient?.name ?? null;
         const sampleId = d.specimen?.id ?? d.order?.placerOrderNumber ?? null;
         const orderId = d.order?.placerOrderNumber ?? d.order?.fillerOrderNumber ?? sampleId;
         const observedAt = this.toOpenMrsDate(d.messageDateTime) ?? parsed.timestamp;
-        const normalizedResults = observations
+        const sourceObservations = classification.profile === 'COBAS_6800_HPV'
+            ? classification.observations
+            : observations;
+        const normalizedResults = sourceObservations
             .filter((obx) => {
+            if (classification.profile === 'COBAS_6800_HPV')
+                return true;
             const code = normalizeCode(obx.code);
             if (!code || isOperationalObservation(code))
                 return false;
             return looksFinal(obx.resultStatus);
         })
-            .map((obx) => ({
-            code: obx.code ?? null,
-            name: obx.name ?? obx.code ?? null,
-            value: obx.value ?? obx.rawValue ?? null,
-            rawValue: obx.rawValue ?? null,
-            valueText: obx.valueText ?? null,
-            valueType: obx.valueType ?? null,
-            valueCodingSystem: obx.valueCodingSystem ?? null,
-            codingSystem: obx.codingSystem ?? null,
-            units: obx.units ?? null,
-            referenceRange: obx.referenceRange ?? null,
-            abnormalFlag: obx.abnormalFlag ?? null,
-            resultStatus: obx.resultStatus ?? null,
-            observedAt: this.toOpenMrsDate(obx.observedAt) ?? observedAt,
-            instrumentRaw: obx.instrumentRaw ?? null,
-            equipment: Array.isArray(obx.equipment) ? obx.equipment : [],
-        }));
+            .map((obx) => {
+            const isCobasHpv = classification.profile === 'COBAS_6800_HPV';
+            const value = isCobasHpv ? obx.effectiveValue : (obx.value ?? obx.rawValue ?? null);
+            const code = isCobasHpv ? obx.canonicalCode : (obx.code ?? null);
+            return {
+                code,
+                sourceCode: obx.code ?? null,
+                name: obx.name ?? obx.code ?? code ?? null,
+                value,
+                rawValue: obx.rawValue ?? null,
+                interpretation: obx.interpretation ?? obx.abnormalFlag ?? null,
+                valueText: obx.valueText ?? null,
+                valueType: obx.valueType ?? null,
+                valueCodingSystem: obx.valueCodingSystem ?? null,
+                codingSystem: obx.codingSystem ?? null,
+                units: obx.units ?? null,
+                referenceRange: obx.referenceRange ?? null,
+                abnormalFlag: obx.abnormalFlag ?? null,
+                resultStatus: obx.resultStatus ?? null,
+                observedAt: this.toOpenMrsDate(obx.observedAt) ?? observedAt,
+                instrumentRaw: obx.instrumentRaw ?? null,
+                equipment: Array.isArray(obx.equipment) ? obx.equipment : [],
+            };
+        });
         if (!normalizedResults.length)
             return null;
         const first = normalizedResults[0];
+        const resultObservedAt = normalizedResults
+            .map((row) => row.observedAt)
+            .find(Boolean) ?? observedAt;
         return {
             machineId: parsed.machineId,
             protocol: 'HL7',
@@ -63,12 +81,13 @@ class HL7Normalizer {
             units: first?.units ?? null,
             referenceRange: first?.referenceRange ?? null,
             abnormalFlag: first?.abnormalFlag ?? null,
-            observedAt,
+            observedAt: resultObservedAt,
             sourceMessageType: parsed.messageType,
-            summary: `HL7 ${parsed.messageType} · ${sampleId ?? 'No sample'} · ${normalizedResults.length} final result${normalizedResults.length === 1 ? '' : 's'}`,
+            summary: `HL7 ${parsed.messageType} · ${sampleId ?? 'No sample'} · ${normalizedResults.length} reportable result${normalizedResults.length === 1 ? '' : 's'}`,
             raw: parsed.raw,
             data: {
                 ...d,
+                resultClassification: classification,
                 sample: {
                     label: sampleId,
                     uuid: null,

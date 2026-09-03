@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { getDb } from '../db/db';
 import { getCurrentActorStamp } from '../services/actor-context.service';
 import { NormalizedLabResult } from './normalizer.interface';
@@ -45,7 +45,8 @@ export class NormalizedResultService {
                 data_json TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 created_by_user_id TEXT,
-                created_by_username TEXT
+                created_by_username TEXT,
+                source_fingerprint TEXT
             );
 
             CREATE INDEX IF NOT EXISTS idx_normalized_lab_results_machine_id
@@ -57,11 +58,19 @@ export class NormalizedResultService {
 
         ensureColumn(db, 'normalized_lab_results', 'created_by_user_id', 'TEXT');
         ensureColumn(db, 'normalized_lab_results', 'created_by_username', 'TEXT');
+        ensureColumn(db, 'normalized_lab_results', 'source_fingerprint', 'TEXT');
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_normalized_lab_results_fingerprint ON normalized_lab_results(machine_id, source_fingerprint);`);
     }
 
     create(result: NormalizedLabResult) {
         const db = getDb();
         const actor = getCurrentActorStamp();
+        const fingerprint = this.fingerprint(result);
+        const existing = db
+            .prepare(`SELECT id FROM normalized_lab_results WHERE machine_id = ? AND source_fingerprint = ? LIMIT 1`)
+            .get(result.machineId, fingerprint) as { id: string } | undefined;
+        if (existing?.id) return { id: existing.id, duplicate: true, fingerprint };
+
         const id = randomUUID();
 
         db.prepare(
@@ -86,8 +95,9 @@ export class NormalizedResultService {
                 data_json,
                 created_at,
                 created_by_user_id,
-                created_by_username
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_by_username,
+                source_fingerprint
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
         ).run(
             id,
@@ -110,11 +120,40 @@ export class NormalizedResultService {
             nowIso(),
             actor.userId,
             actor.username,
+            fingerprint,
         );
 
         // Advance the workflow exactly once using the inserted normalized result id.
         this.flow.advanceAfterNormalization(id);
-        return { id };
+        return { id, duplicate: false, fingerprint };
+    }
+
+    private fingerprint(result: NormalizedLabResult): string {
+        const data: any = result.data ?? {};
+        const observations: any[] = Array.isArray(data.normalizedResults)
+            ? data.normalizedResults
+            : Array.isArray(data.observations)
+              ? data.observations
+              : [];
+        const canonicalResults = observations
+            .map((row) => ({
+                code: String(row?.code ?? row?.sourceCode ?? '').trim().toUpperCase(),
+                value: String(row?.value ?? row?.rawValue ?? '').trim().toUpperCase(),
+                observedAt: String(row?.observedAt ?? result.observedAt ?? '').trim(),
+                status: String(row?.resultStatus ?? '').trim().toUpperCase(),
+            }))
+            .filter((row) => row.code && row.value)
+            .sort((a, b) => `${a.code}|${a.value}`.localeCompare(`${b.code}|${b.value}`));
+
+        const basis = {
+            machineId: result.machineId,
+            protocol: result.protocol,
+            sampleId: String(result.sampleId ?? '').trim(),
+            testCode: String(result.testCode ?? '').trim().toUpperCase(),
+            observedAt: String(result.observedAt ?? '').trim(),
+            results: canonicalResults,
+        };
+        return createHash('sha256').update(JSON.stringify(basis)).digest('hex');
     }
 
     listByMachine(machineId: string, limit = 50) {

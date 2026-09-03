@@ -14,6 +14,8 @@ const normalizer_registry_1 = require("../normalizers/normalizer-registry");
 const normalized_result_service_1 = require("../normalizers/normalized-result.service");
 const machine_simulation_use_case_service_1 = require("../services/machine-simulation-use-case.service");
 const audit_service_1 = require("../services/audit.service");
+const hl7_mllp_stream_decoder_1 = require("../protocols/hl7-mllp-stream.decoder");
+const hl7_result_classifier_1 = require("../protocols/hl7-result-classifier");
 const nowIso = () => new Date().toISOString();
 function normalizeProtocol(protocol) {
     const p = String(protocol ?? '').trim().toUpperCase();
@@ -58,6 +60,7 @@ class MachineRuntimeManager {
     normalizers = new normalizer_registry_1.NormalizerRegistry();
     normalizedResults = new normalized_result_service_1.NormalizedResultService();
     useCases = new machine_simulation_use_case_service_1.MachineSimulationUseCaseService();
+    mllpDecoders = new Map();
     constructor() {
         this.recorder.ensureTable();
         this.trafficLogs.ensureTable();
@@ -290,19 +293,83 @@ class MachineRuntimeManager {
                             : Buffer.isBuffer(msg.payload)
                                 ? msg.payload.toString('utf8')
                                 : String(msg.payload);
-                        const result = this.processIncomingPayload({
+                        const protocol = normalizeProtocol(machine.protocol);
+                        const remoteAddress = msg.remoteAddress ?? null;
+                        const remotePort = msg.remotePort ?? null;
+                        const decoderKey = `${machineId}:${remoteAddress ?? 'unknown'}:${remotePort ?? 'unknown'}`;
+                        const decoder = this.mllpDecoders.get(decoderKey) ?? new hl7_mllp_stream_decoder_1.Hl7MllpStreamDecoder();
+                        this.mllpDecoders.set(decoderKey, decoder);
+                        const looksMllp = protocol === 'HL7' && (text.includes('\x0b') || decoder.pendingLength() > 0);
+                        if (!looksMllp) {
+                            const result = this.processIncomingPayload({
+                                machineId,
+                                machineName: machine.name,
+                                raw: text,
+                                protocol: machine.protocol,
+                                transport: machine.connection_type,
+                                mode: 'LIVE',
+                                sessionId: liveSession.id,
+                                meta: { tcpMode, remoteAddress, remotePort },
+                            });
+                            this.setState(machineId, { status: 'connected', message: result.message ?? `Received ${text.length} chars` });
+                            return;
+                        }
+                        // Raw transport evidence is captured exactly once before framing.
+                        this.recorder.record({
                             machineId,
                             machineName: machine.name,
-                            raw: text,
-                            protocol: machine.protocol,
+                            direction: 'inbound',
+                            payload: text,
+                            meta: { source: 'tcp_transport_chunk', tcpMode, remoteAddress, remotePort, transport: machine.connection_type, protocol },
+                        });
+                        const chunkLog = this.trafficLogs.create({
+                            machine_id: machineId,
+                            session_id: liveSession.id,
+                            direction: 'inbound',
                             transport: machine.connection_type,
-                            mode: 'LIVE',
-                            sessionId: liveSession.id,
-                            meta: { tcpMode, remoteAddress: msg.remoteAddress ?? null, remotePort: msg.remotePort ?? null },
+                            protocol,
+                            event_type: 'transport_chunk',
+                            payload: text,
+                            payload_preview: text.slice(0, 300),
+                            processing_status: 'CAPTURED',
+                            processing_message: `Captured ${text.length} TCP chars before MLLP framing`,
+                            meta_json: safeJson({ tcpMode, remoteAddress, remotePort }),
+                        });
+                        const frames = decoder.push(text);
+                        if (!frames.length) {
+                            this.trafficLogs.updateProcessing(chunkLog.id, {
+                                processing_status: 'MLLP_BUFFERED',
+                                processing_message: `Buffered incomplete MLLP frame (${decoder.pendingLength()} chars pending)`,
+                            });
+                            this.setState(machineId, { status: 'connected', message: 'Buffered incomplete MLLP frame' });
+                            return;
+                        }
+                        let reportableCount = 0;
+                        let lastMessage = `Decoded ${frames.length} MLLP frame${frames.length === 1 ? '' : 's'}`;
+                        frames.forEach((frame, frameIndex) => {
+                            const result = this.processIncomingPayload({
+                                machineId,
+                                machineName: machine.name,
+                                raw: frame,
+                                protocol: machine.protocol,
+                                transport: machine.connection_type,
+                                mode: 'LIVE',
+                                sessionId: liveSession.id,
+                                writeRawHostLog: false,
+                                meta: { source: 'mllp_frame', tcpMode, remoteAddress, remotePort, frameIndex, frameCount: frames.length, transportChunkLogId: chunkLog.id },
+                            });
+                            if (result.normalized)
+                                reportableCount += 1;
+                            if (result.message)
+                                lastMessage = result.message;
+                        });
+                        this.trafficLogs.updateProcessing(chunkLog.id, {
+                            processing_status: 'MLLP_FRAMED',
+                            processing_message: `Decoded ${frames.length} frame${frames.length === 1 ? '' : 's'}; ${reportableCount} reportable result message${reportableCount === 1 ? '' : 's'}`,
                         });
                         this.setState(machineId, {
                             status: 'connected',
-                            message: result.message ?? `Received ${text.length} chars`,
+                            message: reportableCount ? lastMessage : `Decoded ${frames.length} MLLP frame${frames.length === 1 ? '' : 's'}; no reportable result`,
                         });
                     }, (evt) => {
                         if (evt.status === 'error') {
@@ -414,6 +481,12 @@ class MachineRuntimeManager {
                     await this.serial.disconnect();
                 this.serialSessions.delete(machineId);
             }
+            for (const [key, decoder] of this.mllpDecoders.entries()) {
+                if (key.startsWith(`${machineId}:`)) {
+                    decoder.reset();
+                    this.mllpDecoders.delete(key);
+                }
+            }
             this.setState(machineId, { status: 'stopped', message: 'Stopped by user' });
             this.recorder.endCurrent(machineId, 'LIVE', 'STOPPED', 'Stopped by user');
             audit_service_1.auditService.record({
@@ -492,6 +565,7 @@ class MachineRuntimeManager {
             processing_status: 'RECEIVED',
             processing_message: `Received ${input.raw.length} chars`,
             meta_json: safeJson(input.meta ?? null),
+            write_raw_host_log: input.writeRawHostLog !== false,
         });
         try {
             const parsed = this.parsers.get(protocol).parse({
@@ -515,31 +589,67 @@ class MachineRuntimeManager {
                 });
                 return { ok: false, parsed: false, normalized: false, logId: traffic.id, message: 'Parser returned no parsed message', logs };
             }
+            const classification = parsed.protocol === 'HL7' ? (0, hl7_result_classifier_1.classifyHl7Result)(parsed) : null;
+            addLog('info', parsed.summary || `Parsed ${parsed.messageType}`);
+            // COBAS non-result traffic is intentionally retained only in traffic/raw diagnostics.
+            // Do not create parsed/normalized workflow records for queries, process status, QC,
+            // or result-family messages that do not contain a reportable POS/NEG/NA observation.
+            if (classification && !classification.reportable) {
+                const ignoredMessage = classification.reason;
+                this.trafficLogs.updateProcessing(traffic.id, {
+                    processing_status: 'IGNORED_NO_RESULT',
+                    processing_message: ignoredMessage,
+                    meta_json: safeJson({ ...(input.meta ?? {}), resultClassification: classification }),
+                });
+                addLog('info', ignoredMessage);
+                this.events.emit({
+                    type: 'traffic',
+                    machineId: input.machineId,
+                    direction: 'inbound',
+                    payloadPreview: ignoredMessage || input.raw.slice(0, 160),
+                    updatedAt: nowIso(),
+                });
+                return { ok: true, parsed: true, normalized: false, parsedSummary: parsed.summary, logId: traffic.id, message: ignoredMessage, logs };
+            }
             const parsedRow = this.parsedMessages.create(parsed);
             const parsedId = parsedRow.id;
-            addLog('info', parsed.summary || `Parsed ${parsed.messageType}`);
             const normalized = this.normalizers.get(parsed.protocol).normalize(parsed);
             if (!normalized) {
+                const ignoredMessage = parsed.summary ?? 'Parsed successfully';
                 this.trafficLogs.updateProcessing(traffic.id, {
                     parsed_message_id: parsedId,
                     processing_status: 'PARSED',
-                    processing_message: parsed.summary ?? 'Parsed successfully',
+                    processing_message: ignoredMessage,
+                    meta_json: safeJson({ ...(input.meta ?? {}), resultClassification: classification }),
                 });
                 this.events.emit({
                     type: 'traffic',
                     machineId: input.machineId,
                     direction: 'inbound',
-                    payloadPreview: parsed.summary || input.raw.slice(0, 160),
+                    payloadPreview: ignoredMessage || input.raw.slice(0, 160),
                     updatedAt: nowIso(),
                 });
-                return { ok: true, parsed: true, normalized: false, parsedMessageId: parsedId, parsedSummary: parsed.summary, logId: traffic.id, message: parsed.summary, logs };
+                return { ok: true, parsed: true, normalized: false, parsedMessageId: parsedId, parsedSummary: parsed.summary, logId: traffic.id, message: ignoredMessage, logs };
             }
             const normalizedRow = this.normalizedResults.create(normalized);
+            if (normalizedRow.duplicate) {
+                const duplicateMessage = `Duplicate analyzer retransmission ignored for ${normalized.sampleId ?? 'unknown sample'}.`;
+                this.trafficLogs.updateProcessing(traffic.id, {
+                    parsed_message_id: parsedId,
+                    normalized_result_id: normalizedRow.id,
+                    processing_status: 'DUPLICATE_RESULT',
+                    processing_message: duplicateMessage,
+                    meta_json: safeJson({ ...(input.meta ?? {}), resultClassification: classification, fingerprint: normalizedRow.fingerprint }),
+                });
+                addLog('info', duplicateMessage);
+                return { ok: true, parsed: true, normalized: false, duplicate: true, parsedMessageId: parsedId, normalizedResultId: normalizedRow.id, parsedSummary: parsed.summary, logId: traffic.id, message: duplicateMessage, logs };
+            }
             this.trafficLogs.updateProcessing(traffic.id, {
                 parsed_message_id: parsedId,
                 normalized_result_id: normalizedRow.id,
                 processing_status: 'NORMALIZED',
                 processing_message: normalized.summary ?? parsed.summary ?? 'Normalized successfully',
+                meta_json: safeJson({ ...(input.meta ?? {}), resultClassification: classification, fingerprint: normalizedRow.fingerprint }),
             });
             addLog('info', normalized.summary ?? 'Normalized successfully');
             this.events.emit({

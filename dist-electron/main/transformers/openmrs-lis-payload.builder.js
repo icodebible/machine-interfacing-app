@@ -2341,7 +2341,6 @@ class OpenMrsLisPayloadBuilder {
     build() {
         const translations = this.readLisTranslations();
         const observations = this.extractAnalyzerObservations(this.sourceDocument);
-        const allocationByConceptUuid = this.extractAllocationIndex(this.sourceDocument);
         const context = this.extractContext(this.sourceDocument, translations.directValuesByDestination);
         for (const observation of observations) {
             const mappedConceptUuid = this.lookupConceptUuid(observation, translations);
@@ -2359,16 +2358,8 @@ class OpenMrsLisPayloadBuilder {
                     ' Configure analyzer value → OpenMRS coded answer UUID, or ensure the result is numeric/text for this LIS parameter.');
                 continue;
             }
-            const allocationUuid = this.lookupMappedAllocationUuid(observation, translations) ??
-                allocationByConceptUuid.get(this.key(mappedConceptUuid)) ??
-                null;
-            if (!allocationUuid) {
-                this.warnings.push(`No current sample allocation UUID was found for LIS concept "${mappedConceptUuid}". ` +
-                    'The delivery adapter will try to resolve it from /lab/samplelookup and /lab/allocationsbysample before sending.');
-            }
             const row = {
                 concept: { uuid: mappedConceptUuid },
-                testAllocation: allocationUuid ? { uuid: allocationUuid } : undefined,
                 valueNumeric: codedUuid || numericValue == null ? null : numericValue,
                 valueText: codedUuid || numericValue != null ? null : value || null,
                 valueCoded: codedUuid ? { uuid: codedUuid } : null,
@@ -2393,6 +2384,7 @@ class OpenMrsLisPayloadBuilder {
         if (!this.rows.length) {
             this.errors.push('No LIS multiple-results rows are ready. Configure LIS mappings for analyzer code → concept UUID and analyzer value → coded answer UUID where applicable.');
         }
+        this.warnings.push('Sample-specific testAllocation UUIDs are intentionally omitted from reusable mappings and preview payloads. They are resolved from the current LIS sample immediately before delivery.');
         this.warnings.push('LIS preview uses the OpenMRS dynamic multiple-results builder. Generic mapping rules remain available for non-LIS targets and advanced payload shaping.');
         return {
             payload: this.rows.length
@@ -2655,8 +2647,8 @@ class OpenMrsLisPayloadBuilder {
                 continue;
             }
             if (this.isAllocationDestination(destinationKey)) {
-                index.allocationRuleCount += 1;
-                this.addTranslationRows(index.allocationUuidByCode, rows, 'code');
+                // Legacy allocation mappings are intentionally ignored. Allocation UUIDs are
+                // sample-specific and are resolved by the LIS delivery adapter immediately before POST.
                 continue;
             }
             if (this.isCodedAnswerDestination(destinationKey)) {
@@ -2897,7 +2889,13 @@ class OpenMrsLisPayloadBuilder {
     extractContext(source, directValues) {
         const raw = source?.raw ?? {};
         const lis = source?.lis ?? {};
-        const sample = lis?.sample ?? source?.sample ?? raw?.sample ?? null;
+        const sampleSource = lis?.sample ?? source?.sample ?? raw?.sample ?? null;
+        const sampleLabel = this.firstText(sampleSource?.label, sampleSource?.sampleId, sampleSource?.id, source?.specimen?.sampleId, source?.specimen?.id, raw?.specimen?.id, raw?.sample?.label);
+        const sample = sampleSource && typeof sampleSource === 'object'
+            ? { ...sampleSource, label: sampleLabel ?? sampleSource?.label ?? null }
+            : sampleLabel
+                ? { label: sampleLabel }
+                : null;
         const order = lis?.order ?? source?.order ?? raw?.order ?? null;
         const patient = lis?.patient ?? source?.patient ?? raw?.patient ?? null;
         const instrument = lis?.instrument ?? raw?.instrument ?? null;
@@ -2906,12 +2904,17 @@ class OpenMrsLisPayloadBuilder {
             order,
             patient,
             instrument,
-            instrumentUuid: this.firstText(directValues.get('lis.instrument.uuid'), directValues.get('instrument.uuid'), instrument?.uuid, raw?.instrumentUuid),
-            testedBy: this.firstText(directValues.get('lis.testedby'), directValues.get('lis.testedby.uuid'), directValues.get('testedby'), raw?.testedBy, lis?.testedBy),
+            instrumentUuid: this.firstText(
+            // Canonical mapping destination. Legacy defaults remain readable so
+            // already-configured installations do not lose instrument metadata.
+            directValues.get('lis.instrument.uuid'), directValues.get('lis.defaults.instrumentuuid'), directValues.get('lis.default.instrumentuuid'), directValues.get('instrument.uuid'), instrument?.uuid, lis?.defaults?.instrumentUuid, raw?.instrumentUuid),
+            testedBy: this.firstText(
+            // Canonical mapping destination + backwards-compatible aliases.
+            directValues.get('lis.testedby'), directValues.get('lis.testedby.uuid'), directValues.get('lis.defaults.testedby'), directValues.get('lis.default.testedby'), directValues.get('testedby'), lis?.defaults?.testedBy, raw?.testedBy, lis?.testedBy),
             testedDate: this.firstText(raw?.testedDate, lis?.testedDate, source?.result?.observedAt, source?.normalized?.observedAt),
-            statusCategory: this.firstText(directValues.get('lis.status.category'), lis?.status?.category) ?? 'RESULT_REMARKS',
-            status: this.firstText(directValues.get('lis.status.status'), lis?.status?.status) ?? 'REMARKS',
-            remarks: this.firstText(directValues.get('lis.status.remarks'), lis?.defaultRemarks, raw?.remarks) ?? 'Machine interfaced result 1',
+            statusCategory: this.firstText(directValues.get('lis.status.category'), directValues.get('lis.defaults.status.category'), lis?.status?.category, lis?.defaults?.status?.category) ?? 'RESULT_REMARKS',
+            status: this.firstText(directValues.get('lis.status.status'), directValues.get('lis.defaults.status.status'), lis?.status?.status, lis?.defaults?.status?.status) ?? 'REMARKS',
+            remarks: this.firstText(directValues.get('lis.status.remarks'), directValues.get('lis.defaults.status.remarks'), lis?.defaultRemarks, lis?.defaults?.status?.remarks, raw?.remarks) ?? 'Machine interfaced result 1',
         };
     }
     isConceptDestination(destination) {

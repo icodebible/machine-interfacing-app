@@ -551,6 +551,7 @@ function runMigrationsUnsafe() {
         ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
         ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
         ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'delivered_payload_json', 'TEXT');
         ensureColumn(db, 'targets', 'auto_retry_enabled', 'INTEGER NOT NULL DEFAULT 1');
         ensureColumn(db, 'targets', 'max_retry_attempts', 'INTEGER NOT NULL DEFAULT 4');
         ensureColumn(db, 'targets', 'retry_backoff_strategy', "TEXT NOT NULL DEFAULT 'EXPONENTIAL'");
@@ -600,6 +601,7 @@ function runMigrationsUnsafe() {
         ensureColumn(db, 'outbound_queue', 'transform_warnings_json', 'TEXT');
         ensureColumn(db, 'outbound_queue', 'transform_errors_json', 'TEXT');
         ensureColumn(db, 'outbound_queue', 'transform_summary_json', 'TEXT');
+        ensureColumn(db, 'outbound_queue', 'delivered_payload_json', 'TEXT');
         ensureColumn(db, 'audit_events', 'entity_label', 'TEXT');
         ensureColumn(db, 'audit_events', 'details_json', 'TEXT');
         ensureColumn(db, 'audit_events', 'before_json', 'TEXT');

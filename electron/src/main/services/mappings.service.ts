@@ -93,7 +93,7 @@ const CONNECTOR_RULES: Record<
     supportedTransforms: ["direct", "constant", "lookup"],
     helperText: [
       "For OpenMRS-backed LIS delivery, configure analyzer code → concept UUID and analyzer result value → coded answer UUID. Test allocation UUIDs are resolved dynamically from the sample allocation at delivery time when the sample label/UUID is present.",
-      "Static analyzer code → allocation UUID mappings remain supported as an optional fallback only. They should not be treated as required because allocations are sample-specific.",
+      "Do not map test allocation UUIDs. Allocations are sample-specific and are resolved from the current OpenMRS LIS sample immediately before delivery.",
       "For coded test parameters, configure analyzer result values such as HPV16=POS → OpenMRS coded answer UUID.",
       "Constant LIS defaults such as endpoint, instrument UUID, testedBy, and result remarks are supported through lis.* destinations.",
     ],
@@ -138,7 +138,6 @@ export type OpenMrsLisMappingSeedInput = {
     analyzerCode: string;
     analyzerAliases?: string[];
     conceptUuid?: string | null;
-    allocationUuid?: string | null;
     datatype?: string | null;
     codedAnswers?: Array<{
       sourceValue: string;
@@ -153,7 +152,7 @@ export class MappingsService {
   private readonly openMrsLisMetadata = new OpenMrsLisMetadataService();
   list() {
     const db = getDb();
-    return db
+    return (db
       .prepare(
         `
                     SELECT *
@@ -161,10 +160,13 @@ export class MappingsService {
                     ORDER BY target_type ASC, source_field ASC
                 `,
       )
-      .all();
+      .all() as any[]).filter((row) => !this.isSampleSpecificAllocationMapping(row));
   }
 
   create(dto: any) {
+    if (this.isSampleSpecificAllocationMapping(dto)) {
+      throw new Error('OpenMRS LIS testAllocation UUID is sample-specific and cannot be stored as a reusable mapping. It is resolved during delivery.');
+    }
     const db = getDb();
     const id = randomUUID();
     const ts = nowIso();
@@ -210,6 +212,9 @@ export class MappingsService {
   }
 
   update(id: string, dto: any) {
+    if (this.isSampleSpecificAllocationMapping(dto)) {
+      throw new Error('OpenMRS LIS testAllocation UUID is sample-specific and cannot be stored as a reusable mapping. It is resolved during delivery.');
+    }
     const db = getDb();
 
     db.prepare(
@@ -287,20 +292,20 @@ export class MappingsService {
           value: input.endpoint || "/openmrs/ws/rest/v1/lab/multipleresults",
         },
         {
-          destination: "lis.defaults.instrumentUuid",
+          destination: "lis.instrument.uuid",
           value: input.instrumentUuid ?? null,
         },
-        { destination: "lis.defaults.testedBy", value: input.testedBy ?? null },
+        { destination: "lis.testedBy", value: input.testedBy ?? null },
         {
-          destination: "lis.defaults.status.category",
+          destination: "lis.status.category",
           value: input.statusCategory || "RESULT_REMARKS",
         },
         {
-          destination: "lis.defaults.status.status",
+          destination: "lis.status.status",
           value: input.statusStatus || "REMARKS",
         },
         {
-          destination: "lis.defaults.status.remarks",
+          destination: "lis.status.remarks",
           value:
             input.statusRemarks ||
             "Imported from analyzer via machine interfacing",
@@ -343,22 +348,16 @@ export class MappingsService {
         summary,
         ts,
       );
-      const allocationRuleId = this.upsertMappingRule(
-        db,
-        {
-          target_type: "LIS",
-          source_field: "result.observations[].code",
-          destination_field: "lis.parameter.allocationUuid",
-          transform_kind: "lookup",
-          constant_value: null,
-          enabled: 1,
-          value_mapping_enabled: 1,
-          unmapped_behavior: "PASSTHROUGH",
-          default_destination_value: null,
-        },
-        summary,
-        ts,
-      );
+      // Allocation UUIDs are sample-specific and must never be stored as reusable mappings.
+      const legacyAllocationRules = db.prepare(`
+        SELECT id FROM target_mappings
+        WHERE target_type IN ('LIS', 'OPENMRS')
+          AND lower(destination_field) IN ('lis.parameter.allocationuuid', 'lis.testallocation.uuid', 'testallocation.uuid')
+      `).all() as Array<{ id: string }>;
+      for (const legacy of legacyAllocationRules) {
+        db.prepare(`DELETE FROM target_mapping_value_translations WHERE mapping_rule_id = ?`).run(legacy.id);
+        db.prepare(`DELETE FROM target_mappings WHERE id = ?`).run(legacy.id);
+      }
       const datatypeRuleId = this.upsertMappingRule(
         db,
         {
@@ -408,17 +407,6 @@ export class MappingsService {
               code,
               parameter.conceptUuid,
               "Analyzer code or OpenMRS alias to OpenMRS concept UUID",
-              summary,
-              ts,
-            );
-          }
-          if (parameter.allocationUuid) {
-            this.upsertTranslation(
-              db,
-              allocationRuleId,
-              code,
-              parameter.allocationUuid,
-              "Optional fallback: analyzer code or OpenMRS alias to test allocation UUID for the selected sample",
               summary,
               ts,
             );
@@ -820,5 +808,16 @@ export class MappingsService {
       },
     };
   }
+  private isSampleSpecificAllocationMapping(row: any): boolean {
+    const targetType = String(row?.target_type ?? row?.targetType ?? '').trim().toUpperCase();
+    const destination = String(row?.destination_field ?? row?.destinationField ?? '').trim().toLowerCase();
+    if (!['LIS', 'OPENMRS'].includes(targetType)) return false;
+    return destination === 'lis.parameter.allocationuuid' ||
+      destination === 'lis.testallocation.uuid' ||
+      destination === 'testallocation.uuid' ||
+      destination.endsWith('.allocationuuid') ||
+      destination.endsWith('.testallocation.uuid');
+  }
+
 }
 

@@ -418,7 +418,7 @@ export class LisTestOrderProfileService {
       analyzer_code: analyzerCode,
       display_name: this.clean(item.display_name ?? item.displayName) || analyzerCode,
       concept_uuid: this.clean(item.concept_uuid ?? item.conceptUuid),
-      allocation_uuid: this.clean(item.allocation_uuid ?? item.allocationUuid),
+      allocation_uuid: null,
       datatype: this.clean(item.datatype),
       value_type: ['coded', 'numeric', 'text'].includes(valueType) ? valueType : 'text',
       required: this.numberFlag(item.required, 1),
@@ -431,6 +431,9 @@ export class LisTestOrderProfileService {
     const copy = { ...row };
     copy.order_name_includes = this.stringList(this.tryParseJson(row?.order_name_includes_json));
     copy.aliases = this.stringList(this.tryParseJson(row?.aliases_json));
+    // Keep the legacy DB column for migration compatibility, but never expose a sample-specific
+    // allocation UUID as reusable profile metadata. LIVE delivery resolves it from the current sample.
+    if (Object.prototype.hasOwnProperty.call(copy, 'allocation_uuid')) delete copy.allocation_uuid;
     return copy;
   }
 

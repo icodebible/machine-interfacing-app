@@ -1491,6 +1491,8 @@ const secure_http_client_1 = require("../security/secure-http.client");
 const target_secrets_service_1 = require("./target-secrets.service");
 const delivery_auth_util_1 = require("../security/delivery-auth.util");
 const REST_PREFIX = '/openmrs/ws/rest/v1';
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const MIN_METADATA_DISCOVERY_TIMEOUT_MS = 60_000;
 const SETTINGS = [
     'iCare.laboratory.resultApprovalConfiguration',
     'iCare.lis.testParameterRelationship.conceptSourceUuid',
@@ -1511,8 +1513,10 @@ class OpenMrsLisMetadataService {
         const secret = this.secrets.get(target.id);
         const headers = (0, delivery_auth_util_1.buildAuthHeaders)(secret);
         const allowInsecureTls = !!secret?.allowInsecureTls;
-        const timeout = Number(target.request_timeout_ms ?? 15_000);
+        const configuredTimeout = Number(target.request_timeout_ms ?? DEFAULT_REQUEST_TIMEOUT_MS);
+        const timeout = Math.max(Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : DEFAULT_REQUEST_TIMEOUT_MS, MIN_METADATA_DISCOVERY_TIMEOUT_MS);
         const warnings = [];
+        console.info(`[OpenMRS LIS discovery] timeout policy: target=${configuredTimeout}ms, metadata=${timeout}ms`);
         const lookup = await this.fetchOptional(target, `/lab/samplelookup?sampleId=${encodeURIComponent(String(input.sampleId ?? '').trim())}`, headers, allowInsecureTls, timeout, !!String(input.sampleId ?? '').trim(), warnings, 'sample lookup');
         const sampleUuid = String(input.sampleUuid ?? '').trim() ||
             lookup?.sample?.uuid ||
@@ -1526,7 +1530,7 @@ class OpenMrsLisMetadataService {
             settings[property] = payload?.results?.[0]?.value ?? null;
         }
         const instrumentsPayload = await this.fetchOptional(target, '/concept?q=LIS_INSTRUMENT&limit=50&tag=LIS_INSTRUMENT&class=LIS%20instrument&v=custom:(uuid,display,datatype,conceptClass,mappings)', headers, allowInsecureTls, timeout, true, warnings, 'LIS instruments');
-        const testOrdersPayload = await this.fetchOptional(target, '/concept?q=TEST_ORDERS&limit=50&tag=TEST_ORDERS&class=Test&v=custom:(uuid,display,datatype,conceptClass,mappings,setMembers:(uuid,display,datatype,conceptClass,names,mappings,answers:(uuid,display,names)))', headers, allowInsecureTls, timeout, true, warnings, 'test orders');
+        const testOrdersPayload = await this.fetchTestOrders(target, headers, allowInsecureTls, timeout, warnings);
         const usersPayload = await this.fetchOpenMrsUsers(target, String(input.userQuery ?? '').trim(), headers, allowInsecureTls, timeout, warnings);
         let parameters = this.extractParameters(allocations);
         if (input.includeConceptDetails !== false && parameters.length > 0) {
@@ -1563,16 +1567,47 @@ class OpenMrsLisMetadataService {
         if (!shouldFetch || !path)
             return null;
         const url = this.restUrl(target, path);
-        const res = await this.http.getJson(url, headers, allowInsecureTls, timeout);
-        if (!res.ok) {
-            warnings.push(`Failed to fetch ${label}: HTTP ${res.status}.`);
-            return null;
+        const startedAt = Date.now();
+        // Deliberately log the fully resolved URL for operational verification,
+        // but never log authentication headers/secrets.
+        console.info(`[OpenMRS LIS discovery] GET ${label} -> ${url} (timeout=${timeout}ms, insecureTls=${allowInsecureTls})`);
+        try {
+            const res = await this.http.getJson(url, headers, allowInsecureTls, timeout);
+            const elapsedMs = Date.now() - startedAt;
+            console.info(`[OpenMRS LIS discovery] GET ${label} <- HTTP ${res.status} in ${elapsedMs}ms -> ${url}`);
+            if (!res.ok) {
+                warnings.push(`Failed to fetch ${label}: HTTP ${res.status}.`);
+                return null;
+            }
+            if (!res.json) {
+                warnings.push(`Fetched ${label}, but the response was not valid JSON.`);
+                return null;
+            }
+            return res.json;
         }
-        if (!res.json) {
-            warnings.push(`Fetched ${label}, but the response was not valid JSON.`);
-            return null;
+        catch (error) {
+            const elapsedMs = Date.now() - startedAt;
+            const message = String(error?.message ?? error ?? 'Unknown request error');
+            console.error(`[OpenMRS LIS discovery] GET ${label} FAILED after ${elapsedMs}ms -> ${url}: ${message}`);
+            throw new Error(`Failed to fetch ${label} from ${url}: ${message}`);
         }
-        return res.json;
+    }
+    async fetchTestOrders(target, headers, allowInsecureTls, timeout, warnings) {
+        const richView = 'custom:(uuid,display,datatype,conceptClass,mappings,setMembers:(uuid,display,datatype,conceptClass,names,mappings,answers:(uuid,display,names)))';
+        const richPath = '/concept?q=TEST_ORDERS&limit=50&tag=TEST_ORDERS&class=Test' +
+            `&v=${encodeURIComponent(richView)}`;
+        try {
+            return await this.fetchOptional(target, richPath, headers, allowInsecureTls, timeout, true, warnings, 'test orders');
+        }
+        catch (error) {
+            const message = String(error?.message ?? error ?? 'Unknown request error');
+            warnings.push(`Rich test-order discovery failed; retrying with a lightweight concept list. ${message}`);
+            console.warn(`[OpenMRS LIS discovery] rich test-order request failed; retrying lightweight representation: ${message}`);
+        }
+        const lightView = 'custom:(uuid,display,datatype,conceptClass,mappings)';
+        const lightPath = '/concept?q=TEST_ORDERS&limit=50&tag=TEST_ORDERS&class=Test' +
+            `&v=${encodeURIComponent(lightView)}`;
+        return this.fetchOptional(target, lightPath, headers, allowInsecureTls, timeout, true, warnings, 'test orders lightweight fallback');
     }
     normalizedBaseUrl(target) {
         const base = String(target?.base_url ?? '').trim().replace(/\/+$/, '');
@@ -1620,6 +1655,12 @@ class OpenMrsLisMetadataService {
         const enriched = [];
         for (const order of testOrders.slice(0, 100)) {
             const existingParameters = Array.isArray(order.parameters) ? order.parameters : [];
+            // The rich search already contains setMembers; do not refetch the same
+            // concept when its parameters are already available.
+            if (existingParameters.length > 0) {
+                enriched.push(order);
+                continue;
+            }
             const concept = await this.fetchOptional(target, `/concept/${encodeURIComponent(order.uuid)}?v=custom:(uuid,display,datatype,conceptClass,names,mappings,setMembers:(uuid,display,datatype,conceptClass,names,mappings,answers:(uuid,display,names)))`, headers, allowInsecureTls, timeout, true, warnings, `test order concept ${order.display}`);
             let parameters = this.parametersFromTestOrderConcept(concept ?? order.raw ?? order);
             /**
